@@ -4,7 +4,7 @@ import com.marat.albion.data.content.Deck
 import com.marat.albion.data.db.GrammarProgressEntity
 import com.marat.albion.data.db.PracticeNeed
 import com.marat.albion.data.grammar.*
-import com.marat.albion.data.repo.DeckSummary
+import com.marat.albion.data.repo.TodaySummary
 import com.marat.albion.ui.games.Game
 import com.marat.albion.ui.nav.*
 import com.marat.albion.ui.stats.StudyAdvicePolicy
@@ -61,39 +61,39 @@ class LearningRecommendationsTest {
     }
 
     @Test fun scheduledCardsTakePriorityAndUseABoundedSession() {
-        val advice = StudyAdvicePolicy.choose(listOf(DeckSummary(Deck.WORDS, total = 30, due = 3, newAvailable = 20)),
+        val advice = StudyAdvicePolicy.choose(TodaySummary(due = 3, newAvailable = 20),
             GrammarNextStep.Step(first, GrammarNextStep.Kind.Review, "due"), listOf(need()))!!
         assertEquals(StudyRoute(answerLimit = 10), advice.destination)
     }
 
     @Test fun dueGrammarLeadsDirectlyToTheCorrectTopicQuiz() {
-        val advice = StudyAdvicePolicy.choose(emptyList(), GrammarNextStep.Step(second, GrammarNextStep.Kind.Review, "due"), listOf(need()))!!
+        val advice = StudyAdvicePolicy.choose(TodaySummary(), GrammarNextStep.Step(second, GrammarNextStep.Kind.Review, "due"), listOf(need()))!!
         assertEquals(TopicQuizRoute(2, second.id, second.title), advice.destination)
     }
 
     @Test fun mistakeAdviceCarriesDeckAndFilterInsteadOfLaunchingAGenericExercise() {
-        val advice = StudyAdvicePolicy.choose(emptyList(), step(), listOf(need(deck = Deck.PHRASAL)))!!
+        val advice = StudyAdvicePolicy.choose(TodaySummary(), step(), listOf(need(deck = Deck.PHRASAL)))!!
         assertEquals(GameRoute(Game.TYPE_ANSWER, Deck.PHRASAL, onlyMistakes = true, count = 10), advice.destination)
     }
 
     @Test fun invalidAndUnsupportedMistakesCannotLeadToAnEmptyOrWrongExercise() {
         val needs = listOf(PracticeNeed("REMOVED_GAME", Deck.WORDS.id, 200, now), need(deck = Deck.BOOK_WORDS),
             need(game = Game.IRREGULAR, deck = Deck.WORDS), need(game = Game.SENTENCE), need(count = 0))
-        val advice = StudyAdvicePolicy.choose(emptyList(), step(), needs)!!
+        val advice = StudyAdvicePolicy.choose(TodaySummary(), step(), needs)!!
         assertEquals(TopicRoute(first.id), advice.destination)
     }
 
     @Test fun strongestCurrentNeedWinsAndRecentlyUsedNeedBreaksTies() {
-        val advice = StudyAdvicePolicy.choose(emptyList(), null, listOf(need(count = 4, seen = now - 1),
+        val advice = StudyAdvicePolicy.choose(TodaySummary(), null, listOf(need(count = 4, seen = now - 1),
             need(game = Game.IRREGULAR, deck = Deck.IRREGULAR, count = 4), need(deck = Deck.PHRASAL, count = 1)))!!
         assertEquals(GameRoute(Game.IRREGULAR, Deck.IRREGULAR, true, 10), advice.destination)
     }
 
     @Test fun readGrammarIsCheckedBeforeNewVocabularyAndSmallQueuesStaySmall() {
-        val decks = listOf(DeckSummary(Deck.WORDS, total = 3, newAvailable = 3))
+        val decks = TodaySummary(newAvailable = 3)
         val check = step(mapOf(first.id to progress()))!!
         assertEquals(TopicQuizRoute(1, first.id, first.title), StudyAdvicePolicy.choose(decks, check, emptyList())!!.destination)
         assertEquals(StudyRoute(answerLimit = 3), StudyAdvicePolicy.choose(decks, null, emptyList())!!.destination)
-        assertNull(StudyAdvicePolicy.choose(emptyList(), null, emptyList()))
+        assertNull(StudyAdvicePolicy.choose(TodaySummary(), null, emptyList()))
     }
 }

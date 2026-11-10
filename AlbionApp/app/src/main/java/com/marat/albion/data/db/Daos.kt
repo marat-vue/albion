@@ -105,8 +105,9 @@ interface ReviewDao {
     @Query("DELETE FROM review_log WHERE id = :id")
     suspend fun deleteLog(id: Long)
 
-    @Query("SELECT COUNT(*) FROM review_log WHERE deck = :deck AND state_before = :stateBefore AND reviewed_at >= :since")
-    suspend fun countSince(deck: String, stateBefore: Int, since: Long): Int
+    /** Ответы с начала учебного дня — из них считаются дневные лимиты словарей и коллекций. */
+    @Query("SELECT card_id AS cardId, deck, state_before AS stateBefore FROM review_log WHERE reviewed_at >= :since")
+    suspend fun answersSince(since: Long): List<DayAnswer>
 
     @Query("SELECT COUNT(*) FROM review_log WHERE reviewed_at >= :since")
     fun observeReviewsSince(since: Long): Flow<Int>

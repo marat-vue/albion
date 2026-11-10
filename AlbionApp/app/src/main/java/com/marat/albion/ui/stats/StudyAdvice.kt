@@ -4,7 +4,7 @@ import androidx.navigation3.runtime.NavKey
 import com.marat.albion.data.content.Deck
 import com.marat.albion.data.db.PracticeNeed
 import com.marat.albion.data.grammar.GrammarNextStep
-import com.marat.albion.data.repo.DeckSummary
+import com.marat.albion.data.repo.TodaySummary
 import com.marat.albion.ui.games.Game
 import com.marat.albion.ui.library.pluralRu
 import com.marat.albion.ui.nav.GameRoute
@@ -16,9 +16,9 @@ data class StudyAdvice(val title: String, val reason: String, val action: String
 
 /** Explainable priorities: scheduled study, current mistakes, then new material. */
 object StudyAdvicePolicy {
-    fun choose(decks: List<DeckSummary>, grammar: GrammarNextStep.Step?, needs: List<PracticeNeed>): StudyAdvice? {
-        val due = decks.sumOf { it.due }
-        val available = decks.sumOf { it.toStudy }
+    fun choose(today: TodaySummary, grammar: GrammarNextStep.Step?, needs: List<PracticeNeed>): StudyAdvice? {
+        val due = today.due
+        val available = today.toStudy
         if (due > 0) return StudyAdvice("Вернуться к карточкам",
             "К повторению: $due ${pluralRu(due, "карточка", "карточки", "карточек")}. Начните с короткого занятия; остальные останутся на потом.",
             "Короткое занятие", StudyRoute(answerLimit = minOf(10, available)))
@@ -39,7 +39,7 @@ object StudyAdvicePolicy {
         }
         if (grammar?.kind == GrammarNextStep.Kind.Check) return grammarAdvice(grammar)
         if (available > 0) return StudyAdvice("Небольшой шаг сегодня",
-            "Доступны новые карточки. Короткое занятие поможет двигаться вперёд без перегрузки.",
+            "В ваших коллекциях есть новые слова. Короткое занятие поможет двигаться вперёд без перегрузки.",
             "Начать занятие", StudyRoute(answerLimit = minOf(10, available)))
         return grammar?.let(::grammarAdvice)
     }

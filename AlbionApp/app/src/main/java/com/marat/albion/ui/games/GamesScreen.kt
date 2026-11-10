@@ -83,7 +83,7 @@ fun GamesScreen(navigator: Navigator) {
                 ScreenHeader("Практика", eyebrow = if (short) null else "04 / НАВЫКИ", compact = true, trailing = {
                     Row {
                         FeatureHelp("practice", "Как заниматься",
-                            "Выберите навык, затем колоду или уровень и длину занятия. Параметры каждого упражнения сохраняются.\n\nОшибки сохраняются: сложные слова и задания будут встречаться чаще.\n\nПрактика учитывается в дневной цели и статистике; расписание повторения карточек остаётся прежним.", showOnFirstUse = false)
+                            "Выберите навык, затем словарь или уровень и длину занятия. Параметры каждого упражнения сохраняются.\n\nОшибки сохраняются: сложные слова и задания будут встречаться чаще.\n\nПрактика учитывается в дневной цели и статистике; расписание повторения карточек остаётся прежним.", showOnFirstUse = false)
                         SettingsShortcut(navigator::openSettings)
                     }
                 })
@@ -132,7 +132,7 @@ fun GamesScreen(navigator: Navigator) {
 internal fun PracticeContinuation(game: Game, options: PracticeOptions, continuing: Boolean, onOpen: () -> Unit) {
     val scope = if (game.isGrammar) options.level.ifEmpty { "Все уровни" }
         else (game.decks.firstOrNull { it.id == options.deckId } ?: game.decks.first()).title
-    val length = if (options.count == Int.MAX_VALUE) "вся колода" else "${options.count} ${game.unit}"
+    val length = if (options.count == Int.MAX_VALUE) "весь словарь" else "${options.count} ${game.unit}"
     BoxWithConstraints(Modifier.fillMaxWidth()) {
         val measurer = androidx.compose.ui.text.rememberTextMeasurer()
         val density = androidx.compose.ui.platform.LocalDensity.current

@@ -39,7 +39,9 @@ private const val PLACEHOLDER_KEY = "albion.placeholder"
 
 /** Какие экраны — список, а какие — его подробности. Остальные всегда занимают весь экран. */
 internal fun paneOf(route: NavKey): Pane? = when (route) {
-    GrammarRoute, is BrowseRoute -> Pane.List
+    GrammarRoute -> Pane.List
+    // Подбор слов в коллекцию ничего не открывает рядом — список на весь экран.
+    is BrowseRoute -> if (route.collectionId == null) Pane.List else null
     is TopicRoute, is CardRoute -> Pane.Detail
     else -> null
 }

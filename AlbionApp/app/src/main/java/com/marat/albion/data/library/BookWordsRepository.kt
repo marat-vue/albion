@@ -72,6 +72,8 @@ class BookWordsRepository(private val db: AlbionDatabase, private val json: Json
             db.reviews().deleteCardLogs(it.id)
         }
         db.cards().delete(members.map { it.id })
+        val (deck, term) = com.marat.albion.data.repo.CollectionRepository.wordOf(card)
+        db.collections().forgetWord(deck, term)
         true
     }
 

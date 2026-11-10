@@ -13,6 +13,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
@@ -27,12 +28,11 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.marat.albion.AppContainer
 import com.marat.albion.LocalAppContainer
-import com.marat.albion.data.content.Deck
 import com.marat.albion.data.content.ImportStatus
 import com.marat.albion.data.grammar.GrammarBook
 import com.marat.albion.data.grammar.Topic
 import com.marat.albion.data.grammar.GrammarNextStep
-import com.marat.albion.data.repo.DeckSummary
+import com.marat.albion.data.repo.StudyOverview
 import com.marat.albion.ui.components.*
 import com.marat.albion.ui.nav.*
 import com.marat.albion.ui.theme.*
@@ -43,7 +43,7 @@ import java.util.Date
 import java.util.Locale
 
 data class HomeState(
-    val decks: List<DeckSummary> = Deck.entries.map { DeckSummary(it) },
+    val study: StudyOverview = StudyOverview(),
     val streak: Int = 0,
     val answersToday: Int = 0,
     val grammar: GrammarBook = GrammarBook.EMPTY,
@@ -61,14 +61,14 @@ class HomeViewModel(c: AppContainer) : ViewModel() {
     val importStatus: StateFlow<ImportStatus> = c.importer.status
 
     val state: StateFlow<HomeState> = combine(
-        c.study.observeSummaries(),
+        c.study.observeOverview(),
         c.study.observeStats().map { it.streak to it.answersToday },
         flow { emit(c.grammar.book()) },
         c.grammar.observeProgress(),
         combine(c.settings.settings, c.grammar.observeQuizTopics()) { s, q -> s to q.toSet() },
-    ) { decks, (streak, today), book, progress, (s, quizTopics) ->
+    ) { study, (streak, today), book, progress, (s, quizTopics) ->
         val step = GrammarNextStep.recommend(book, progress.associateBy { it.topicId }, quizTopics, System.currentTimeMillis(), lastId = s.lastGrammarTopic)
-        HomeState(decks, streak, today, book, step?.topic, s.dailyGoal,
+        HomeState(study, streak, today, book, step?.topic, s.dailyGoal,
             sessionSize = s.shortSessionAnswers, grammarStep = step, loaded = true)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeState())
 }
@@ -83,6 +83,7 @@ fun HomeScreen(navigator: Navigator) {
     var sessionSize by rememberSaveable { mutableIntStateOf(state.sessionSize) }
     LaunchedEffect(state.sessionSize) { sessionSize = state.sessionSize }
     val date = SimpleDateFormat("d MMMM · EEEE", Locale.forLanguageTag("ru")).format(Date())
+    var creating by rememberSaveable { mutableStateOf(false) }
 
     BoxWithConstraints(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         val compact = maxWidth < 360.dp || maxHeight < 640.dp || LocalDensity.current.fontScale > 1.2f
@@ -110,7 +111,7 @@ fun HomeScreen(navigator: Navigator) {
             item {
                 TodayCard(state, sessionSize, Modifier.appear(1), compact, short, status is ImportStatus.Checking || status is ImportStatus.Importing,
                     onSize = { sessionSize = it; vm.setSessionSize(it) },
-                    onStart = { navigator.open(StudyRoute(answerLimit = minOf(sessionSize, state.decks.sumOf { it.toStudy }).coerceAtLeast(1))) },
+                    onStart = { navigator.open(StudyRoute(answerLimit = minOf(sessionSize, state.study.today.toStudy).coerceAtLeast(1))) },
                     onRead = { navigator.switchTab(LibraryRoute) })
             }
             item {
@@ -136,12 +137,28 @@ fun HomeScreen(navigator: Navigator) {
             item { Box(Modifier.appear(6)) { PracticeBlock(navigator) } }
         }
         val decks: LazyListScope.() -> Unit = {
+            val collections = state.study.collections
             item {
-                ModuleHeading("03", "Ваши колоды", if (state.loaded) "${state.decks.size} " + com.marat.albion.ui.library.pluralRu(state.decks.size, "колода", "колоды", "колод") else null)
+                ModuleHeading("03", "Мои коллекции", if (state.loaded && collections.isNotEmpty()) "${collections.size} " +
+                    com.marat.albion.ui.library.pluralRu(collections.size, "коллекция", "коллекции", "коллекций") else null)
             }
-            items(state.decks.size, key = { state.decks[it].deck.id }) { i ->
-                val summary = state.decks[i]
-                DeckRow(summary, Modifier.padding(bottom = 8.dp).appear(7 + i)) { navigator.open(DeckRoute(summary.deck)) }
+            if (state.loaded && collections.isEmpty()) item {
+                Text("Соберите свои наборы слов из словарей ниже и тренируйтесь по ним. Новые слова коллекций приходят в занятие на сегодня.",
+                    style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(bottom = 12.dp))
+            }
+            items(collections, key = { "collection:${it.collection.id}" }) { summary ->
+                CollectionRow(summary, Modifier.padding(bottom = 8.dp).appear(7)) { navigator.open(CollectionRoute(summary.collection.id)) }
+            }
+            item {
+                GhostButton("Новая коллекция", { creating = true }, icon = AlbionIcons.Add, modifier = Modifier.padding(bottom = 8.dp))
+            }
+            item {
+                ModuleHeading("04", "Словари", if (state.loaded) "${state.study.dictionaries.size} " +
+                    com.marat.albion.ui.library.pluralRu(state.study.dictionaries.size, "словарь", "словаря", "словарей") else null)
+            }
+            items(state.study.dictionaries, key = { "dictionary:${it.deck.id}" }) { summary ->
+                DeckRow(summary, Modifier.padding(bottom = 8.dp).appear(8 + summary.deck.ordinal)) { navigator.open(DictionaryRoute(summary.deck)) }
             }
         }
         val padding = PaddingValues(start = gutter, end = gutter, bottom = 28.dp)
@@ -153,12 +170,17 @@ fun HomeScreen(navigator: Navigator) {
             }
         } else LazyColumn(Modifier.fillMaxSize(), contentPadding = padding) { overview(); decks() }
     }
+    if (creating) com.marat.albion.ui.collections.CollectionNameDialog("Новая коллекция", "Создать", { creating = false }) { name ->
+        val id = c.collections.create(name)
+        creating = false
+        navigator.open(CollectionRoute(id))
+    }
 }
 
 @Composable
 internal fun TodayCard(state: HomeState, sessionSize: Int, modifier: Modifier, compact: Boolean, short: Boolean,
                       preparing: Boolean, onSize: (Int) -> Unit, onStart: () -> Unit, onRead: () -> Unit) {
-    val available = state.decks.sumOf { it.toStudy }
+    val available = state.study.today.toStudy
     val planned = minOf(sessionSize, available)
     val loaded = state.loaded && !preparing
     val sizes = listOf(5, 10, 20)
@@ -176,6 +198,8 @@ internal fun TodayCard(state: HomeState, sessionSize: Int, modifier: Modifier, c
         Text(when {
             !loaded -> "Собираем ваши карточки"
             available > 0 -> "${answerLabel(planned)} за занятие · $available ${com.marat.albion.ui.library.pluralRu(available, "карточка доступна", "карточки доступны", "карточек доступно")}"
+            state.study.collections.isEmpty() && state.study.today.due == 0 ->
+                "Новые слова приходят из ваших коллекций. Создайте коллекцию или тренируйте словарь целиком."
             else -> "Все карточки на сегодня повторены. Время для книги."
         }, style = MaterialTheme.typography.bodySmall, color = LocalContentColor.current)
         if (!loaded || available > 0) {

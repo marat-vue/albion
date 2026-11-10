@@ -63,7 +63,7 @@ class ShortStudySessionTest {
 
     private suspend fun session(limit: Int? = null): StudyViewModel {
         val vm = withContext(Dispatchers.Main) {
-            StudyViewModel(repo, Deck.WORDS, limit).also { models.put("study-${UUID.randomUUID()}", it) }
+            StudyViewModel(repo, com.marat.albion.data.repo.StudySource.Dictionary(Deck.WORDS), limit).also { models.put("study-${UUID.randomUUID()}", it) }
         }
         await(vm) { !it.loading }
         return vm

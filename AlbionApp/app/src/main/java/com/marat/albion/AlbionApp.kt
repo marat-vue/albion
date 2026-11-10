@@ -30,6 +30,7 @@ class AppContainer(context: Context) {
     val settings = SettingsRepository(context)
     val importer = ContentImporter(context.assets, database, settings, json)
     val study = StudyRepository(database, settings, json)
+    val collections = com.marat.albion.data.repo.CollectionRepository(database)
     val grammar = GrammarRepository(context.assets, database)
     val audio = AudioPlayer(context)
     val tuner = com.marat.albion.data.repo.FsrsTuner(study, appScope)

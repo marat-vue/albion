@@ -4,6 +4,7 @@ import androidx.compose.runtime.MutableIntState
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavKey
 import com.marat.albion.data.content.Deck
+import com.marat.albion.data.repo.StudySource
 import com.marat.albion.ui.games.Game
 import kotlinx.serialization.Serializable
 
@@ -15,10 +16,12 @@ sealed interface TopLevel : NavKey
 @Serializable data object StatsRoute : TopLevel
 @Serializable data object SettingsRoute : NavKey
 
-@Serializable data class DeckRoute(val deck: Deck) : NavKey
-/** [deck] = null — общее занятие по всем колодам. */
-@Serializable data class StudyRoute(val deck: Deck? = null, val answerLimit: Int? = null) : NavKey
-@Serializable data class BrowseRoute(val deck: Deck) : NavKey
+@Serializable data class DictionaryRoute(val deck: Deck) : NavKey
+/** По умолчанию — занятие «Сегодня»: все повторения и новые слова коллекций. */
+@Serializable data class StudyRoute(val source: StudySource = StudySource.Today, val answerLimit: Int? = null) : NavKey
+/** Слова словаря. С [collectionId] список служит для подбора слов в эту коллекцию. */
+@Serializable data class BrowseRoute(val deck: Deck, val collectionId: Long? = null) : NavKey
+@Serializable data class CollectionRoute(val id: Long) : NavKey
 @Serializable data class CardRoute(val cardId: String) : NavKey
 @Serializable data class TopicRoute(val topicId: String, val fromQuiz: Boolean = false) : NavKey
 @Serializable data class TopicQuizRoute(val topic: Int, val topicId: String, val title: String) : NavKey
@@ -56,7 +59,7 @@ class Navigator internal constructor(
     val shownDetail: NavKey? get() = backStack.lastOrNull()?.takeIf { paneOf(it) == Pane.Detail }
 
     /**
-     * Открывает страницу из списка (тему из оглавления, карточку из списка колоды).
+     * Открывает страницу из списка (тему из оглавления, карточку из списка словаря).
      * На планшете страница стоит рядом со списком, поэтому новая заменяет прежнюю, а не копится в истории.
      * На телефоне над списком страниц нет, и это обычный переход.
      */

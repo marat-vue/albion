@@ -15,11 +15,11 @@ class NavigatorTest {
 
     @Test fun switchingTabsRetainsEachStack() {
         val nav = navigator()
-        nav.open(DeckRoute(Deck.WORDS))
+        nav.open(DictionaryRoute(Deck.WORDS))
         nav.selectTab(GrammarRoute)
         nav.open(TopicRoute("articles"))
         nav.selectTab(HomeRoute)
-        assertEquals(listOf(HomeRoute, DeckRoute(Deck.WORDS)), nav.backStack.toList())
+        assertEquals(listOf(HomeRoute, DictionaryRoute(Deck.WORDS)), nav.backStack.toList())
         nav.selectTab(GrammarRoute)
         assertEquals(listOf(GrammarRoute, TopicRoute("articles")), nav.backStack.toList())
     }
@@ -40,13 +40,13 @@ class NavigatorTest {
 
     @Test fun selectingCurrentTabReturnsToItsRootOnly() {
         val nav = navigator()
-        nav.open(DeckRoute(Deck.IDIOMS))
+        nav.open(DictionaryRoute(Deck.IDIOMS))
         nav.selectTab(GrammarRoute)
         nav.open(TopicRoute("articles"))
         nav.selectTab(GrammarRoute)
         assertEquals(listOf(GrammarRoute), nav.backStack.toList())
         nav.selectTab(HomeRoute)
-        assertEquals(DeckRoute(Deck.IDIOMS), nav.backStack.last())
+        assertEquals(DictionaryRoute(Deck.IDIOMS), nav.backStack.last())
     }
 
     @Test fun backPopsScreenThenReturnsHomeFromTabRoot() {
@@ -74,21 +74,21 @@ class NavigatorTest {
 
     @Test fun openingExistingRoutePopsToItWithoutDuplicateKeys() {
         val nav = navigator()
-        nav.open(DeckRoute(Deck.WORDS))
+        nav.open(DictionaryRoute(Deck.WORDS))
         nav.open(BrowseRoute(Deck.WORDS))
         nav.open(CardRoute("card"))
-        nav.open(DeckRoute(Deck.WORDS))
-        assertEquals(listOf(HomeRoute, DeckRoute(Deck.WORDS)), nav.backStack.toList())
+        nav.open(DictionaryRoute(Deck.WORDS))
+        assertEquals(listOf(HomeRoute, DictionaryRoute(Deck.WORDS)), nav.backStack.toList())
     }
 
     @Test fun replaceKeepsRootAndReusesEarlierRoute() {
         val nav = navigator()
-        nav.open(DeckRoute(Deck.WORDS))
+        nav.open(DictionaryRoute(Deck.WORDS))
         nav.open(BrowseRoute(Deck.WORDS))
         nav.replace(CardRoute("card"))
-        assertEquals(listOf(HomeRoute, DeckRoute(Deck.WORDS), CardRoute("card")), nav.backStack.toList())
-        nav.replace(DeckRoute(Deck.WORDS))
-        assertEquals(listOf(HomeRoute, DeckRoute(Deck.WORDS)), nav.backStack.toList())
+        assertEquals(listOf(HomeRoute, DictionaryRoute(Deck.WORDS), CardRoute("card")), nav.backStack.toList())
+        nav.replace(DictionaryRoute(Deck.WORDS))
+        assertEquals(listOf(HomeRoute, DictionaryRoute(Deck.WORDS)), nav.backStack.toList())
     }
 
     @Test fun crossSectionLinksReturnToTheOriginatingSection() {

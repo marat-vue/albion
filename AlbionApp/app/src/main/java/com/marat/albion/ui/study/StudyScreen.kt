@@ -83,6 +83,9 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.marat.albion.LocalAppContainer
 import com.marat.albion.audio.AudioPlayer
 import com.marat.albion.data.content.Deck
+import com.marat.albion.data.repo.StudySource
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import com.marat.albion.data.fsrs.Rating
 import com.marat.albion.data.settings.Settings
 import com.marat.albion.ui.components.StatPill
@@ -107,9 +110,12 @@ fun rememberCardAudio(player: AudioPlayer): CardAudio {
 }
 
 @Composable
-fun StudyScreen(deck: Deck?, navigator: Navigator, answerLimit: Int? = null) {
+fun StudyScreen(source: StudySource, navigator: Navigator, answerLimit: Int? = null) {
     val c = LocalAppContainer.current
-    val vm = viewModel(key = "study-${deck?.id ?: "all"}-${answerLimit ?: "full"}") { StudyViewModel(c.study, deck, answerLimit) }
+    val vm = viewModel(key = "study-$source-${answerLimit ?: "full"}") { StudyViewModel(c.study, source, answerLimit) }
+    val collectionName by remember(source) {
+        (source as? StudySource.Collection)?.let { s -> c.collections.observe(s.id).map { it?.name } } ?: flowOf(null)
+    }.collectAsStateWithLifecycle(null)
     val state by vm.state.collectAsStateWithLifecycle()
     val settings by c.settings.settings.collectAsStateWithLifecycle(Settings())
     val audio = rememberCardAudio(c.audio)
@@ -119,7 +125,7 @@ fun StudyScreen(deck: Deck?, navigator: Navigator, answerLimit: Int? = null) {
     val current = state.current
     LaunchedEffect(current?.card?.id, state.revealed) {
         val card = current?.card ?: return@LaunchedEffect
-        val d = Deck.byId(card.deck) ?: deck ?: Deck.WORDS
+        val d = Deck.byId(card.deck) ?: Deck.WORDS
         if ((!state.revealed && settings.autoplayFront) || (state.revealed && settings.autoplayBack)) {
             c.audio.playDelayed(d, card.audio, card.term, "term:${card.id}", delayMs = 180)
         }
@@ -149,7 +155,7 @@ fun StudyScreen(deck: Deck?, navigator: Navigator, answerLimit: Int? = null) {
     ) {
         val compact = maxHeight < 480.dp || LocalDensity.current.fontScale > 1.3f
         Column(Modifier.fillMaxSize()) {
-            TopRow(deck, state, compact, onClose = { c.audio.stop(); navigator.back() }, onUndo = vm::undo)
+            TopRow(studyTitle(source, collectionName, state), state, compact, onClose = { c.audio.stop(); navigator.back() }, onUndo = vm::undo)
             ThinProgress(state.progress, modifier = Modifier.padding(horizontal = gutter))
 
             when {
@@ -242,9 +248,18 @@ private fun StudyWorkspace(
 }
 
 @Composable
-private fun TopRow(deck: Deck?, state: StudyState, compact: Boolean, onClose: () -> Unit, onUndo: () -> Unit) {
-    // В общем занятии подписываем колоду текущей карточки: от неё зависит, что вспоминать.
-    val title = deck?.title ?: listOfNotNull("Все колоды", state.current?.let { Deck.byId(it.card.deck)?.title }).joinToString(" · ")
+private fun studyTitle(source: StudySource, collectionName: String?, state: StudyState): String {
+    // Вне словаря подписываем словарь текущей карточки: от него зависит, что вспоминать.
+    val deck = state.current?.let { Deck.byId(it.card.deck)?.title }
+    return when (source) {
+        is StudySource.Dictionary -> source.deck.title
+        is StudySource.Collection -> listOfNotNull(collectionName ?: "Коллекция", deck).joinToString(" · ")
+        StudySource.Today -> listOfNotNull("Сегодня", deck).joinToString(" · ")
+    }
+}
+
+@Composable
+private fun TopRow(title: String, state: StudyState, compact: Boolean, onClose: () -> Unit, onUndo: () -> Unit) {
     Column {
         Row(Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
             com.marat.albion.ui.components.RoundIconButton(AlbionIcons.Close, "Закрыть", onClose, spin = 90f)
@@ -435,7 +450,7 @@ private fun Finished(state: StudyState, onDone: () -> Unit, onUndo: () -> Unit) 
         Text(if (state.answered == 0) "Всё повторено." else "Отличная работа.", style = MaterialTheme.typography.displayMedium, color = MaterialTheme.colorScheme.onSurface)
         Spacer(Modifier.height(10.dp))
         Text(
-            if (state.answered == 0) "Сейчас в этой колоде нечего повторять."
+            if (state.answered == 0) "Сейчас здесь нечего повторять."
             else if (state.answerLimit != null) "Короткое занятие завершено. Прогресс сохранён — к оставшимся карточкам можно вернуться позже."
             else "Занятие завершено. Следующие карточки FSRS покажет точно в срок.",
             style = MaterialTheme.typography.bodyLarge,

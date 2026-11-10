@@ -9,7 +9,7 @@ import com.marat.albion.data.grammar.GrammarPrompt
 
 /**
  * Карточка — материал из xlsx или личное слово из книги. Импорт обновляет только
- * встроенные колоды; прогресс хранится отдельно в [ReviewStateEntity].
+ * встроенные словари; прогресс хранится отдельно в [ReviewStateEntity].
  *
  * Для xlsx id = "<deck>:<term>#<n>"; личные слова используют ключи слова и значения.
  */
@@ -210,7 +210,7 @@ data class HighlightEntity(
     @ColumnInfo(name = "created_at") val createdAt: Long,
 )
 
-/** Агрегаты для экранов колод. */
+/** Агрегаты для экранов словарей. */
 data class DeckCounts(
     val deck: String,
     val total: Int,
@@ -222,6 +222,8 @@ data class DeckCounts(
 )
 
 data class DayCount(val day: Long, val count: Int)
+
+data class DayAnswer(val cardId: String, val deck: String, val stateBefore: Int)
 
 /** Статья офлайн-словаря EN → RU (FreeDict / Викисловарь), встроенного в приложение. */
 @Entity(tableName = "dictionary", indices = [Index("term")])

@@ -38,8 +38,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.marat.albion.LocalAppContainer
 import com.marat.albion.data.content.Deck
 import com.marat.albion.data.repo.DeckSummary
+import com.marat.albion.data.repo.StudySource
 import com.marat.albion.ui.components.Eyebrow
-import com.marat.albion.ui.components.GhostButton
 import com.marat.albion.ui.components.PrimaryButton
 import com.marat.albion.ui.components.SectionHeader
 import com.marat.albion.ui.components.ThinProgress
@@ -52,7 +52,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
 @Composable
-fun DeckScreen(deck: Deck, navigator: Navigator) {
+fun DictionaryScreen(deck: Deck, navigator: Navigator) {
     val c = LocalAppContainer.current
     val summaryFlow = remember(deck) { c.study.observeSummaries().map { list -> list.first { it.deck == deck } } }
     val summary by summaryFlow.collectAsStateWithLifecycle(DeckSummary(deck))
@@ -65,7 +65,7 @@ fun DeckScreen(deck: Deck, navigator: Navigator) {
             Box {
                 com.marat.albion.ui.components.RoundIconButton(AlbionIcons.MoreHoriz, "Ещё", { menu = true }, filled = true)
                 DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
-                    DropdownMenuItem(text = { Text("Сбросить прогресс колоды") }, onClick = { menu = false; confirmReset = true },
+                    DropdownMenuItem(text = { Text("Сбросить прогресс словаря") }, onClick = { menu = false; confirmReset = true },
                         colors = androidx.compose.material3.MenuDefaults.itemColors(textColor = MaterialTheme.colorScheme.error))
                 }
             }
@@ -75,7 +75,7 @@ fun DeckScreen(deck: Deck, navigator: Navigator) {
                 .padding(horizontal = gutter).windowInsetsPadding(WindowInsets.navigationBars).padding(bottom = 24.dp),
         ) deckContent@{
             Column(Modifier) {
-                Eyebrow("Колода · %02d".format(deck.ordinal + 1))
+                Eyebrow("Словарь · %02d".format(deck.ordinal + 1))
                 Spacer(Modifier.height(12.dp))
                 Text(deck.title, style = if (com.marat.albion.ui.components.LocalNarrow.current) MaterialTheme.typography.displaySmall
                     else MaterialTheme.typography.displayMedium, color = MaterialTheme.colorScheme.onSurface)
@@ -96,24 +96,29 @@ fun DeckScreen(deck: Deck, navigator: Navigator) {
                 return@deckContent
             }
 
-            // Главное действие колоды — инверсный блок: что ждёт сегодня и «Начать занятие».
-            com.marat.albion.ui.components.BoundVolume(Modifier.fillMaxWidth().padding(top = 24.dp).appear(2)) {
+            // Словарь — прежде всего справочник: поиск и подбор слов в коллекции.
+            PrimaryButton(
+                "Все слова и поиск",
+                onClick = { navigator.open(BrowseRoute(deck)) },
+                icon = AlbionIcons.Search,
+                modifier = Modifier.padding(top = 24.dp).appear(2),
+            )
+            Spacer(Modifier.height(8.dp))
+            Text("Откройте слово, чтобы добавить его в свою коллекцию.",
+                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+
+            // Занятие по всему словарю: новые слова приходят только отсюда, повторения — и в «Сегодня».
+            com.marat.albion.ui.components.BoundVolume(Modifier.fillMaxWidth().padding(top = 24.dp).appear(3)) {
+                Text("Весь словарь", style = MaterialTheme.typography.titleMedium)
                 DeckStudyMetrics(summary.due, summary.newAvailable)
                 PrimaryButton(
-                    text = if (summary.toStudy > 0) "Начать занятие" else "На сегодня всё",
-                    onClick = { navigator.open(StudyRoute(deck)) },
+                    text = if (summary.toStudy > 0) "Тренировать весь словарь" else "На сегодня всё",
+                    onClick = { navigator.open(StudyRoute(StudySource.Dictionary(deck))) },
                     enabled = summary.toStudy > 0,
                     trailingIcon = AlbionIcons.ArrowForward,
                     inverse = true,
                 )
             }
-            Spacer(Modifier.height(12.dp))
-            GhostButton(
-                "Все карточки и поиск",
-                onClick = { navigator.open(BrowseRoute(deck)) },
-                icon = AlbionIcons.Search,
-                modifier = Modifier.appear(3),
-            )
 
             Column(Modifier) {
                 SectionHeader("Прогресс", trailing = "${(summary.progress * 100).toInt()}%")
@@ -128,8 +133,9 @@ fun DeckScreen(deck: Deck, navigator: Navigator) {
             Column(Modifier) {
                 SectionHeader("Как это работает")
                 Text(
-                    "Посмотрите на лицевую сторону и вспомните значение. Переверните карточку и честно оцените ответ — " +
-                        "FSRS рассчитает момент, когда вы начнёте забывать, и покажет карточку именно тогда.",
+                    "Тренируйте словарь целиком или соберите из него свою коллекцию. Память у слова одна: " +
+                        "FSRS рассчитает момент, когда вы начнёте забывать, и покажет карточку именно тогда — " +
+                        "в занятии «Сегодня», по словарю или по коллекции.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -140,7 +146,7 @@ fun DeckScreen(deck: Deck, navigator: Navigator) {
     if (confirmReset) {
         DestructiveConfirmationDialog(
             title = "Сбросить прогресс?",
-            message = "Все карточки колоды «${deck.title}» снова станут новыми. Расписание повторений будет сброшено, статистика занятий сохранится. Отменить сброс нельзя.",
+            message = "Все слова словаря «${deck.title}» снова станут новыми — и в ваших коллекциях тоже. Расписание повторений будет сброшено, статистика занятий сохранится. Отменить сброс нельзя.",
             confirmLabel = "Сбросить",
             onConfirm = { confirmReset = false; scope.launch { c.study.resetDeck(deck) } },
             onDismiss = { confirmReset = false },

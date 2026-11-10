@@ -66,7 +66,7 @@ import com.marat.albion.ui.components.DashboardWidth
 import com.marat.albion.ui.components.FocusWidth
 
 import com.marat.albion.ui.components.ReadableWidth
-import com.marat.albion.ui.deck.DeckScreen
+import com.marat.albion.ui.deck.DictionaryScreen
 import com.marat.albion.ui.games.GameHost
 import com.marat.albion.ui.games.TopicQuizHost
 import com.marat.albion.ui.games.GamesScreen
@@ -126,9 +126,10 @@ fun AlbionNavigation() {
         entry<ReaderRoute> { ReaderScreen(it.bookId, navigator) }
         entry<StatsRoute> { StatsScreen(navigator) }
         entry<SettingsRoute> { SettingsScreen(navigator::back) }
-        entry<DeckRoute> { DeckScreen(it.deck, navigator) }
-        entry<StudyRoute> { StudyScreen(it.deck, navigator, it.answerLimit) }
-        entry<BrowseRoute> { BrowseScreen(it.deck, navigator) }
+        entry<DictionaryRoute> { DictionaryScreen(it.deck, navigator) }
+        entry<StudyRoute> { StudyScreen(it.source, navigator, it.answerLimit) }
+        entry<BrowseRoute> { BrowseScreen(it.deck, navigator, it.collectionId) }
+        entry<CollectionRoute> { com.marat.albion.ui.collections.CollectionScreen(it.id, navigator) }
         entry<CardRoute> { CardDetailScreen(it.cardId, navigator) }
         entry<TopicRoute> { TopicScreen(it.topicId, navigator, fromQuiz = it.fromQuiz) }
         entry<TopicQuizRoute> { TopicQuizHost(it.topic, it.topicId, it.title, navigator) }
@@ -217,7 +218,7 @@ fun AlbionNavigation() {
 /** Ширина колонки экрана: книга — на всю ширину, задания — уже, списки и текст — колонкой для чтения. */
 private fun maxWidthFor(route: NavKey): Dp = when (route) {
     is ReaderRoute -> Dp.Infinity
-    // Главная на планшете делится на две колонки: сегодня и колоды.
+    // Главная на планшете делится на две колонки: сегодня и слова.
     HomeRoute -> DashboardWidth
     is StudyRoute, is GameRoute, is TopicQuizRoute, is ChatRoute -> FocusWidth
     else -> ReadableWidth

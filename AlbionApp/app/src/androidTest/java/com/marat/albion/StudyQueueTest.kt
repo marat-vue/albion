@@ -11,7 +11,9 @@ import com.marat.albion.data.db.ReviewStateEntity
 import com.marat.albion.data.fsrs.CardState
 import com.marat.albion.data.fsrs.Fsrs
 import com.marat.albion.data.fsrs.Rating
+import com.marat.albion.data.repo.CollectionRepository
 import com.marat.albion.data.repo.DeckSummary
+import com.marat.albion.data.repo.StudySource
 import com.marat.albion.data.repo.StudyRepository
 import com.marat.albion.data.settings.NewCardOrder
 import com.marat.albion.data.settings.Settings
@@ -36,6 +38,7 @@ class StudyQueueTest {
     private lateinit var settings: SettingsRepository
     private lateinit var originalSettings: Settings
     private lateinit var repo: StudyRepository
+    private lateinit var collections: CollectionRepository
     private val now = System.currentTimeMillis()
 
     @Before
@@ -49,6 +52,7 @@ class StudyQueueTest {
         settings.setNewOrder(NewCardOrder.FILE)
         settings.setDayStartHour(4)
         repo = StudyRepository(db, settings, Json)
+        collections = CollectionRepository(db)
     }
 
     @After
@@ -84,18 +88,24 @@ class StudyQueueTest {
     }
 
     @Test
-    fun allDecksQueueMatchesPerDeckQueuesAndKeepsCollectionsSeparate() = runBlocking {
-        // Одинаковый термин в разных колодах — не сиблинги: оба значения доступны сегодня.
+    fun todayQueueReviewsEveryDictionaryButTakesNewWordsOnlyFromCollections() = runBlocking {
+        // Одинаковый термин в разных словарях — не сиблинги: оба значения доступны сегодня.
         scheduled(card("w1", "run"))
         scheduled(card("v1", "run").copy(deck = Deck.IRREGULAR.id))
-        db.cards().upsert(listOf(card("w2", "cat", position = 1), card("p1", "give up").copy(deck = Deck.PHRASAL.id)))
+        val cat = card("w2", "cat", position = 1)
+        db.cards().upsert(listOf(cat, card("p1", "give up").copy(deck = Deck.PHRASAL.id)))
 
-        val all = repo.buildQueueAll(now)
+        val today = repo.buildQueue(StudySource.Today, now)
         val perDeck = Deck.entries.map { repo.buildQueue(it, now) }
-        assertEquals(perDeck.sumOf { it.reviews.size }, all.reviews.size)
-        assertEquals(perDeck.sumOf { it.news.size }, all.news.size)
-        assertEquals(setOf("w1", "v1"), all.reviews.map { it.id }.toSet())
-        assertEquals(setOf("w2", "p1"), all.news.map { it.id }.toSet())
+        assertEquals(perDeck.sumOf { it.reviews.size }, today.reviews.size)
+        assertEquals(setOf("w1", "v1"), today.reviews.map { it.id }.toSet())
+        assertTrue("Словари не дают новых слов в «Сегодня»", today.news.isEmpty())
+        assertEquals(setOf("w2"), repo.buildQueue(Deck.WORDS, now).news.map { it.id }.toSet())
+
+        val travel = collections.create("Travel")
+        collections.add(travel, listOf(cat))
+        assertEquals(listOf("w2"), repo.buildQueue(StudySource.Today, now).news.map { it.id })
+        assertEquals(listOf("w2"), repo.buildQueue(StudySource.Collection(travel), now).news.map { it.id })
     }
 
     @Test

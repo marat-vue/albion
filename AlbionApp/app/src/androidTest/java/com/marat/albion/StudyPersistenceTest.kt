@@ -216,7 +216,7 @@ class StudyPersistenceTest {
     private fun viewModel(): StudyViewModel {
         lateinit var vm: StudyViewModel
         instrumentation.runOnMainSync {
-            vm = StudyViewModel(repo, Deck.WORDS)
+            vm = StudyViewModel(repo, com.marat.albion.data.repo.StudySource.Dictionary(Deck.WORDS))
             store.put("study", vm)
         }
         return vm

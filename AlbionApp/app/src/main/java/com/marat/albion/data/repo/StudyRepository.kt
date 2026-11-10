@@ -17,7 +17,6 @@ import com.marat.albion.data.fsrs.CardState
 import com.marat.albion.data.fsrs.Fsrs
 import com.marat.albion.data.fsrs.Memory
 import com.marat.albion.data.fsrs.Rating
-import com.marat.albion.data.settings.NewCardOrder
 import com.marat.albion.data.settings.Settings
 import com.marat.albion.data.settings.SettingsRepository
 import kotlinx.coroutines.Dispatchers
@@ -37,27 +36,6 @@ import java.util.TimeZone
 import kotlin.math.max
 import kotlin.math.roundToInt
 
-/** Сводка по колоде для главного экрана. */
-data class DeckSummary(
-    val deck: Deck,
-    val total: Int = 0,
-    val started: Int = 0,
-    val due: Int = 0,
-    val learning: Int = 0,
-    val mature: Int = 0,
-    val newAvailable: Int = 0,
-) {
-    val toStudy get() = due + newAvailable
-    val progress get() = if (total == 0) 0f else started.toFloat() / total
-}
-
-/** Очередь занятия: сначала учебные шаги, затем повторения, затем новые. */
-data class SessionQueue(
-    val learning: List<CardEntity>,
-    val reviews: List<CardEntity>,
-    val news: List<CardEntity>,
-)
-
 class StudyRepository(
     private val db: AlbionDatabase,
     private val settings: SettingsRepository,
@@ -66,6 +44,7 @@ class StudyRepository(
     private val cards = db.cards()
     private val reviews = db.reviews()
     private val games = db.gameActivity()
+    private val collections = db.collections()
 
     // ---- время учебного дня ----
 
@@ -93,24 +72,19 @@ class StudyRepository(
 
     // ---- главный экран ----
 
-    private data class Vocabulary(val cards: List<CardEntity>, val states: Map<String, ReviewStateEntity>) {
-        fun counts(now: Long): List<DeckCounts> = cards.groupBy { it.deck }.map { (deck, words) ->
-            val memory = words.mapNotNull { WordCards.state(it, states) }
-            DeckCounts(deck, words.size, memory.size,
-                memory.count { it.state == CardState.REVIEW && it.due <= now },
-                memory.count { it.state in listOf(CardState.LEARNING, CardState.RELEARNING) },
-                memory.count { it.state == CardState.REVIEW && it.stability >= 21 })
-        }
-    }
-
     private fun observeVocabulary(): Flow<Vocabulary> =
-        combine(cards.observeAll().map(WordCards::group), reviews.observeStates()) { words, states ->
-            Vocabulary(words, states.associateBy { it.cardId })
+        combine(
+            cards.observeAll().map(WordCards::group), reviews.observeStates(),
+            collections.observeAll(), collections.observeWords(),
+        ) { words, states, owned, members ->
+            Vocabulary(words, states.associateBy { it.cardId }, owned, members)
         }.flowOn(Dispatchers.Default)
 
     private suspend fun vocabulary(deck: Deck? = null) = Vocabulary(
         WordCards.group(if (deck == null) cards.all() else cards.inDeck(deck.id)),
         reviews.states().associateBy { it.cardId },
+        if (deck == null) collections.all() else emptyList(),
+        if (deck == null) collections.words() else emptyList(),
     )
 
     /** Начало текущего учебного дня; меняется раз в сутки или при смене часа начала дня. */
@@ -118,84 +92,35 @@ class StudyRepository(
         combine(minuteTicker, settings.settings) { now, s -> dayStart(now, s.dayStartHour) to s }
             .distinctUntilChanged()
 
+    /** Словари, коллекции и занятие «Сегодня» — из одной подписки на слова и память. */
     @OptIn(ExperimentalCoroutinesApi::class)
-    fun observeSummaries(): Flow<List<DeckSummary>> =
+    fun observeOverview(): Flow<StudyOverview> =
         observeStudyDay().flatMapLatest { (since, s) ->
             combine(observeVocabulary(), reviews.observeReviewsSince(since), minuteTicker) { words, _, now -> words to now }
-                .map { (words, now) -> buildSummaries(words, s, now) }
+                .map { (words, now) -> overviewOf(words, s, now) }
         }.flowOn(Dispatchers.Default)
 
-    /** Число слов в каждой колоде — без расчёта очередей. */
+    fun observeSummaries(): Flow<List<DeckSummary>> = observeOverview().map { it.dictionaries }
+
+    /** Число слов в каждом словаре — без расчёта очередей. */
     fun observeWordCounts(): Flow<Map<String, Int>> =
         cards.observeAll().map { rows -> WordCards.group(rows).groupingBy { it.deck }.eachCount() }
             .distinctUntilChanged().flowOn(Dispatchers.Default)
 
-    private suspend fun buildSummaries(words: Vocabulary, s: Settings, now: Long): List<DeckSummary> = db.withTransaction {
-        val byId = words.counts(now).associateBy { it.deck }
-        Deck.entries.map { deck ->
-            val c = byId[deck.id]
-            if (c == null) DeckSummary(deck) else {
-                val plan = planQueue(deck, s, now, words)
-                DeckSummary(deck, c.total, c.started, plan.reviews.size + plan.learning.size,
-                    c.learning, c.mature, plan.news.size)
-            }
-        }
-    }
+    private suspend fun overviewOf(words: Vocabulary, s: Settings, now: Long): StudyOverview =
+        StudyPlanner.overview(words, reviews.answersSince(dayStart(now, s.dayStartHour)), s, now)
 
     // ---- занятие ----
 
-    suspend fun buildQueue(deck: Deck, now: Long = System.currentTimeMillis()): SessionQueue {
-        val s = settings.current()
-        return db.withTransaction { planQueue(deck, s, now, vocabulary(deck)) }
-    }
-
-    /** Collections retain separate schedules; every meaning within a word is studied together. */
-    suspend fun buildQueueAll(now: Long = System.currentTimeMillis()): SessionQueue {
+    suspend fun buildQueue(source: StudySource, now: Long = System.currentTimeMillis()): SessionQueue {
         val s = settings.current()
         return db.withTransaction {
-            val words = vocabulary()
-            val plans = Deck.entries.map { planQueue(it, s, now, words) }
-            SessionQueue(plans.flatMap { it.learning }, plans.flatMap { it.reviews }.shuffled(),
-                roundRobin(plans.map { it.news }))
+            val words = vocabulary((source as? StudySource.Dictionary)?.deck)
+            StudyPlanner.plan(source, words, reviews.answersSince(dayStart(now, s.dayStartHour)), s, now)
         }
     }
 
-    private fun <T> roundRobin(lists: List<List<T>>): List<T> {
-        val total = lists.sumOf { it.size }
-        val result = ArrayList<T>(total)
-        var i = 0
-        while (result.size < total) {
-            lists.forEach { list -> list.getOrNull(i)?.let(result::add) }
-            i++
-        }
-        return result
-    }
-
-    /** The same word-level selection drives study, counters and reminders. */
-    private suspend fun planQueue(deck: Deck, s: Settings, now: Long, words: Vocabulary): SessionQueue {
-        val since = dayStart(now, s.dayStartHour)
-        val newLeft = max(0, s.newPerDay - reviews.countSince(deck.id, CardState.NEW, since))
-        val reviewLeft = max(0, s.reviewsPerDay - reviews.countSince(deck.id, CardState.REVIEW, since))
-        val inDeck = words.cards.filter { it.deck == deck.id }
-        fun state(card: CardEntity) = WordCards.state(card, words.states)
-        val learning = inDeck.filter {
-            val m = state(it)
-            m != null && m.state in listOf(CardState.LEARNING, CardState.RELEARNING) && m.due <= now + LEARN_AHEAD
-        }.sortedBy { state(it)!!.due }
-        val due = inDeck.filter {
-            val m = state(it)
-            m != null && m.state == CardState.REVIEW && m.due <= now
-        }.shuffled().take(reviewLeft)
-        val fresh = inDeck.filter { state(it) == null }
-        val ordered = when (s.newOrder) {
-            NewCardOrder.RANDOM -> fresh.shuffled()
-            NewCardOrder.LEVEL -> fresh.sortedWith(compareBy<CardEntity> {
-                listOf("A1", "A2", "B1", "B2", "C1", "C2").indexOf(it.level).takeIf { rank -> rank >= 0 } ?: 6
-            }.thenBy { it.position })
-            else -> fresh.sortedBy { it.position }
-        }
-        return SessionQueue(learning, due, ordered.take(newLeft))
-    }
+    suspend fun buildQueue(deck: Deck, now: Long = System.currentTimeMillis()) = buildQueue(StudySource.Dictionary(deck), now)
 
     private suspend fun word(id: String): CardEntity? =
         cards.wordMembers(id).takeIf { it.isNotEmpty() }?.let(WordCards::combine)
@@ -241,7 +166,7 @@ class StudyRepository(
         val s = settings.current()
         val since = dayStart(now, s.dayStartHour)
         // «Ждут повторения» — с учётом дневных лимитов, как на главном экране.
-        val due = buildSummaries(vocabulary(), s, now).sumOf { it.due }
+        val due = overviewOf(vocabulary(), s, now).today.due
         return (reviews.countAllSince(since) + games.countAnswersSince(since)) to due
     }
 
@@ -312,6 +237,11 @@ class StudyRepository(
                 .thenBy(String.CASE_INSENSITIVE_ORDER) { it.term })
         }.flowOn(Dispatchers.Default)
     }
+
+    /** Слова коллекции по алфавиту — для её экрана. */
+    fun observeCollectionWords(id: Long): Flow<List<CardEntity>> = observeVocabulary().map { words ->
+        words.inCollection(id).sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.term })
+    }.flowOn(Dispatchers.Default)
 
     private fun gameState(card: CardEntity, stats: Map<String, GameCardStatEntity>): GameCardStatEntity? {
         val members = WordCards.members(card).mapNotNull { stats[it.id] }
@@ -458,7 +388,7 @@ class StudyRepository(
         val shift = dayShift(hour, todayStart)
         val today = (todayStart + shift) / Fsrs.DAY
         val monthAgo = todayStart - 29 * Fsrs.DAY
-        // Одна подписка на все карточки: из неё и прогноз, и счётчики колод.
+        // Одна подписка на все карточки: из неё и прогноз, и счётчики словарей.
         val vocabulary = combine(observeVocabulary(), minuteTicker) { words, now ->
             val forecast = words.cards.mapNotNull { WordCards.state(it, words.states) }
                 .filter { it.due < todayStart + 15 * Fsrs.DAY }

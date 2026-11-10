@@ -113,7 +113,7 @@ import com.marat.albion.data.library.BookContent
 import com.marat.albion.data.library.BookPosition
 import com.marat.albion.data.library.BookWordSource
 import com.marat.albion.data.content.Deck
-import com.marat.albion.ui.nav.DeckRoute
+import com.marat.albion.ui.nav.DictionaryRoute
 import com.marat.albion.data.settings.Settings
 import com.marat.albion.ui.components.Eyebrow
 import com.marat.albion.ui.components.Hairline
@@ -579,7 +579,7 @@ fun ReaderScreen(bookId: String, navigator: Navigator) {
                         sentenceAt(paragraph, absStart).first,
                         sentenceAt(paragraph, (absEnd - 1).coerceAtLeast(absStart)).last + 1,
                     ).trim(),
-                    onOpenBookWords = { selection = null; navigator.open(DeckRoute(Deck.BOOK_WORDS)) },
+                    onOpenBookWords = { selection = null; navigator.open(DictionaryRoute(Deck.BOOK_WORDS)) },
                     onBookWordSaved = { saved ->
                         selection = null
                         scope.launch {
@@ -592,10 +592,10 @@ fun ReaderScreen(bookId: String, navigator: Navigator) {
                             if (result == SnackbarResult.ActionPerformed) {
                                 try {
                                     if (!c.bookWords.undoAdd(saved)) snackbar.showSnackbar(
-                                        "Отмена уже недоступна. Карточка осталась в колоде.",
+                                        "Отмена уже недоступна. Слово осталось в словаре «Слова из книг».",
                                         withDismissAction = true, duration = SnackbarDuration.Long)
                                 } catch (e: CancellationException) { throw e }
-                                catch (e: Exception) { snackbar.showSnackbar("Не удалось отменить сохранение. Карточка осталась в колоде.", withDismissAction = true) }
+                                catch (e: Exception) { snackbar.showSnackbar("Не удалось отменить сохранение. Слово осталось в словаре «Слова из книг».", withDismissAction = true) }
                             }
                         }
                     },

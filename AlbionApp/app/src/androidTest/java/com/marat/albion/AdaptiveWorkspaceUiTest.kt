@@ -62,7 +62,7 @@ class AdaptiveWorkspaceUiTest {
         val queue = c.study.buildQueue(Deck.WORDS)
         val card = (queue.learning + queue.reviews + queue.news).first()
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
-            show(scenario, "study") { StudyScreen(Deck.WORDS, navigator(), answerLimit = 10) }
+            show(scenario, "study") { StudyScreen(com.marat.albion.data.repo.StudySource.Dictionary(Deck.WORDS), navigator(), answerLimit = 10) }
             await { it.text?.toString() == "Показать ответ" }
             val word = await { it.text?.toString() == card.term && bounds(it).height() >= 20 * density }
             assertTrue("The word is squeezed away", bounds(word).width() > 12 * density)

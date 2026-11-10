@@ -30,7 +30,7 @@ import com.marat.albion.data.content.Deck
 import com.marat.albion.data.db.BookEntity
 import com.marat.albion.data.library.LibraryBook
 import com.marat.albion.ui.components.*
-import com.marat.albion.ui.deck.DeckScreen
+import com.marat.albion.ui.deck.DictionaryScreen
 import com.marat.albion.ui.deck.DeckStudyMetrics
 import com.marat.albion.ui.library.ContinueReading
 import com.marat.albion.ui.library.LibraryScreen
@@ -149,7 +149,7 @@ class AdaptiveReadingStatsUiTest {
             scrollTo { it.text?.toString() == "ответов за всё время" }
             assertWholeWords("вспомнили · 30 дней")
             capture("stats")
-            show(scenario, "deck") { DeckScreen(Deck.WORDS, nav()) }
+            show(scenario, "deck") { DictionaryScreen(Deck.WORDS, nav()) }
             scrollTo { it.text?.toString() == "новых сегодня" }
             assertWholeWords("к повторению")
             assertWholeWords("новых сегодня")

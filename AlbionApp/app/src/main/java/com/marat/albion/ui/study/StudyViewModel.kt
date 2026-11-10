@@ -2,7 +2,7 @@ package com.marat.albion.ui.study
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.marat.albion.data.content.Deck
+import com.marat.albion.data.repo.StudySource
 import com.marat.albion.data.content.IrregularData
 import com.marat.albion.data.db.CardEntity
 import com.marat.albion.data.fsrs.CardState
@@ -53,10 +53,10 @@ data class StudyState(
 }
 
 /**
- * Сессия повторения одной колоды или, при [deck] = null, всех колод сразу. Очередь как в Anki: учебные шаги (1 и 10 минут),
+ * Занятие по словарю, коллекции или «Сегодня» (см. [StudySource]). Очередь как в Anki: учебные шаги (1 и 10 минут),
  * подошедшие по времени, идут первыми; новые карточки равномерно вкраплены в повторения.
  */
-class StudyViewModel(private val repo: StudyRepository, private val deck: Deck?, answerLimit: Int? = null) : ViewModel() {
+class StudyViewModel(private val repo: StudyRepository, private val source: StudySource, answerLimit: Int? = null) : ViewModel() {
 
     private val _state = MutableStateFlow(StudyState(answerLimit = answerLimit?.coerceIn(1, 100)))
     val state: StateFlow<StudyState> = _state.asStateFlow()
@@ -75,7 +75,7 @@ class StudyViewModel(private val repo: StudyRepository, private val deck: Deck?,
     init {
         viewModelScope.launch {
             val q = try {
-                if (deck == null) repo.buildQueueAll() else repo.buildQueue(deck)
+                repo.buildQueue(source)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {

@@ -59,9 +59,9 @@ fun SettingsScreen(onBack: () -> Unit) {
             Disclosure("Занятия и цель", "${s.dailyGoal} ответов в день", icon = com.marat.albion.ui.components.AlbionIcons.TaskAlt) {
                 GoalReminderSection(s)
                 SliderSetting("Новых карточек в день", "${s.newPerDay}",
-                    "На каждую колоду. Для шести колод — до ${s.newPerDay * 6} новых карточек в день.",
+                    "Отдельно для каждой коллекции и для занятия по всему словарю.",
                     s.newPerDay.toFloat(), 0f..100f, 19) { scope.launch { repo.setNewPerDay((it / 5).roundToInt() * 5) } }
-                SliderSetting("Повторений в день", "${s.reviewsPerDay}", "Для каждой колоды отдельно.",
+                SliderSetting("Повторений в день", "${s.reviewsPerDay}", "Для каждого словаря и коллекции отдельно.",
                     s.reviewsPerDay.toFloat(), 50f..1000f, 18) { scope.launch { repo.setReviewsPerDay((it / 50).roundToInt() * 50) } }
                 Disclosure("Порядок новых карточек", s.newOrder.title) {
                     Column(Modifier.selectableGroup()) { NewCardOrder.entries.forEach { order ->

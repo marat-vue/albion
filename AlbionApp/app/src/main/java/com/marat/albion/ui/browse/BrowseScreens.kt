@@ -14,6 +14,7 @@ import com.marat.albion.ui.theme.quietFloatAsState as animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.ui.semantics.*
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.aspectRatio
@@ -111,8 +112,20 @@ private val cardLevels = listOf("", "A1", "A2", "B1", "B2", "C1")
 
 @OptIn(FlowPreview::class, ExperimentalCoroutinesApi::class, androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
-fun BrowseScreen(deck: Deck, navigator: Navigator) {
+fun BrowseScreen(deck: Deck, navigator: Navigator, collectionId: Long? = null) {
     val c = LocalAppContainer.current
+    val scope = rememberCoroutineScope()
+    // Подбор слов в коллекцию: касание строки добавляет слово или убирает его.
+    val target by remember(collectionId) {
+        collectionId?.let { id -> c.collections.observe(id) } ?: kotlinx.coroutines.flow.flowOf(null)
+    }.collectAsStateWithLifecycle(null)
+    val picked by remember(collectionId) {
+        collectionId?.let { id -> c.collections.observeWords(id) } ?: kotlinx.coroutines.flow.flowOf(emptySet())
+    }.collectAsStateWithLifecycle(emptySet())
+    val isPicked = { card: CardEntity -> com.marat.albion.data.repo.CollectionRepository.wordOf(card) in picked }
+    val toggle = { card: CardEntity ->
+        if (collectionId != null) scope.launch { runCatching { c.collections.setContains(collectionId, card, !isPicked(card)) } }
+    }
     var query by rememberSaveable { mutableStateOf("") }
     var filter by rememberSaveable { mutableIntStateOf(0) }
     var level by rememberSaveable { mutableStateOf("") }
@@ -151,6 +164,14 @@ fun BrowseScreen(deck: Deck, navigator: Navigator) {
                     Eyebrow(if (level.isEmpty()) "${shownCards.size} карточ." else "${shownCards.size} карточ. · $level",
                         Modifier.padding(horizontal = 24.dp, vertical = 8.dp))
                 }
+                if (showCount && collectionId != null) item {
+                    val missing = shownCards.filterNot(isPicked)
+                    if (missing.isNotEmpty()) TextButton(onClick = {
+                        scope.launch { runCatching { c.collections.add(collectionId, missing) } }
+                    }, modifier = Modifier.padding(horizontal = 12.dp)) {
+                        Text("Добавить все найденные · ${missing.size}", color = MaterialTheme.colorScheme.primary)
+                    }
+                }
                 items(shownCards, key = { it.id }) { card ->
                     CardRow(
                         card = card,
@@ -158,7 +179,8 @@ fun BrowseScreen(deck: Deck, navigator: Navigator) {
                         playing = audio.playingKey == "term:${card.id}",
                         selected = card.id == shownCard,
                         onPlay = { audio.play(deck, card.audio, card.term, "term:${card.id}") },
-                        onClick = { navigator.openDetail(CardRoute(card.id)) },
+                        onClick = { if (collectionId != null) toggle(card) else navigator.openDetail(CardRoute(card.id)) },
+                        picked = if (collectionId != null) isPicked(card) else null,
                         modifier = quietItem(),
                     )
                 }
@@ -184,7 +206,10 @@ fun BrowseScreen(deck: Deck, navigator: Navigator) {
                 search = { searchBar(Modifier, !split) },
                 results = { cardList(Modifier.fillMaxSize(), !split) })
         } else Column(Modifier.fillMaxSize()) {
-            TopBar(onBack = navigator::back, title = deck.title)
+            TopBar(onBack = navigator::back, title = target?.let { "${deck.title} → ${it.name}" } ?: deck.title)
+            if (collectionId != null) Text("Коснитесь слова, чтобы добавить его в коллекцию или убрать",
+                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = gutter).padding(bottom = 8.dp))
             SearchField(query, { query = it }, "Слово или перевод", Modifier.padding(horizontal = gutter))
             if (compactFilters) {
                 Row(Modifier.fillMaxWidth().padding(horizontal = gutter).padding(top = 4.dp, bottom = 4.dp),
@@ -313,9 +338,12 @@ fun SearchField(value: String, onChange: (String) -> Unit, placeholder: String, 
 }
 
 @Composable
-private fun CardRow(card: CardEntity, showRussian: Boolean, detailed: Boolean, query: String, playing: Boolean, selected: Boolean, onPlay: () -> Unit, onClick: () -> Unit, modifier: Modifier) {
+private fun CardRow(card: CardEntity, showRussian: Boolean, detailed: Boolean, query: String, playing: Boolean, selected: Boolean, onPlay: () -> Unit, onClick: () -> Unit, modifier: Modifier, picked: Boolean? = null) {
     var expanded by rememberSaveable(card.id) { mutableStateOf(false) }
-    Column(modifier.fillMaxWidth().selectedRow(selected).clickable(onClick = onClick)) {
+    val clickable = if (picked == null) Modifier.clickable(onClick = onClick)
+        else Modifier.toggleable(picked, role = androidx.compose.ui.semantics.Role.Checkbox) { onClick() }
+    val highlighted = selected || picked == true
+    Column(modifier.fillMaxWidth().selectedRow(highlighted).then(clickable)) {
         Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 18.dp)) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
                 Column(Modifier.weight(1f)) {
@@ -323,7 +351,7 @@ private fun CardRow(card: CardEntity, showRussian: Boolean, detailed: Boolean, q
                         Text(
                             com.marat.albion.ui.components.highlightedQuery(card.term, query),
                             style = MaterialTheme.typography.headlineSmall,
-                            color = if (selected) MaterialTheme.colorScheme.selectedContent else MaterialTheme.colorScheme.onSurface,
+                            color = if (highlighted) MaterialTheme.colorScheme.selectedContent else MaterialTheme.colorScheme.onSurface,
                             maxLines = 2,
                             overflow = TextOverflow.Ellipsis,
                             modifier = Modifier.weight(1f, fill = false),
@@ -332,10 +360,16 @@ private fun CardRow(card: CardEntity, showRussian: Boolean, detailed: Boolean, q
                         LevelBadge(card.level)
                     }
                     Spacer(Modifier.height(2.dp))
-                    if (card.ipa.isNotBlank()) Text(card.ipa, style = IpaStyle.copy(fontSize = MaterialTheme.typography.bodySmall.fontSize, lineHeight = MaterialTheme.typography.bodySmall.lineHeight), color = if (selected) MaterialTheme.colorScheme.selectedContent else MaterialTheme.colorScheme.onSurfaceVariant)
+                    if (card.ipa.isNotBlank()) Text(card.ipa, style = IpaStyle.copy(fontSize = MaterialTheme.typography.bodySmall.fontSize, lineHeight = MaterialTheme.typography.bodySmall.lineHeight), color = if (highlighted) MaterialTheme.colorScheme.selectedContent else MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 Spacer(Modifier.width(12.dp))
                 AudioButton(playing = playing, onClick = onPlay, size = 48.dp, primary = false)
+                if (picked != null) Box(Modifier.padding(start = 8.dp).size(48.dp), contentAlignment = Alignment.Center) {
+                    val mark = if (picked) MaterialTheme.colorScheme.selectedContent else MaterialTheme.colorScheme.controlBorder
+                    Box(Modifier.size(22.dp).border(1.5.dp, mark, androidx.compose.ui.graphics.RectangleShape), contentAlignment = Alignment.Center) {
+                        if (picked) Icon(AlbionIcons.Check, null, Modifier.size(18.dp), tint = mark)
+                    }
+                }
             }
             Spacer(Modifier.height(12.dp))
             val senses = com.marat.albion.data.repo.WordCards.members(card)
@@ -343,10 +377,10 @@ private fun CardRow(card: CardEntity, showRussian: Boolean, detailed: Boolean, q
             else {
                 val match = senses.firstOrNull { (if (showRussian) it.meaningRu else it.meaningEn).contains(query, true) } ?: senses.first()
                 Text(com.marat.albion.ui.components.highlightedQuery(if (showRussian) match.meaningRu.ifBlank { match.meaningEn } else match.meaningEn, query),
-                    style = MaterialTheme.typography.bodyMedium, color = if (selected) MaterialTheme.colorScheme.selectedContent else MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                    style = MaterialTheme.typography.bodyMedium, color = if (highlighted) MaterialTheme.colorScheme.selectedContent else MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2, overflow = TextOverflow.Ellipsis)
             }
             if (!showRussian && query.isNotBlank()) senses.firstOrNull { it.meaningRu.contains(query, true) }?.let { matched ->
-                Text(com.marat.albion.ui.components.highlightedQuery("В переводе: ${matched.meaningRu}", query), style = MaterialTheme.typography.bodySmall, color = if (selected) MaterialTheme.colorScheme.selectedContent else MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(com.marat.albion.ui.components.highlightedQuery("В переводе: ${matched.meaningRu}", query), style = MaterialTheme.typography.bodySmall, color = if (highlighted) MaterialTheme.colorScheme.selectedContent else MaterialTheme.colorScheme.onSurfaceVariant)
             }
             if (senses.size > 1 && !detailed) TextButton(onClick = { expanded = !expanded }) {
                 Text(if (expanded) "Свернуть значения" else "Все значения · ${senses.size}", color = MaterialTheme.colorScheme.primary)
@@ -387,6 +421,7 @@ fun CardDetailScreen(cardId: String, navigator: Navigator) {
             ) {
                 CardBack(current, c.study.irregular(current), audio, showRussian = settings.showRussian)
             }
+            CardCollections(current)
             SectionHeader("Повторение", Modifier.padding(horizontal = 4.dp))
             Column(Modifier.padding(horizontal = 4.dp)) {
                 val s = state
@@ -449,6 +484,25 @@ fun CardDetailScreen(cardId: String, navigator: Navigator) {
             onDismiss = { confirmRemove = false },
         )
     }
+}
+
+/** В каких коллекциях слово и кнопка, чтобы добавить его в коллекцию или убрать. */
+@Composable
+private fun CardCollections(card: CardEntity) {
+    val c = LocalAppContainer.current
+    val all by remember { c.collections.observeAll() }.collectAsStateWithLifecycle(emptyList())
+    val containing by remember(card.id) { c.collections.observeContaining(card) }.collectAsStateWithLifecycle(emptySet())
+    var open by rememberSaveable(card.id) { mutableStateOf(false) }
+    val names = all.filter { it.id in containing }.map { it.name }
+    SectionHeader("Коллекции", Modifier.padding(horizontal = 4.dp))
+    Column(Modifier.padding(horizontal = 4.dp)) {
+        Text(if (names.isEmpty()) "Слово пока не входит ни в одну вашу коллекцию." else names.joinToString(" · "),
+            style = MaterialTheme.typography.bodyMedium,
+            color = if (names.isEmpty()) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface)
+        Spacer(Modifier.height(12.dp))
+        GhostButton(if (names.isEmpty()) "Добавить в коллекцию" else "Изменить коллекции", { open = true }, icon = AlbionIcons.Add)
+    }
+    if (open) com.marat.albion.ui.collections.AddToCollectionsSheet(card) { open = false }
 }
 
 @Composable

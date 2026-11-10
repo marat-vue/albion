@@ -102,7 +102,7 @@ internal fun BookWordAction(
             TextButton(onClick = { editing = true }, enabled = !saving) {
                 Text(if (alreadySaved) "Другое значение" else "Изменить перед сохранением", color = MaterialTheme.colorScheme.primary)
             }
-            if (existing.isNotEmpty() && !alreadySaved) TextButton(onClick = onOpenDeck) { Text("В колоду", color = MaterialTheme.colorScheme.primary) }
+            if (existing.isNotEmpty() && !alreadySaved) TextButton(onClick = onOpenDeck) { Text("В словарь", color = MaterialTheme.colorScheme.primary) }
         }
     }
     if (editing) {

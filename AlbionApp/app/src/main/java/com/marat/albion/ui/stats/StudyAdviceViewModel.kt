@@ -19,8 +19,8 @@ class StudyAdviceViewModel(c: AppContainer) : ViewModel() {
         c.grammar.observeQuizTopics(), c.settings.settings) { book, progress, quizzes, s ->
         GrammarContext(book, progress.associateBy { it.topicId }, quizzes.toSet(), s.lastGrammarTopic)
     }
-    val advice = combine(c.study.observeSummaries(), c.study.observePracticeNeeds(), grammar) { decks, needs, g ->
-        StudyAdvicePolicy.choose(decks, GrammarNextStep.recommend(g.book, g.progress, g.quizTopics,
+    val advice = combine(c.study.observeOverview(), c.study.observePracticeNeeds(), grammar) { study, needs, g ->
+        StudyAdvicePolicy.choose(study.today, GrammarNextStep.recommend(g.book, g.progress, g.quizTopics,
             System.currentTimeMillis(), lastId = g.lastTopic), needs)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 }

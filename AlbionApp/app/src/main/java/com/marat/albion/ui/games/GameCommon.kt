@@ -403,7 +403,7 @@ fun GameSummary(
         .windowInsetsPadding(WindowInsets.navigationBars).padding(horizontal = gutter)) {
         Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(top = 24.dp, bottom = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally) {
-            if (total == 0) com.marat.albion.ui.components.EmptyState("Нет заданий для этих параметров", "Измените колоду, уровень или режим упражнения.")
+            if (total == 0) com.marat.albion.ui.components.EmptyState("Нет заданий для этих параметров", "Измените словарь, уровень или режим упражнения.")
             else {
                 SignalLabel("СЕССИЯ ЗАВЕРШЕНА", Modifier.appear(0))
                 Spacer(Modifier.height(8.dp))

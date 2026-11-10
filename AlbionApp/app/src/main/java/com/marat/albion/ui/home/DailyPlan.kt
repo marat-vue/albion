@@ -22,6 +22,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.marat.albion.data.repo.CollectionSummary
 import com.marat.albion.data.repo.DeckSummary
 import com.marat.albion.ui.components.AlbionIcons
 import com.marat.albion.ui.components.Panel
@@ -61,34 +62,44 @@ internal fun PlanRow(
     }
 }
 
-/** Строка колоды: сколько ждёт сегодня (крупно), название, прогресс и стрелка. */
+/** Строка словаря или коллекции: сколько ждёт сегодня (крупно), название, прогресс и стрелка. */
 @Composable
-internal fun DeckRow(summary: DeckSummary, modifier: Modifier = Modifier, onClick: () -> Unit) {
+internal fun StudyRow(
+    title: String,
+    emptyText: String,
+    total: Int,
+    started: Int,
+    due: Int,
+    newAvailable: Int,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+) {
     val scheme = MaterialTheme.colorScheme
+    val toStudy = due + newAvailable
     Panel(modifier.fillMaxWidth(), onClick = onClick, contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             // Число карточек на сегодня; расшифровка — в строке под названием («5 повторить · 15 новых»).
             Column(Modifier.size(56.dp).background(scheme.background, MaterialTheme.shapes.small)
                 .border(.75.dp, scheme.outlineVariant, MaterialTheme.shapes.small)
-                .semantics { contentDescription = "На сегодня: ${summary.toStudy}" },
+                .semantics { contentDescription = "На сегодня: $toStudy" },
                 horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-                Text("${summary.toStudy}", style = MaterialTheme.typography.titleLarge,
-                    color = if (summary.toStudy > 0) scheme.onSurface else scheme.onSurfaceVariant)
+                Text("$toStudy", style = MaterialTheme.typography.titleLarge,
+                    color = if (toStudy > 0) scheme.onSurface else scheme.onSurfaceVariant)
             }
             Spacer(Modifier.width(14.dp))
             Column(Modifier.weight(1f)) {
-                Text(summary.deck.title, style = MaterialTheme.typography.titleMedium, maxLines = 3, overflow = TextOverflow.Ellipsis)
+                Text(title, style = MaterialTheme.typography.titleMedium, maxLines = 3, overflow = TextOverflow.Ellipsis)
                 Text(when {
-                    summary.total == 0 -> summary.deck.subtitle
-                    summary.toStudy == 0 -> "На сегодня всё · ${summary.started} из ${summary.total} начато"
+                    total == 0 -> emptyText
+                    toStudy == 0 -> "На сегодня всё · $started из $total начато"
                     else -> listOfNotNull(
-                        summary.due.takeIf { it > 0 }?.let { "$it повторить" },
-                        summary.newAvailable.takeIf { it > 0 }?.let { "$it ${com.marat.albion.ui.library.pluralRu(it, "новая", "новые", "новых")}" },
+                        due.takeIf { it > 0 }?.let { "$it повторить" },
+                        newAvailable.takeIf { it > 0 }?.let { "$it ${com.marat.albion.ui.library.pluralRu(it, "новая", "новые", "новых")}" },
                     ).joinToString(" · ")
                 }, style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                if (summary.started > 0) {
+                if (started > 0 && total > 0) {
                     Spacer(Modifier.height(8.dp))
-                    ThinProgress(summary.progress, height = 4.dp)
+                    ThinProgress(started.toFloat() / total, height = 4.dp)
                 }
             }
             Spacer(Modifier.width(10.dp))
@@ -96,3 +107,12 @@ internal fun DeckRow(summary: DeckSummary, modifier: Modifier = Modifier, onClic
         }
     }
 }
+
+@Composable
+internal fun DeckRow(summary: DeckSummary, modifier: Modifier = Modifier, onClick: () -> Unit) =
+    StudyRow(summary.deck.title, summary.deck.subtitle, summary.total, summary.started, summary.due, summary.newAvailable, modifier, onClick)
+
+@Composable
+internal fun CollectionRow(summary: CollectionSummary, modifier: Modifier = Modifier, onClick: () -> Unit) =
+    StudyRow(summary.collection.name, "Пока пусто · добавьте слова из словарей", summary.total, summary.started,
+        summary.due, summary.newAvailable, modifier, onClick)

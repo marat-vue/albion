@@ -146,7 +146,7 @@ fun StatsScreen(navigator: Navigator) {
         }
 
         Column(Modifier) {
-            SectionHeader("Колоды")
+            SectionHeader("Словари")
             DeckBreakdown(s)
         }
 
@@ -289,7 +289,7 @@ private fun DeckBreakdown(s: Stats) {
                     Text(deck.title, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.weight(1f))
                     Text("${c.started} / ${c.total}", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-                Text(if (c.started < c.total) "Начато ${c.started} карточек · следующий рубеж ${minOf(c.total, (c.started / 10 + 1) * 10)}" else "Начата вся коллекция · ${c.started} карточек",
+                Text(if (c.started < c.total) "Начато ${c.started} карточек · следующий рубеж ${minOf(c.total, (c.started / 10 + 1) * 10)}" else "Начат весь словарь · ${c.started} карточек",
                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(Modifier.height(8.dp))
                 Row(Modifier.fillMaxWidth().height(10.dp).clip(RectangleShape).background(MaterialTheme.colorScheme.surfaceContainerHighest)) {
