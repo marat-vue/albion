@@ -65,5 +65,13 @@ class GrammarLearningTest {
             assertTrue("${lesson.number} needs $prerequisite", prerequisite in ordered)
             assertTrue("cycle/order: ${lesson.number} needs $prerequisite", ordered.indexOf(prerequisite) < ordered.indexOf(lesson.number))
         } }
+        // Предпосылка не сложнее самой темы: иначе A1-тема ведёт ученика в A2 или B1.
+        val levels = listOf("A1", "A2", "B1", "B2", "C1")
+        val byNumber = lessons.associateBy { it.number }
+        lessons.forEach { lesson -> lesson.prerequisites.forEach { prerequisite ->
+            val required = byNumber.getValue(prerequisite)
+            assertTrue("${lesson.number} (${lesson.level}) needs harder $prerequisite (${required.level})",
+                levels.indexOf(required.level) <= levels.indexOf(lesson.level))
+        } }
     }
 }

@@ -48,7 +48,7 @@ tags:
 > Если начальник говорит **I was wondering if you were free tonight**, он спрашивает о **сегодняшнем** вечере. Прошедшая форма — просто вежливость.
 
 > [!warning] Частые ошибки
-> - ~~I'd appreciate if you…~~ → **I'd appreciate it if you…** — не забудь `it`.
+> - ~~I'd appreciate if you…~~ → **I'd appreciate it if you…** — не забудьте `it`.
 > - ~~I was wondering if could you help.~~ → **…if you could help.** — после `if` обычный порядок.
 
 ## Проверьте себя

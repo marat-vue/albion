@@ -1,7 +1,7 @@
 ---
 level: B1
 order: 72
-prerequisites: 28, 38, 48
+prerequisites: 28, 38
 keywords: косвенная речь согласование времён reported speech, said told
 tags:
   - english/grammar
@@ -17,7 +17,7 @@ tags:
 
 По-русски мы пересказываем легко: «Она сказала, что **устала**» — время то же, что в её словах. В английском, если вы рассказываете **из прошлого** (**said, told**), время слов обычно сдвигается назад:
 
-| Она сказала | Ты пересказываешь |
+| Она сказала | Вы пересказываете |
 | --- | --- |
 | "I **am** tired." | She said she **was** tired. |
 | "I **am working**." | She said she **was working**. |

@@ -119,6 +119,7 @@ class SettingsRepository internal constructor(private val store: DataStore<Prefe
         val hapticsEnabled = booleanPreferencesKey("haptics_enabled")
         val reduceMotion = booleanPreferencesKey("reduce_motion")
         val themeMode = stringPreferencesKey("theme_mode_v2")
+        val grammarOwnAnswers = stringPreferencesKey("grammar_own_answers")
     }
 
     val settings: Flow<Settings> = data.map { p ->
@@ -161,6 +162,16 @@ class SettingsRepository internal constructor(private val store: DataStore<Prefe
     val viewedHelp: Flow<Set<String>> = data.map { it[Keys.viewedHelp].orEmpty() }
 
     val lastPractice: Flow<String?> = data.map { it[Keys.lastPractice] }
+
+    /** Ответы «Мой ответ тоже верен» — кандидаты в альтернативы заданий грамматики. */
+    val grammarOwnAnswers: Flow<List<com.marat.albion.data.grammar.OwnAnswer>> =
+        data.map { com.marat.albion.data.grammar.OwnAnswerLog.parse(it[Keys.grammarOwnAnswers]) }.distinctUntilChanged()
+
+    suspend fun addGrammarOwnAnswer(taskId: String, answer: String) = edit {
+        it[Keys.grammarOwnAnswers] = com.marat.albion.data.grammar.OwnAnswerLog.append(it[Keys.grammarOwnAnswers], taskId, answer)
+    }
+
+    suspend fun clearGrammarOwnAnswers() = edit { it.remove(Keys.grammarOwnAnswers) }
 
     fun practiceOptions(game: String, defaultCount: Int = 10): Flow<PracticeOptions> = data.map { p ->
         PracticeOptions(

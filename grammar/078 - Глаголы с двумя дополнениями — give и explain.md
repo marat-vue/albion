@@ -26,7 +26,7 @@ tags:
 
 - **to** — когда вещь **передаётся** человеку: give, send, show, lend, offer, teach.
   **Lend your bike ==to== me.** — Одолжи мне велосипед.
-- **for** — когда делаешь что-то **для** человека: buy, make, cook, get.
+- **for** — когда что-то делают **для** человека: buy, make, cook, get.
   **I bought flowers ==for== my mum.** — Я купил цветы маме.
 
 ## Explain — особый глагол

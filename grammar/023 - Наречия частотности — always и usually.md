@@ -1,7 +1,7 @@
 ---
 level: A1
 order: 23
-prerequisites: 22, 33
+prerequisites: 22
 keywords: частотность, always usually often sometimes never, как часто
 tags:
   - english/grammar

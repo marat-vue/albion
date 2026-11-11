@@ -47,7 +47,7 @@ tags:
 > **I have breakfast** — я завтракаю. **Have a shower** — принять душ. Здесь `have` — действие, и **got** к нему не добавляют.
 
 > [!warning] Частые ошибки
-> - ~~Do you have got a pen?~~ → **Do you have a pen?** или **Have you got a pen?** — выбери один вариант.
+> - ~~Do you have got a pen?~~ → **Do you have a pen?** или **Have you got a pen?** — выберите один вариант.
 > - ~~She have a dog.~~ → **She has a dog.** — с `he/she/it` нужен `has`.
 > - ~~I've got breakfast at seven.~~ → **I have breakfast at seven.** — с действием `got` не используется.
 

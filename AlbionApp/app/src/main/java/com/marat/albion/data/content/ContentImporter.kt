@@ -5,6 +5,7 @@ import androidx.room.withTransaction
 import com.marat.albion.data.db.AlbionDatabase
 import com.marat.albion.data.db.CardEntity
 import com.marat.albion.data.db.GrammarTaskEntity
+import com.marat.albion.data.repo.WordCards
 import com.marat.albion.data.settings.SettingsRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -96,7 +97,16 @@ class ContentImporter(
         check(cards.isNotEmpty()) { "Таблица колоды «${deck.title}» не прочиталась. Материалы не обновлены." }
         val newIds = cards.mapTo(HashSet()) { it.id }
         db.withTransaction {
-            val stale = db.cards().idsOf(deck.id).filterNot { it in newIds }
+            val existing = db.cards().idsOf(deck.id)
+            // Переименованный термин (organize → organise): учебная история переходит на новый id до удаления старого.
+            val moves = TermRenames.moves(deck, existing, newIds)
+            moves.forEach { (old, new) -> db.termRenames().moveCard(old, new) }
+            TermRenames.forDeck(deck).forEach { (old, new) ->
+                if (newIds.any { it.startsWith("${deck.id}:$new#") }) {
+                    db.termRenames().moveCollectionTerm(deck.id, WordCards.key(old), WordCards.key(new))
+                }
+            }
+            val stale = existing.filterNot { it in newIds }
             stale.chunked(500).forEach { db.cards().delete(it) }
             cards.chunked(500).forEach { db.cards().upsert(it) }
         }

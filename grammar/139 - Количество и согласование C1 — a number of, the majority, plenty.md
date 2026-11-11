@@ -41,7 +41,7 @@ tags:
 - **Ten dollars ==is== not enough.** — Десяти долларов не хватит.
 - **Three years ==is== a long time.** — Три года — долгий срок.
 
-## Половина — смотри на то, что после
+## Половина — смотрите на то, что после
 
 - **Half ==the money== is gone.** — Половины денег нет. *(money → is)*
 - **Half ==the people== are here.** — Половина людей здесь. *(people → are)*

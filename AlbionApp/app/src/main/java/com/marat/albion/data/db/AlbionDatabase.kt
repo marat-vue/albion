@@ -35,6 +35,7 @@ abstract class AlbionDatabase : RoomDatabase() {
     abstract fun conversations(): ConversationDao
     abstract fun sentenceTranslations(): SentenceTranslationDao
     abstract fun collections(): CollectionDao
+    abstract fun termRenames(): TermRenameDao
 
     companion object {
         fun create(context: Context): AlbionDatabase =

@@ -27,7 +27,7 @@ tags:
 
 Обе части «отодвинуты» в прошлое на один шаг дальше: **had known** вместо knew, **would have come** вместо would come.
 
-## Сравни с Second Conditional
+## Сравните с Second Conditional
 
 | Second — сейчас (воображаю) | Third — тогда (не изменить) |
 | --- | --- |

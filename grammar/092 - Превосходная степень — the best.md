@@ -53,7 +53,7 @@ tags:
 > После **one of the** — всегда **множественное число**: one of the best **films**, one of the tallest **buildings**.
 
 > [!warning] Частые ошибки
-> - ~~most expensive hotel~~ → **the most expensive hotel** — не забудь `the`.
+> - ~~most expensive hotel~~ → **the most expensive hotel** — не забудьте `the`.
 > - ~~one of the best player~~ → **one of the best players**
 > - ~~the most tallest~~ → **the tallest**
 

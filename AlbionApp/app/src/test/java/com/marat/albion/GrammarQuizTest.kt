@@ -57,6 +57,36 @@ class GrammarQuizTest {
         assertEquals(GrammarQuizResult(14, 15, true), test.result())
     }
 
+    @Test
+    fun ownAnswerClaimsLeaveTheScoreWithoutCountingAsMistakes() {
+        val test = GrammarQuizSession(listOf("1", "2", "3", "4"), true)
+        assertTrue(test.exclude("1"))
+        assertTrue(test.answered("1"))
+        assertFalse(test.record("1", true))
+        assertFalse(test.exclude("1"))
+        assertFalse(test.exclude("other"))
+        test.record("2", true)
+        test.record("3", true)
+        assertNull(test.result())
+        test.record("4", false)
+        val result = test.result()!!
+        assertEquals(GrammarQuizResult(2, 3, true, excluded = 1), result)
+        assertEquals(1, test.excludedCount)
+        assertTrue(result.updatesMastery)
+        assertFalse(result.passed)
+        assertFalse(test.record("4", true))
+    }
+
+    @Test
+    fun claimingMostQuestionsDoesNotChangeMastery() {
+        assertTrue(GrammarQuizResult(4, 4, true, excluded = 4).passed)
+        assertFalse(GrammarQuizResult(3, 3, true, excluded = 5).updatesMastery)
+        val test = GrammarQuizSession(listOf("1", "2"), true)
+        test.exclude("1")
+        test.exclude("2")
+        assertFalse(test.result()!!.updatesMastery)
+    }
+
     @Test(expected = IllegalArgumentException::class)
     fun invalidScoresAreRejected() {
         GrammarQuizResult(11, 10, true)
