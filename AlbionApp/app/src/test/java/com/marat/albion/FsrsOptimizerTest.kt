@@ -157,4 +157,18 @@ class FsrsOptimizerTest {
         Fsrs.DEFAULT_W.forEachIndexed { i, v -> assertEquals(v, decoded[i], 1e-4) }
         assertEquals(null, Fsrs.decodeParams("1,2,3"))
     }
+
+    @Test
+    fun eveningThenMorningReviewCountsAsOneStudyDay() {
+        val hour = 3_600_000L
+        val midnight = 1_700_000_000_000L / Fsrs.DAY * Fsrs.DAY
+        val events = listOf(
+            ReviewEvent("c", 3, midnight + 20 * hour, CardState.NEW),
+            ReviewEvent("c", 3, midnight + Fsrs.DAY + 8 * hour, CardState.REVIEW),
+        )
+        val byHours = FsrsOptimizer(events)
+        assertEquals(0, byHours.trainingItems + byHours.validationItems)
+        val byDays = FsrsOptimizer(events) { t -> Math.floorDiv(t - 4 * hour, Fsrs.DAY) }
+        assertEquals(1, byDays.trainingItems + byDays.validationItems)
+    }
 }

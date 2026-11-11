@@ -32,4 +32,41 @@ class DictionaryTest {
         assertEquals("dog", wordCandidates("“dog”").first())
         assertTrue(wordCandidates("a").isEmpty())
     }
+
+    @Test
+    fun candidatesFollowEnglishMorphologyOrder() {
+        fun before(word: String, first: String, second: String) {
+            val c = wordCandidates(word)
+            assertTrue("$word: $c", first in c && second in c && c.indexOf(first) < c.indexOf(second))
+        }
+        before("notes", "note", "not")
+        before("hates", "hate", "hat")
+        before("uses", "use", "us")
+        before("classes", "class", "classe")
+        before("watches", "watch", "watche")
+        before("hoped", "hope", "hop")
+        before("used", "use", "us")
+        before("noting", "note", "not")
+        before("making", "make", "mak")
+        before("played", "play", "playe")
+        before("rained", "rain", "raine")
+        before("stopped", "stopp", "stop")
+        before("ties", "tie", "ti")
+        assertTrue("ty" !in wordCandidates("ties"))
+        before("flies", "fly", "flie")
+        before("toes", "toe", "to")
+        before("tied", "tie", "ti")
+    }
+
+    @Test
+    fun bundledDictionaryResolvesInflectionsToTheRightHeadword() {
+        val terms = File("src/main/assets/dictionary/eng-rus.tsv").readLines().mapTo(HashSet()) { it.substringBefore('\t').lowercase() }
+        mapOf(
+            "notes" to "note", "hoped" to "hope", "hates" to "hate", "uses" to "use", "using" to "use",
+            "noted" to "note", "hoping" to "hope", "stopped" to "stop", "watches" to "watch", "buses" to "bus",
+            "ties" to "tie", "later" to "late", "riding" to "ride", "visited" to "visit",
+        ).forEach { (form, lemma) ->
+            assertEquals(form, lemma, wordCandidates(form).drop(1).firstOrNull { it in terms })
+        }
+    }
 }

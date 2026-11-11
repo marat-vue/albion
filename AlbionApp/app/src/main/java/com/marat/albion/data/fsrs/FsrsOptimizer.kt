@@ -51,7 +51,12 @@ sealed interface OptimizeOutcome {
  * переобучение. Последние 20% повторений по времени не участвуют в подборе:
  * на них сравниваются текущие параметры и единственный выбранный кандидат.
  */
-class FsrsOptimizer(events: List<ReviewEvent>, private val initial: DoubleArray = Fsrs.DEFAULT_W) {
+class FsrsOptimizer(
+    events: List<ReviewEvent>,
+    private val initial: DoubleArray = Fsrs.DEFAULT_W,
+    /** Номер учебного дня: для повторений из REVIEW интервал считается в учебных днях, как в [Fsrs.review]. */
+    private val studyDay: ((Long) -> Long)? = null,
+) {
 
     private data class Step(val elapsed: Double, val rating: Rating, val time: Long)
 
@@ -61,7 +66,13 @@ class FsrsOptimizer(events: List<ReviewEvent>, private val initial: DoubleArray 
         .flatMap { list -> splitAtResets(list.sortedBy { it.time }) }
         .map { sorted ->
             sorted.mapIndexed { i, e ->
-                val elapsed = if (i == 0) 0.0 else (e.time - sorted[i - 1].time).toDouble() / Fsrs.DAY
+                val prev = sorted.getOrNull(i - 1)
+                val elapsed = when {
+                    prev == null -> 0.0
+                    e.stateBefore == CardState.REVIEW && studyDay != null ->
+                        maxOf(0L, studyDay(e.time) - studyDay(prev.time)).toDouble()
+                    else -> (e.time - prev.time).toDouble() / Fsrs.DAY
+                }
                 Step(elapsed, Rating.of(e.rating.coerceIn(1, 4)), e.time)
             }
         }

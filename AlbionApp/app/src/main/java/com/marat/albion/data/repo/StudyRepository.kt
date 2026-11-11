@@ -140,6 +140,7 @@ class StudyRepository(
     private fun schedulerFor(s: Settings) = Fsrs(
         desiredRetention = s.desiredRetention.toDouble(),
         w = Fsrs.decodeParams(s.fsrsParams) ?: Fsrs.DEFAULT_W,
+        studyDay = { t -> studyDay(t, s.dayStartHour) },
     )
 
     /** Подбирает параметры FSRS по истории ответов и сохраняет их, если прогноз стал точнее. */
@@ -148,7 +149,8 @@ class StudyRepository(
             val current = settings.current()
             val events = reviews.allEvents()
             val initial = Fsrs.decodeParams(current.fsrsParams) ?: Fsrs.DEFAULT_W
-            val outcome = com.marat.albion.data.fsrs.FsrsOptimizer(events, initial).optimize(onProgress = onProgress)
+            val outcome = com.marat.albion.data.fsrs.FsrsOptimizer(events, initial) { t -> studyDay(t, current.dayStartHour) }
+                .optimize(onProgress = onProgress)
             if (outcome is com.marat.albion.data.fsrs.OptimizeOutcome.Done && outcome.improved) {
                 val applied = settings.setFsrsParamsIfUnchanged(
                     current.fsrsParams, current.fsrsUpdatedAt,

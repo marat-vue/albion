@@ -85,4 +85,27 @@ class FsrsTest {
         assertEquals("3 дн", Fsrs.formatInterval(3 * Fsrs.DAY))
         assertEquals("2 мес", Fsrs.formatInterval(61 * Fsrs.DAY))
     }
+
+    @Test
+    fun `вчера 20_00 → сегодня 08_00 uses long-term formula`() {
+        val hour = 3_600_000L
+        val dayStartHour = 4
+        val studyDay = { t: Long -> Math.floorDiv(t - dayStartHour * hour, Fsrs.DAY) }
+        val byDays = Fsrs(enableFuzz = false, studyDay = studyDay)
+        val midnight = Math.floorDiv(t0, Fsrs.DAY) * Fsrs.DAY
+        val evening = midnight + 20 * hour
+        val morning = midnight + Fsrs.DAY + 8 * hour
+        val m = Memory(CardState.REVIEW, stability = 1.0, difficulty = 5.0, due = morning, lastReview = evening, reps = 3)
+
+        assertEquals(1.0, byDays.elapsedDays(m, morning), 0.0)
+        val next = byDays.review(m, Rating.Good, morning)
+        val (longTerm, _) = byDays.memoryStep(1.0, 5.0, isNew = false, elapsedDays = 1.0, rating = Rating.Good)
+        assertEquals(longTerm, next.stability, 1e-9)
+        // По часам прошло 12 ч — короткая ветка почти не растит стабильность.
+        val byHours = fsrs.review(m, Rating.Good, morning)
+        assertTrue(next.stability > byHours.stability * 2)
+        // Учебные шаги по-прежнему считаются по часам.
+        val learning = m.copy(state = CardState.RELEARNING)
+        assertEquals(0.5, byDays.elapsedDays(learning, morning), 1e-9)
+    }
 }

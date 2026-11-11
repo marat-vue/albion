@@ -110,6 +110,10 @@ fun TranslationSheet(
     var retry by remember(text) { mutableStateOf(0) }
     /** 0 — автоперевод, дальше — словарь; индексы не меняются после загрузки модели. */
     var chosen by remember(text) { mutableStateOf(0) }
+    // После установки модели перевод повторяется сам.
+    var autoRetried by remember(text) { mutableStateOf(false) }
+    val failedBeforeInstall = model.ready && result is TranslationResult.Failed && !autoRetried
+    LaunchedEffect(failedBeforeInstall) { if (failedBeforeInstall) { autoRetried = true; retry++ } }
     LaunchedEffect(text, retry) {
         result = TranslationResult.Loading
         glosses = emptyList()
@@ -175,6 +179,7 @@ fun TranslationSheet(
             // Значение видно раньше сохранения и заметок, даже если перевод фраз ещё загружается.
             // Пока модель загружается или переводит, показываем готовое словарное значение.
             val failed = result as? TranslationResult.Failed
+            val installed = model.ready
             val provisional = if (automatic == null)
                 options.firstOrNull()?.second ?: cards.firstOrNull { it.meaningRu.isNotBlank() }?.meaningRu else null
             val meaning = dictionaryMeaning ?: automatic ?: provisional
@@ -194,21 +199,25 @@ fun TranslationSheet(
                     color = MaterialTheme.colorScheme.primary, trackColor = MaterialTheme.colorScheme.outlineVariant)
                 if (chosen == 0 && provisional != null && failed != null) {
                     // Перевод по контексту не получился — словарь уже на экране, ошибка модели второстепенна.
-                    Text("Автоперевод недоступен: ${failed.message}", style = MaterialTheme.typography.bodySmall,
+                    Text(if (installed) "Автоперевод недоступен: ${failed.message}" else "Автоперевод не установлен — показано словарное значение.",
+                        style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 8.dp))
-                    TextButton(onClick = { result = TranslationResult.Loading; retry++ }) { Text("Повторить перевод") }
+                    if (installed) TextButton(onClick = { result = TranslationResult.Loading; retry++ }) { Text("Повторить перевод") }
                 }
             } else {
                 when (val r = result) {
                     TranslationResult.Loading -> {
-                        Text(if (model.phase == BookTranslationPhase.Preparing) "Подготавливаю офлайн-перевод…" else "Перевожу…",
+                        Text(if (model.phase == BookTranslationPhase.Checking) "Подготавливаю офлайн-перевод…" else "Перевожу…",
                             style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         LinearProgressIndicator(Modifier.fillMaxWidth().padding(top = 8.dp).height(2.dp),
                             color = MaterialTheme.colorScheme.primary, trackColor = MaterialTheme.colorScheme.outlineVariant)
                     }
-                    is TranslationResult.Failed -> {
+                    is TranslationResult.Failed -> if (installed) {
                         com.marat.albion.ui.components.FieldError(r.message)
                         TextButton(onClick = { result = TranslationResult.Loading; retry++ }) { Text("Повторить перевод") }
+                    } else {
+                        // Модель не установлена — это не ошибка: установить её можно ниже.
+                        Text(r.message, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     else -> Text("Перевод не найден. Значение можно указать при сохранении.",
                         style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)

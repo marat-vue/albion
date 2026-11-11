@@ -1,6 +1,7 @@
 package com.marat.albion.data.repo
 
 import com.marat.albion.data.fsrs.OptimizeOutcome
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -28,6 +29,9 @@ class FsrsTuner(private val study: StudyRepository, private val scope: Coroutine
         scope.launch {
             _state.value = try {
                 TuningState.Finished(study.optimizeParams { p -> _state.value = TuningState.Running(p) })
+            } catch (e: CancellationException) {
+                _state.value = TuningState.Idle
+                throw e
             } catch (t: Throwable) {
                 TuningState.Failed(t.message ?: t.javaClass.simpleName)
             }

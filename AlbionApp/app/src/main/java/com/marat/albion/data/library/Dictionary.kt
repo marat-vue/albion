@@ -124,24 +124,52 @@ class Dictionary(
     }
 }
 
-/** Возможные словарные формы слова: «studies» → study, «stopped» → stop, «making» → make. */
+/**
+ * Возможные словарные формы слова: «studies» → study, «stopped» → stop, «making» → make.
+ * Порядок важен — побеждает первая форма, найденная в словаре, поэтому он следует морфологии:
+ * notes → note (не not), hoped → hope (не hop), uses → use (не us).
+ */
 fun wordCandidates(word: String): List<String> {
     val w = word.lowercase().trim().replace('’', '\'').removeSuffix("'s").trim('\'', '"', '“', '”', '‘')
     if (w.length < 2) return emptyList()
     val c = linkedSetOf(w)
-    if (w.endsWith("ies")) c += w.dropLast(3) + "y"
-    if (w.endsWith("es")) c += w.dropLast(2)
-    if (w.endsWith("s") && !w.endsWith("ss")) c += w.dropLast(1)
-    if (w.endsWith("ied")) c += w.dropLast(3) + "y"
-    if (w.endsWith("ed")) { c += w.dropLast(2); c += w.dropLast(1) }
-    if (w.endsWith("ing")) { c += w.dropLast(3); c += w.dropLast(3) + "e" }
+    // «flies» → fly, но «ties» → tie: у коротких слов -ies — это основа на -ie плюс -s.
+    if (w.length > 4 && w.endsWith("ies")) c += w.dropLast(3) + "y"
+    if (w.endsWith("es")) {
+        val stem = w.dropLast(2)
+        // -es после шипящих (classes, watches, boxes), иначе это основа на -e плюс -s: toes, goes → goe не слово.
+        if (SIBILANT_ENDINGS.any(stem::endsWith)) { c += stem; c += w.dropLast(1) } else { c += w.dropLast(1); c += stem }
+    } else if (w.endsWith("s") && !w.endsWith("ss")) c += w.dropLast(1)
+    if (w.length > 4 && w.endsWith("ied")) c += w.dropLast(3) + "y"
+    // tied, died, owed: у двухбуквенной основы -ed почти всегда присоединено к -e.
+    if (w.endsWith("ed")) c += stemOrStemE(w.dropLast(2), preferE = w.length == 4)
+    if (w.endsWith("ing")) c += stemOrStemE(w.dropLast(3))
     if (w.length > 4 && w.endsWith("ing") && w[w.length - 4] == w[w.length - 5]) c += w.dropLast(4)
     if (w.length > 3 && w.endsWith("ed") && w[w.length - 3] == w[w.length - 4]) c += w.dropLast(3)
     if (w.endsWith("ier")) c += w.dropLast(3) + "y"
     if (w.endsWith("iest")) c += w.dropLast(4) + "y"
-    if (w.endsWith("er")) { c += w.dropLast(2); c += w.dropLast(1) }
-    if (w.endsWith("est")) { c += w.dropLast(3); c += w.dropLast(2) }
+    if (w.endsWith("er")) c += stemOrStemE(w.dropLast(2))
+    if (w.endsWith("est")) c += stemOrStemE(w.dropLast(3))
     if (w.endsWith("ly")) c += w.dropLast(2)
     if (w.endsWith("ily")) c += w.dropLast(3) + "y"
     return c.filter { it.length >= 2 }
 }
+
+private val SIBILANT_ENDINGS = listOf("ss", "sh", "ch", "x", "z")
+
+/**
+ * Основа без окончания и с «-e». Основа «согласная-гласная-согласная» (hop, mak, us) с короткой
+ * гласной удвоила бы согласную (hopped), поэтому без удвоения это почти всегда основа на -e.
+ */
+private fun stemOrStemE(stem: String, preferE: Boolean = false): List<String> =
+    if (preferE || endsShortSyllable(stem)) listOf(stem + "e", stem) else listOf(stem, stem + "e")
+
+private fun endsShortSyllable(stem: String): Boolean {
+    if (stem.length < 2) return false
+    val last = stem.last()
+    val vowel = stem[stem.length - 2]
+    if (last in VOWELS || last in "wxy" || vowel !in VOWELS) return false
+    return stem.length == 2 || stem[stem.length - 3] !in VOWELS
+}
+
+private const val VOWELS = "aeiou"

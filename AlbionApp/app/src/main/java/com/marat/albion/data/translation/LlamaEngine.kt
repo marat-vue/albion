@@ -61,6 +61,8 @@ class LlamaEngine(private val context: Context, private val scope: CoroutineScop
     private var handle = 0L
     private var loaded: String? = null
     private var idle: Job? = null
+    /** Когда выгрузить модель (мс, монотонные часы). Короткий запрос не сокращает срок, заданный длинным. */
+    private var unloadAt = 0L
     private val _loading = MutableStateFlow(false)
     val loading = _loading.asStateFlow()
 
@@ -107,7 +109,10 @@ class LlamaEngine(private val context: Context, private val scope: CoroutineScop
                 send(result)
             } finally {
                 _loading.value = false
-                idle = scope.launch { delay(options.keepAliveMs); unload() }
+                val now = System.nanoTime() / 1_000_000
+                unloadAt = maxOf(unloadAt, now + options.keepAliveMs)
+                val wait = unloadAt - now
+                idle = scope.launch { delay(wait); unload() }
             }
         }
     }.buffer(Channel.CONFLATED).flowOn(Dispatchers.Default)
@@ -116,6 +121,7 @@ class LlamaEngine(private val context: Context, private val scope: CoroutineScop
         if (handle != 0L) LlamaBridge.nativeUnload(handle)
         handle = 0
         loaded = null
+        unloadAt = 0
     }
     suspend fun unload() = mutex.withLock { withContext(dispatcher) { releaseNative() } }
 }

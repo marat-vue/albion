@@ -47,6 +47,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.foundation.layout.heightIn
 import com.marat.albion.ui.components.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -74,6 +75,7 @@ fun LibraryScreen(navigator: Navigator) {
     val c = LocalAppContainer.current
     val books by remember { c.library.observeLibrary() }.collectAsStateWithLifecycle(null)
     val model by c.bookTranslator.state.collectAsStateWithLifecycle()
+    LaunchedEffect(Unit) { c.bookTranslator.refresh() }
     val scope = rememberCoroutineScope()
     val shelfState = androidx.compose.foundation.lazy.grid.rememberLazyGridState()
     var importError by remember { mutableStateOf<String?>(null) }
