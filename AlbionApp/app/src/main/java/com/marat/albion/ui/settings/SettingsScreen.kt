@@ -138,6 +138,7 @@ fun SettingsScreen(onBack: () -> Unit) {
                     Text("Материалы обновляются вместе с приложением. Прогресс сохраняется.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     ActionRow("Повторно проверить материалы") { c.appScope.launch { c.importer.importIfNeeded(force = true) } }
                 }
+                GrammarOwnAnswersSection()
                 ActionRow("Сбросить только отметки прочитанного", destructive = true) { resetError = null; reset = 1 }
                 ActionRow("Удалить весь прогресс учебника", destructive = true) { resetError = null; reset = 2 }
             }
@@ -261,5 +262,40 @@ private fun SquareSwitch(checked: Boolean) {
     Box(Modifier.size(width = 52.dp, height = 30.dp).background(track)
         .border(1.5.dp, if (checked) scheme.primary else scheme.outline, RectangleShape).padding(4.dp)) {
         Box(Modifier.offset(x = offset).size(22.dp).background(thumb))
+    }
+}
+
+/** Журнал «Мой ответ тоже верен»: что дописать в альтернативы grammar_tasks.xlsx. */
+@Composable
+private fun GrammarOwnAnswersSection() {
+    val c = LocalAppContainer.current
+    val answers by c.settings.grammarOwnAnswers.collectAsStateWithLifecycle(emptyList())
+    val clipboard = androidx.compose.ui.platform.LocalClipboard.current
+    val scope = rememberCoroutineScope()
+    var copied by remember { mutableStateOf(false) }
+    Disclosure("Ответы «Мой ответ тоже верен»", if (answers.isEmpty()) "Пока нет" else "${answers.size} в журнале") {
+        Text(
+            "Сюда попадают ответы, которые вы отметили верными в заданиях «напишите целиком». Их можно скопировать и дописать в альтернативы заданий.",
+            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        answers.asReversed().take(50).forEach { entry ->
+            Column(Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
+                Text(entry.taskNumber, style = MaterialTheme.typography.labelMedium.copy(fontFamily = AlbionFonts.Tech),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(entry.answer, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
+            }
+        }
+        if (answers.size > 50) Text("…и ещё ${answers.size - 50} — все попадут в копию.",
+            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        if (answers.isNotEmpty()) {
+            ActionRow(if (copied) "Скопировано" else "Скопировать список") {
+                val text = com.marat.albion.data.grammar.OwnAnswerLog.export(answers)
+                scope.launch {
+                    clipboard.setClipEntry(androidx.compose.ui.platform.ClipEntry(android.content.ClipData.newPlainText("Albion", text)))
+                    copied = true
+                }
+            }
+            ActionRow("Очистить журнал", destructive = true) { scope.launch { c.settings.clearGrammarOwnAnswers(); copied = false } }
+        }
     }
 }

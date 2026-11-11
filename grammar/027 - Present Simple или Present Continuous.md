@@ -1,7 +1,7 @@
 ---
 level: A2
 order: 27
-prerequisites: 26
+prerequisites: 22, 25
 keywords: present simple или continuous, разница, обычно или сейчас
 tags:
   - english/grammar

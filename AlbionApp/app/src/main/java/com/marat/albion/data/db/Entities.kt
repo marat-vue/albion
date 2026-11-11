@@ -124,6 +124,9 @@ data class GrammarTaskEntity(
     }
     /** Тема 123 текущего учебника проверяет заглавные буквы, апостроф и пунктуацию. */
     val requiresExactWriting: Boolean get() = topic == 123
+    /** Запятая — суть задания: тема 123 или задание/пояснение говорит о запятых («Поставьте запятую…»). */
+    val commasMatter: Boolean get() = requiresExactWriting ||
+        prompt.contains("запят", ignoreCase = true) || explanation.contains("запят", ignoreCase = true)
 }
 
 /** Статистика по заданию — чтобы чаще давать те, где ошибались. */

@@ -39,6 +39,16 @@ class GrammarLearningTest {
         assertTrue(GrammarSearch.snippet(t, "lost").contains("lost"))
     }
 
+    @Test fun searchSnippetHidesHighlightAndStrikethroughMarkup() {
+        val doc = MarkdownParser.parse("""
+            # Cause
+            We stayed at home ==because== it was raining, not ~~for~~ the cold.
+        """.trimIndent())
+        val snippet = GrammarSearch.snippet(topic(116).copy(searchText = GrammarSearch.text(doc)), "because")
+        assertTrue(snippet, snippet.contains("at home because it was raining, not for the cold"))
+        assertFalse(snippet, snippet.contains("==") || snippet.contains("~~"))
+    }
+
     @Test fun actualCourseHasValidAcyclicPrerequisitesAndSixExercisesPerLesson() {
         val dir = File("../../grammar").canonicalFile
         assumeTrue(dir.isDirectory)
@@ -54,6 +64,14 @@ class GrammarLearningTest {
         lessons.forEach { lesson -> lesson.prerequisites.forEach { prerequisite ->
             assertTrue("${lesson.number} needs $prerequisite", prerequisite in ordered)
             assertTrue("cycle/order: ${lesson.number} needs $prerequisite", ordered.indexOf(prerequisite) < ordered.indexOf(lesson.number))
+        } }
+        // Предпосылка не сложнее самой темы: иначе A1-тема ведёт ученика в A2 или B1.
+        val levels = listOf("A1", "A2", "B1", "B2", "C1")
+        val byNumber = lessons.associateBy { it.number }
+        lessons.forEach { lesson -> lesson.prerequisites.forEach { prerequisite ->
+            val required = byNumber.getValue(prerequisite)
+            assertTrue("${lesson.number} (${lesson.level}) needs harder $prerequisite (${required.level})",
+                levels.indexOf(required.level) <= levels.indexOf(lesson.level))
         } }
     }
 }

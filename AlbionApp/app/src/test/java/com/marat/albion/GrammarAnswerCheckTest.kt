@@ -45,12 +45,38 @@ class GrammarAnswerCheckTest {
 
     @Test
     fun keepsInternalPunctuationAndWordBoundaries() {
-        assertEquals(Verdict.Wrong, AnswerCheck.checkGrammar("has, gone", listOf("has gone")))
+        assertEquals(Verdict.Wrong, AnswerCheck.checkGrammar("has, gone", listOf("has gone"), exactWriting = true))
         assertEquals(Verdict.Wrong, AnswerCheck.checkGrammar("hasgone", listOf("has gone")))
         assertEquals(Verdict.Wrong, AnswerCheck.checkGrammar("its", listOf("it's")))
         assertEquals(Verdict.Wrong, AnswerCheck.checkGrammar("were", listOf("we're")))
         assertEquals(Verdict.Wrong, AnswerCheck.checkGrammar("is not", listOf("isn't")))
         assertEquals(Verdict.Correct, AnswerCheck.checkGrammar("is not", listOf("isn't", "is not")))
+    }
+
+    @Test
+    fun commasAreOptionalOutsideWritingTasks() {
+        val accepted = listOf("When I arrived, they were having dinner.")
+        assertEquals(Verdict.Correct, AnswerCheck.checkGrammar("When I arrived they were having dinner", accepted))
+        assertEquals(Verdict.Correct, AnswerCheck.checkGrammar("When I arrived , they were having dinner.", accepted))
+        assertEquals(Verdict.Correct, AnswerCheck.checkGrammar("I like jazz, too", listOf("I like jazz too.")))
+        assertEquals(Verdict.Wrong, AnswerCheck.checkGrammar("When I arrived they had dinner", accepted))
+
+        val ordinary = task(30, "When I arrived, they were having dinner.")
+        assertFalse(ordinary.commasMatter)
+        assertEquals(Verdict.Correct, check("When I arrived they were having dinner.", ordinary))
+
+        val commaTask = task(59, "If it rains, the streets get wet.", prompt = "Поставьте запятую, если нужно: If it rains the streets get wet.")
+        assertTrue(commaTask.commasMatter)
+        assertEquals(Verdict.Wrong, check("If it rains the streets get wet.", commaTask))
+        assertEquals(Verdict.Correct, check("if it rains, the streets get wet", commaTask))
+        assertTrue(task(123, "It's").commasMatter)
+    }
+
+    @Test
+    fun modifierLetterApostropheCountsAsApostrophe() {
+        assertEquals(Verdict.Correct, AnswerCheck.checkGrammar("Itʼs raining", listOf("It's raining.")))
+        assertEquals(Verdict.Correct, check("Itʼs", task(123, "It's")))
+        assertEquals(Verdict.Correct, AnswerCheck.check("donʼt", listOf("don't")))
     }
 
     @Test
@@ -83,10 +109,10 @@ class GrammarAnswerCheckTest {
     }
 
     private fun check(answer: String, task: GrammarTaskEntity) =
-        AnswerCheck.checkGrammar(answer, task.acceptedAnswers, task.requiresExactWriting)
+        AnswerCheck.checkGrammar(answer, task.acceptedAnswers, task.requiresExactWriting, task.commasMatter)
 
-    private fun task(topic: Int, answer: String) = GrammarTaskEntity(
+    private fun task(topic: Int, answer: String, prompt: String = "___") = GrammarTaskEntity(
         id = "test:$topic", position = 0, level = "A2", topic = topic, topicTitle = "",
-        kind = "input", prompt = "___", options = "", answer = answer, explanation = "",
+        kind = "input", prompt = prompt, options = "", answer = answer, explanation = "",
     )
 }

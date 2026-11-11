@@ -39,7 +39,7 @@ tags:
 - **If I drink coffee late, I can't sleep.** — Если пью кофе поздно, не могу уснуть.
 
 > [!tip] Zero или First?
-> **If it rains, I stay home.** — Если идёт дождь, я (всегда) сижу дома. *Общее правило.* **If it rains tomorrow, I'll stay home.** — Если завтра пойдёт дождь, останусь дома. *Один конкретный случай — это уже First Conditional (следующая тема).*
+> **If it rains, I stay at home.** — Если идёт дождь, я (всегда) сижу дома. *Общее правило.* **If it rains tomorrow, I'll stay at home.** — Если завтра пойдёт дождь, останусь дома. *Один конкретный случай — это уже First Conditional (следующая тема).*
 
 > [!warning] Частые ошибки
 > - ~~If water will reach 100°C, it boils.~~ → **If water reaches 100°C, it boils.**

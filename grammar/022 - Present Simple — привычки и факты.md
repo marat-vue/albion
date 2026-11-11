@@ -1,7 +1,7 @@
 ---
 level: A1
 order: 22
-prerequisites: 15, 16
+prerequisites: 16
 keywords: настоящее простое present simple, привычки, факты
 tags:
   - english/grammar

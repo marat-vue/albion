@@ -18,7 +18,7 @@ object AnswerCheck {
 
     fun normalize(s: String): String = s
         .lowercase()
-        .replace('’', '\'').replace('‘', '\'').replace('`', '\'')
+        .replace('’', '\'').replace('‘', '\'').replace('ʼ', '\'').replace('`', '\'')
         .replace(Regex("[.,!?;:\"«»()]"), " ")
         .replace(Regex("\\s+"), " ")
         .trim()
@@ -69,16 +69,26 @@ object AnswerCheck {
      * В грамматике близкая по написанию форма может менять время, согласование
      * или отрицание. Засчитываем только явно допустимый ответ, без допуска опечаток.
      * В заданиях на письмо [exactWriting] сохраняет регистр и конечную пунктуацию.
+     * Запятые учитываются только при [commasMatter] (по умолчанию — в заданиях на письмо).
      */
-    fun checkGrammar(answer: String, accepted: List<String>, exactWriting: Boolean = false): Verdict {
-        val actual = normalizeGrammar(answer, exactWriting)
+    fun checkGrammar(
+        answer: String,
+        accepted: List<String>,
+        exactWriting: Boolean = false,
+        commasMatter: Boolean = exactWriting,
+    ): Verdict {
+        val actual = normalizeGrammar(answer, exactWriting, commasMatter)
         if (actual.isEmpty()) return Verdict.Wrong
-        return if (accepted.any { normalizeGrammar(it, exactWriting) == actual }) Verdict.Correct else Verdict.Wrong
+        return if (accepted.any { normalizeGrammar(it, exactWriting, commasMatter) == actual }) Verdict.Correct else Verdict.Wrong
     }
 
-    /** Внутренняя пунктуация и апострофы значимы: "has, gone" и "its" — другие ответы. */
-    fun normalizeGrammar(s: String, exactWriting: Boolean = false): String {
-        val text = s.replace('’', '\'').replace('‘', '\'').replace('`', '\'')
+    /**
+     * Апострофы и прочая внутренняя пунктуация значимы: "its" и "it's" — разные ответы.
+     * Пропущенная или лишняя запятая ошибкой не считается, если не задано [commasMatter].
+     */
+    fun normalizeGrammar(s: String, exactWriting: Boolean = false, commasMatter: Boolean = exactWriting): String {
+        val apostrophes = s.replace('’', '\'').replace('‘', '\'').replace('ʼ', '\'').replace('`', '\'')
+        val text = (if (commasMatter) apostrophes else apostrophes.replace(",", ""))
             .replace(GRAMMAR_SPACES, " ").trim()
         return if (exactWriting) text else text.lowercase(Locale.ROOT).replace(TERMINAL_PUNCTUATION, "").trimEnd()
     }

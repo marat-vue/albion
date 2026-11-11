@@ -1,7 +1,7 @@
 ---
 level: A2
 order: 107
-prerequisites: 106
+prerequisites: 15
 keywords: each every каждый, every day everyday
 tags:
   - english/grammar

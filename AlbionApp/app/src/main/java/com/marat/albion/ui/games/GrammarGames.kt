@@ -117,6 +117,9 @@ class GrammarGameViewModel(
         private set
     var correct by mutableIntStateOf(0)
         private set
+    /** Вопросы с «Мой ответ тоже верен»: не входят ни в верные, ни в итог. */
+    var excluded by mutableIntStateOf(0)
+        private set
     val mistakes = mutableStateListOf<Mistake>()
     private val missed = mutableListOf<GrammarTaskEntity>()
     private var session: GrammarQuizSession? = null
@@ -154,6 +157,7 @@ class GrammarGameViewModel(
             session = GrammarQuizSession(pool.map { it.id }, fullAttempt = topic != null && !retryingMistakes)
             index = 0
             correct = 0
+            excluded = 0
             mistakes.clear()
             missed.clear()
             questionStartedAt = SystemClock.elapsedRealtime()
@@ -183,6 +187,18 @@ class GrammarGameViewModel(
         val duration = SystemClock.elapsedRealtime() - questionStartedAt
         val answeredAt = System.currentTimeMillis()
         c.appScope.launch { c.study.recordGrammar(task.id, ok, task.kind, duration, answeredAt) }
+    }
+
+    fun isAnswered(task: GrammarTaskEntity): Boolean = session?.answered(task.id) == true
+
+    /**
+     * «Мой ответ тоже верен»: ошибка не записывается, вопрос выходит из результата,
+     * а ответ попадает в журнал для пополнения альтернатив в grammar_tasks.xlsx.
+     */
+    fun acceptOwnAnswer(task: GrammarTaskEntity, answer: String) {
+        if (phase != Phase.Playing || items.getOrNull(index)?.id != task.id || session?.exclude(task.id) != true) return
+        excluded++
+        c.appScope.launch { c.settings.addGrammarOwnAnswer(task.id, answer) }
     }
 
     fun next() {
@@ -224,7 +240,7 @@ fun GrammarGameHost(game: Game, navigator: Navigator) {
             Phase.Summary -> GameSummary(
                 game = vm.game,
                 correct = vm.correct,
-                total = vm.items.size,
+                total = vm.items.size - vm.excluded,
                 mistakes = vm.mistakes.toList(),
                 onRestart = { vm.start() },
                 onRetryMistakes = { vm.retryMistakes() },
@@ -282,7 +298,7 @@ fun TopicQuizHost(topic: Int, topicId: String, title: String, navigator: Navigat
                 game = null,
                 title = if (vm.retryingMistakes) "$title · повтор ошибок" else title,
                 correct = vm.correct,
-                total = vm.items.size,
+                total = vm.items.size - vm.excluded,
                 mistakes = vm.mistakes.toList(),
                 onRestart = { vm.start() },
                 onRetryMistakes = { vm.retryMistakes() },
@@ -548,12 +564,17 @@ private fun GapRound(vm: GrammarGameViewModel, task: GrammarTaskEntity, openRule
     var verdict by rememberSaveable(task.id) { mutableStateOf<Verdict?>(null) }
     var shake by remember(task.id) { mutableIntStateOf(0) }
     var validation by rememberSaveable(task.id) { mutableStateOf<String?>(null) }
+    var gaveUp by rememberSaveable(task.id) { mutableStateOf(false) }
+    var claimed by rememberSaveable(task.id) { mutableStateOf(false) }
     val focus = remember(task.id) { FocusRequester() }
     val keyboard = LocalSoftwareKeyboardController.current
     val focusManager = LocalFocusManager.current
     val accepted = task.acceptedAnswers
     val parsed = remember(task.prompt) { GrammarPrompt(task.prompt) }
     val submitted = parsed.answerParts(input)?.joinToString(" / ") ?: input
+    // Предложение целиком можно сказать по-разному: неверный ответ записывается только по «Дальше»,
+    // чтобы до этого его можно было отметить «Мой ответ тоже верен».
+    val canClaim = parsed.gapCount == 0 && verdict == Verdict.Wrong && !gaveUp && !claimed
 
     LaunchedEffect(task.id) { runCatching { focus.requestFocus() } }
 
@@ -561,10 +582,11 @@ private fun GapRound(vm: GrammarGameViewModel, task: GrammarTaskEntity, openRule
         if (verdict != null) return
         if (!giveUp && input.isBlank()) { validation = "Введите ответ или выберите «Не знаю»."; shake++; return }
         validation = null
-        val v = if (giveUp) Verdict.Wrong else AnswerCheck.checkGrammar(submitted, accepted, task.requiresExactWriting)
+        val v = if (giveUp) Verdict.Wrong else AnswerCheck.checkGrammar(submitted, accepted, task.requiresExactWriting, task.commasMatter)
         verdict = v
+        gaveUp = giveUp
         if (v == Verdict.Wrong) shake++
-        vm.record(task, v == Verdict.Correct, input)
+        if (v == Verdict.Correct || giveUp || parsed.gapCount > 0) vm.record(task, v == Verdict.Correct, input)
         focusManager.clearFocus(force = true)
         keyboard?.hide()
     }
@@ -572,7 +594,8 @@ private fun GapRound(vm: GrammarGameViewModel, task: GrammarTaskEntity, openRule
     val filled = when (verdict) {
         null -> null
         Verdict.Correct -> accepted.firstOrNull {
-            AnswerCheck.normalizeGrammar(it, task.requiresExactWriting) == AnswerCheck.normalizeGrammar(submitted, task.requiresExactWriting)
+            AnswerCheck.normalizeGrammar(it, task.requiresExactWriting, task.commasMatter) ==
+                AnswerCheck.normalizeGrammar(submitted, task.requiresExactWriting, task.commasMatter)
         } ?: input.trim()
         else -> accepted.firstOrNull() ?: task.answer
     }
@@ -620,6 +643,20 @@ private fun GapRound(vm: GrammarGameViewModel, task: GrammarTaskEntity, openRule
                         Spacer(Modifier.height(8.dp))
                         Text("Также верно: " + accepted.drop(1).joinToString(", "), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
+                    if (canClaim) {
+                        com.marat.albion.ui.components.GhostButton(
+                            "Мой ответ тоже верен",
+                            onClick = { vm.acceptOwnAnswer(task, input); claimed = vm.isAnswered(task) },
+                            modifier = Modifier.padding(top = 14.dp).fillMaxWidth(),
+                        )
+                    }
+                    if (claimed) {
+                        Spacer(Modifier.height(12.dp))
+                        Text(
+                            "Ошибка не записана, вопрос не входит в результат. Ответ сохранён в «Настройки → Материалы и данные».",
+                            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                     Explanation(task, openRule)
                 }
             }
@@ -632,7 +669,10 @@ private fun GapRound(vm: GrammarGameViewModel, task: GrammarTaskEntity, openRule
             modifier = Modifier.padding(vertical = 12.dp),
         ) { answered ->
             if (answered) {
-                NextDock(verdict != Verdict.Wrong) { vm.next() }
+                NextDock(if (claimed) null else verdict != Verdict.Wrong, title = if (claimed) "Ответ принят" else null) {
+                    if (verdict == Verdict.Wrong && !vm.isAnswered(task)) vm.record(task, false, input)
+                    vm.next()
+                }
             } else {
                 GameAnswerActions(onCheck = { check() }, onSecondary = { check(giveUp = true) })
             }

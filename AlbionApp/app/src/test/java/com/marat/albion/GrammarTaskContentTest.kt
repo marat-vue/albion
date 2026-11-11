@@ -22,7 +22,7 @@ class GrammarTaskContentTest {
     private fun verdict(id: Int, answer: String): Verdict {
         val t = task(id)
         val submitted = GrammarPrompt(t.prompt).answerParts(answer)?.joinToString(" / ") ?: answer
-        return AnswerCheck.checkGrammar(submitted, t.acceptedAnswers, t.requiresExactWriting)
+        return AnswerCheck.checkGrammar(submitted, t.acceptedAnswers, t.requiresExactWriting, t.commasMatter)
     }
     private fun accepts(id: Int, vararg answers: String) = answers.forEach {
         assertEquals("gt:$id must accept: $it", Verdict.Correct, verdict(id, it))
@@ -134,6 +134,28 @@ class GrammarTaskContentTest {
         rejects(1270, "told", "telling")
         rejects(936, "understand", "am not understanding")
         assertTrue("The negative verb must be specified", task(936).prompt.contains("not / understand"))
+    }
+
+    @Test fun wholeSentenceTasksAcceptEquivalentAnswers() {
+        accepts(1198, "Where do you have your hair cut?", "Where do you get your hair cut?")
+        accepts(1215, "He asked where I worked.", "He asked me where I worked.")
+        accepts(1261, "I came to help.", "I've come to help.", "I have come to help.")
+        accepts(959, "I was eighteen in 2015.", "I was 18 in 2015.", "In 2015, I was eighteen.")
+        accepts(1488, "It was Tom who found the keys.", "It was Tom that found the keys.")
+        accepts(1606, "The fall in sales led to financial losses for the company.",
+            "The fall in sales led to the company losing money.")
+        accepts(1228, "Tom suggested going to the beach.", "Tom suggested that we should go to the beach.")
+        accepts(1148, "had told / would have helped", "'d told / 'd have helped")
+        rejects(1198, "Where do you cut your hair?")
+        rejects(1215, "He asked me where do I work.")
+        rejects(1228, "Tom suggested to go to the beach.")
+    }
+
+    @Test fun missingCommaFailsOnlyWhereTheCommaIsTheTask() {
+        accepts(965, "When I arrived they were having dinner.")
+        accepts(1283, "Mr Brown, who comes from Leeds, is our new teacher.")
+        rejects(1133, "If it rains the streets get wet.")
+        rejects(1283, "Mr Brown who comes from Leeds is our new teacher.")
     }
 
     @Test fun omittedArticlesCanBeEnteredWithAnOrdinaryKeyboardHyphen() {

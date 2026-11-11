@@ -11,7 +11,7 @@ tags:
 # First Conditional — реальное будущее условие
 
 > [!abstract] Коротко
-> First Conditional — для **реальных** «если» о будущем: **If it rains tomorrow, we'll stay home.** — Если завтра пойдёт дождь, останемся дома. После **if** — настоящее время, а **will** — в другой части.
+> First Conditional — для **реальных** «если» о будущем: **If it rains tomorrow, we'll stay at home.** — Если завтра пойдёт дождь, останемся дома. После **if** — настоящее время, а **will** — в другой части.
 
 ## Суть
 
@@ -33,7 +33,7 @@ tags:
 
 ## Примеры
 
-- **If it rains tomorrow, we'll stay home.** — Если завтра будет дождь, останемся дома.
+- **If it rains tomorrow, we'll stay at home.** — Если завтра будет дождь, останемся дома.
 - **We'll miss the train if we don't hurry.** — Мы опоздаем на поезд, если не поторопимся.
 - **If she calls, tell her I'm busy.** — Если она позвонит, скажи, что я занят.
 - **If you're late, I won't wait.** — Если опоздаешь, я не буду ждать.
