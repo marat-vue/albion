@@ -30,7 +30,7 @@ tags:
 
 | First — реально может быть | Second — воображаю, маловероятно |
 | --- | --- |
-| If it **rains** tomorrow, we'**ll** stay home. | If I **won** the lottery, I'**d** buy a house. |
+| If it **rains** tomorrow, we'**ll** stay at home. | If I **won** the lottery, I'**d** buy a house. |
 | Если пойдёт дождь… (вполне возможно) | Если бы я выиграл в лотерею… (вряд ли) |
 
 ## If I were you
@@ -58,7 +58,7 @@ tags:
 2. Вставьте глаголы: What ___ you ___ (do) if you ___ (win) the lottery?
 3. Вставьте глагол: If I ___ (be) you, I would apologise.
 4. Выберите: If I (have / had) more money, I'd buy a house.
-5. Выберите (это вполне возможно): If it (rains / rained) tomorrow, we'll stay home.
+5. Выберите (это вполне возможно): If it (rains / rained) tomorrow, we'll stay at home.
 6. Исправьте ошибку: *If I would have time, I would help you.*
 
 > [!success]- Ответы и пояснения

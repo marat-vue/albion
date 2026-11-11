@@ -39,6 +39,16 @@ class GrammarLearningTest {
         assertTrue(GrammarSearch.snippet(t, "lost").contains("lost"))
     }
 
+    @Test fun searchSnippetHidesHighlightAndStrikethroughMarkup() {
+        val doc = MarkdownParser.parse("""
+            # Cause
+            We stayed at home ==because== it was raining, not ~~for~~ the cold.
+        """.trimIndent())
+        val snippet = GrammarSearch.snippet(topic(116).copy(searchText = GrammarSearch.text(doc)), "because")
+        assertTrue(snippet, snippet.contains("at home because it was raining, not for the cold"))
+        assertFalse(snippet, snippet.contains("==") || snippet.contains("~~"))
+    }
+
     @Test fun actualCourseHasValidAcyclicPrerequisitesAndSixExercisesPerLesson() {
         val dir = File("../../grammar").canonicalFile
         assumeTrue(dir.isDirectory)

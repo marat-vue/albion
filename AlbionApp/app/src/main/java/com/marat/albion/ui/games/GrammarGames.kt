@@ -561,7 +561,7 @@ private fun GapRound(vm: GrammarGameViewModel, task: GrammarTaskEntity, openRule
         if (verdict != null) return
         if (!giveUp && input.isBlank()) { validation = "Введите ответ или выберите «Не знаю»."; shake++; return }
         validation = null
-        val v = if (giveUp) Verdict.Wrong else AnswerCheck.checkGrammar(submitted, accepted, task.requiresExactWriting)
+        val v = if (giveUp) Verdict.Wrong else AnswerCheck.checkGrammar(submitted, accepted, task.requiresExactWriting, task.commasMatter)
         verdict = v
         if (v == Verdict.Wrong) shake++
         vm.record(task, v == Verdict.Correct, input)
@@ -572,7 +572,8 @@ private fun GapRound(vm: GrammarGameViewModel, task: GrammarTaskEntity, openRule
     val filled = when (verdict) {
         null -> null
         Verdict.Correct -> accepted.firstOrNull {
-            AnswerCheck.normalizeGrammar(it, task.requiresExactWriting) == AnswerCheck.normalizeGrammar(submitted, task.requiresExactWriting)
+            AnswerCheck.normalizeGrammar(it, task.requiresExactWriting, task.commasMatter) ==
+                AnswerCheck.normalizeGrammar(submitted, task.requiresExactWriting, task.commasMatter)
         } ?: input.trim()
         else -> accepted.firstOrNull() ?: task.answer
     }

@@ -42,6 +42,7 @@ object GrammarSearch {
         .replace(Regex("\\[\\[([^]|]+)\\|([^]]+)]]"), "$2")
         .replace(Regex("\\[\\[([^]]+)]]"), "$1")
         .replace(Regex("\\[([^]]+)]\\([^)]+\\)"), "$1")
+        .replace(Regex("==|~~"), "")
         .replace(Regex("[*`_#]"), "")
         .replace(Regex("\\s+"), " ").trim()
 
