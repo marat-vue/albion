@@ -4,73 +4,107 @@ import com.marat.albion.data.library.BookTranslationBackend
 import com.marat.albion.data.library.BookTranslationPhase
 import com.marat.albion.data.library.BookTranslator
 import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.async
-import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.*
 import org.junit.Test
 
 class BookTranslatorTest {
-    private class Backend : BookTranslationBackend {
-        var preparations = 0
+    private class Backend(var downloaded: Boolean = true) : BookTranslationBackend {
+        var checks = 0
+        val downloads = mutableListOf<Boolean>()
         var calls = mutableListOf<String>()
-        var prepare: suspend () -> Unit = {}
+        var download: suspend () -> Unit = {}
         var answer: (String) -> String = { "перевод: $it" }
-        override suspend fun prepare() { preparations++; prepare.invoke() }
+        override suspend fun isDownloaded(): Boolean { checks++; return downloaded }
+        override suspend fun download(allowMobile: Boolean) { downloads += allowMobile; download.invoke(); downloaded = true }
         override suspend fun translate(text: String): String { calls += text; return answer(text) }
     }
 
-    @Test fun concurrentRequestsShareModelPreparationAndCacheTheSelectedText(): Unit = runBlocking {
-        val started = CompletableDeferred<Unit>()
-        val downloaded = CompletableDeferred<Unit>()
-        val backend = Backend().apply { prepare = { started.complete(Unit); downloaded.await() } }
+    @Test fun installedModelTranslatesAndCachesTheSelectedText(): Unit = runBlocking {
+        val backend = Backend()
         val translator = BookTranslator(this, backend)
-        val word = async { translator.translate(" hello ") }
-        started.await()
-        val phrase = async { translator.translate("a little every day") }
-        downloaded.complete(Unit)
-        assertEquals("перевод: hello", word.await())
-        assertEquals("перевод: a little every day", phrase.await())
+        assertEquals("перевод: hello", translator.translate(" hello "))
+        assertEquals("перевод: a little every day", translator.translate("a little every day"))
         assertEquals("перевод: hello", translator.translate("hello"))
-        assertEquals(1, backend.preparations)
+        assertEquals(1, backend.checks)
         assertEquals(listOf("hello", "a little every day"), backend.calls)
         assertTrue(translator.state.value.ready)
+        assertTrue(backend.downloads.isEmpty())
     }
 
-    @Test fun failedFirstDownloadCanBeRetried(): Unit = runBlocking {
-        val backend = Backend().apply { prepare = { error("No network") } }
+    @Test fun missingModelIsNeverDownloadedWithoutTheUser(): Unit = runBlocking {
+        val backend = Backend(downloaded = false)
         val translator = BookTranslator(this, backend)
-        try { translator.translate("hello"); fail("Download failure was ignored") }
+        translator.refresh()
+        translator.state.first { it.phase != BookTranslationPhase.Checking }
+        assertEquals(BookTranslationPhase.NotInstalled, translator.state.value.phase)
+        try { translator.translate("hello"); fail("Translated without a model") }
         catch (_: IllegalStateException) { }
-        assertEquals(BookTranslationPhase.Failed, translator.state.value.phase)
+        assertEquals(BookTranslationPhase.NotInstalled, translator.state.value.phase)
+        assertTrue(backend.downloads.isEmpty())
         assertTrue(backend.calls.isEmpty())
-        backend.prepare = {}
-        assertEquals("перевод: hello", translator.translate("hello"))
-        assertEquals(2, backend.preparations)
-        assertTrue(translator.state.value.ready)
     }
 
-    @Test fun leavingTheReaderDuringPreparationDoesNotPoisonTheNextRequest(): Unit = runBlocking {
-        val started = CompletableDeferred<Unit>()
-        val backend = Backend().apply { prepare = { started.complete(Unit); CompletableDeferred<Unit>().await() } }
+    @Test fun installWaitsForWifiUnlessMobileDataIsAllowed(): Unit = runBlocking {
+        val backend = Backend(downloaded = false)
         val translator = BookTranslator(this, backend)
-        val abandoned = async { translator.translate("hello") }
-        started.await()
-        abandoned.cancelAndJoin()
-        assertNotEquals(BookTranslationPhase.Failed, translator.state.value.phase)
-        backend.prepare = {}
-        assertEquals("перевод: goodbye", translator.translate("goodbye"))
-        assertEquals(listOf("goodbye"), backend.calls)
+        translator.install(allowMobile = false)
+        translator.state.first { it.ready }
+        assertEquals(listOf(false), backend.downloads)
+        assertEquals("перевод: hello", translator.translate("hello"))
     }
 
-    @Test fun invalidSelectionsDoNotStartADownload(): Unit = runBlocking {
+    @Test fun failedDownloadCanBeRetried(): Unit = runBlocking {
+        val backend = Backend(downloaded = false).apply { download = { error("No network") } }
+        val translator = BookTranslator(this, backend)
+        translator.install(allowMobile = true)
+        translator.state.first { it.phase == BookTranslationPhase.Failed }
+        assertNotNull(translator.state.value.message)
+        backend.download = {}
+        translator.install(allowMobile = true)
+        translator.state.first { it.ready }
+        assertEquals(listOf(true, true), backend.downloads)
+    }
+
+    @Test fun translationDuringDownloadDoesNotWaitForIt(): Unit = runBlocking {
+        val started = CompletableDeferred<Unit>()
+        val finish = CompletableDeferred<Unit>()
+        val backend = Backend(downloaded = false).apply { download = { started.complete(Unit); finish.await() } }
+        val translator = BookTranslator(this, backend)
+        translator.install(allowMobile = false)
+        translator.install(allowMobile = false)
+        started.await()
+        assertEquals(BookTranslationPhase.Downloading, translator.state.value.phase)
+        try { translator.translate("hello"); fail("Translated before the model was ready") }
+        catch (_: IllegalStateException) { }
+        finish.complete(Unit)
+        translator.state.first { it.ready }
+        assertEquals(1, backend.downloads.size)
+    }
+
+    @Test fun cancelledDownloadReturnsToNotInstalled(): Unit = runBlocking {
+        val started = CompletableDeferred<Unit>()
+        val backend = Backend(downloaded = false).apply { download = { started.complete(Unit); CompletableDeferred<Unit>().await() } }
+        val translator = BookTranslator(this, backend)
+        translator.install(allowMobile = false)
+        started.await()
+        translator.cancelInstall()
+        translator.state.first { it.phase == BookTranslationPhase.NotInstalled }
+        backend.download = {}
+        translator.install(allowMobile = true)
+        translator.state.first { it.ready }
+        assertEquals(listOf(false, true), backend.downloads)
+    }
+
+    @Test fun invalidSelectionsDoNotCheckTheModel(): Unit = runBlocking {
         val backend = Backend()
         val translator = BookTranslator(this, backend)
         for (text in listOf("  ", "a".repeat(BookTranslator.MAX_SELECTION + 1))) {
             try { translator.translate(text); fail("Invalid selection accepted") }
             catch (_: IllegalArgumentException) { }
         }
-        assertEquals(0, backend.preparations)
+        assertEquals(0, backend.checks)
     }
 
     @Test fun emptyOrFailedTranslationsAreNeverCached(): Unit = runBlocking {
@@ -84,6 +118,6 @@ class BookTranslatorTest {
         backend.answer = { "привет" }
         assertEquals("привет", translator.translate("hello"))
         assertEquals(3, backend.calls.size)
-        assertEquals(1, backend.preparations)
+        assertEquals(1, backend.checks)
     }
 }

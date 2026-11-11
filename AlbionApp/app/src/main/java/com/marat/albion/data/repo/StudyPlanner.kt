@@ -154,10 +154,12 @@ internal object StudyPlanner {
             val m = words.state(it)
             m != null && m.state in listOf(CardState.LEARNING, CardState.RELEARNING) && m.due <= now + StudyRepository.LEARN_AHEAD
         }.sortedBy { words.state(it)!!.due }
+        // Если повторений больше лимита, первыми идут слова с наименьшей вероятностью вспомнить:
+        // при любых параметрах FSRS она убывает с отношением «прошло дней / стабильность».
         val due = pool.filter {
             val m = words.state(it)
             m != null && m.state == CardState.REVIEW && m.due <= now
-        }.shuffled().take(reviewLeft)
+        }.sortedByDescending { overdueness(words.state(it)!!, now) }.take(reviewLeft).shuffled()
         if (newLeft == 0) return SessionQueue(learning, due, emptyList())
         val fresh = pool.filter { words.state(it) == null }
         val ordered = when (s.newOrder) {
@@ -169,6 +171,9 @@ internal object StudyPlanner {
         }
         return SessionQueue(learning, due, ordered.take(newLeft))
     }
+
+    private fun overdueness(m: ReviewStateEntity, now: Long): Double =
+        if (m.stability <= 0) Double.MAX_VALUE else max(0L, now - m.lastReview).toDouble() / m.stability
 
     private fun <T> roundRobin(lists: List<List<T>>): List<T> {
         val total = lists.sumOf { it.size }

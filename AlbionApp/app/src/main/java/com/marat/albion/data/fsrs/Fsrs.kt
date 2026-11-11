@@ -49,6 +49,12 @@ class Fsrs(
     private val maximumInterval: Int = 36500,
     private val enableFuzz: Boolean = true,
     private val random: Random = Random.Default,
+    /**
+     * Номер учебного дня по моменту времени. Если задан, для карточек в REVIEW прошедшее время
+     * считается в учебных днях, как в Anki: интервалы привязаны к началу дня, и ответ вечером
+     * с повтором следующим утром — это целый день, а не 12 часов. Учебные шаги — по часам.
+     */
+    private val studyDay: ((Long) -> Long)? = null,
 ) {
     private val decay = -w[20]
     private val factor = 0.9.pow(1.0 / decay) - 1.0
@@ -91,7 +97,7 @@ class Fsrs(
 
     fun review(m: Memory, rating: Rating, now: Long, fuzz: Boolean = enableFuzz): Memory {
         val g = rating.value
-        val elapsedDays = if (m.lastReview > 0) (now - m.lastReview).toDouble() / DAY else 0.0
+        val elapsedDays = elapsedDays(m, now)
 
         val (stability, difficulty) = memoryStep(
             stability = m.stability,
@@ -191,6 +197,13 @@ class Fsrs(
             reps = m.reps + 1,
             lapses = lapses,
         )
+    }
+
+    /** Сколько дней прошло с прошлого ответа: для REVIEW — в учебных днях (если задан [studyDay]). */
+    fun elapsedDays(m: Memory, now: Long): Double = when {
+        m.lastReview <= 0 -> 0.0
+        m.state == CardState.REVIEW && studyDay != null -> max(0L, studyDay(now) - studyDay(m.lastReview)).toDouble()
+        else -> (now - m.lastReview).toDouble() / DAY
     }
 
     // ---- формулы FSRS-6 ----

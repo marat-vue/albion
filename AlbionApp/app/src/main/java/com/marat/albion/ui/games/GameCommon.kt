@@ -205,7 +205,7 @@ fun GameSetup(
         ) {
             GameSetupHeader(game) {
                 if (game.decks.size > 1) {
-                    SetupLabel("Колода")
+                    SetupLabel("Словарь")
                     Column(Modifier.fillMaxWidth().selectableGroup(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         game.decks.forEach { d -> com.marat.albion.ui.components.ChoiceRow(d.title, d == deck, { onDeck(d) }) }
                     }

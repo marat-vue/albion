@@ -92,4 +92,21 @@ class StudyPlannerTest {
         assertEquals(1, overview.today.newAvailable)
         assertEquals(2, overview.dictionaries.first { it.deck == Deck.WORDS }.newAvailable)
     }
+
+    @Test fun overflowingReviewsTakeTheLeastLikelyToBeRecalledFirst() {
+        val day = 86_400_000L
+        val cards = (0 until 10).map { card("w$it", "word$it", position = it) }
+        // w0…w9: чем больше номер, тем дольше прошло относительно стабильности.
+        val states = cards.mapIndexed { i, c ->
+            c.id to ReviewStateEntity(c.id, c.deck, CardState.REVIEW, 0, stability = 10.0, difficulty = 5.0,
+                due = now - 1, lastReview = now - (i + 1) * day, reps = 3, lapses = 0)
+        }.toMap() + ("w0" to ReviewStateEntity("w0", Deck.WORDS.id, CardState.REVIEW, 0, stability = 0.5, difficulty = 5.0,
+            due = now - 1, lastReview = now - day, reps = 3, lapses = 1))
+        val limited = settings.copy(reviewsPerDay = 3)
+        repeat(20) {
+            val queue = StudyPlanner.plan(StudySource.Dictionary(Deck.WORDS), Vocabulary(cards, states), emptyList(), limited, now)
+            // w0 почти забыт (1 день при S = 0,5), затем самые давние w9 и w8.
+            assertEquals(setOf("w0", "w9", "w8"), queue.reviews.map { it.id }.toSet())
+        }
+    }
 }

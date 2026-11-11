@@ -10,6 +10,7 @@ import com.marat.albion.data.grammar.GrammarRepository
 import com.marat.albion.data.repo.StudyRepository
 import com.marat.albion.data.settings.SettingsRepository
 import com.marat.albion.notify.Reminders
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.Dispatchers
@@ -52,10 +53,14 @@ class AlbionApp : Application() {
         container = AppContainer(this)
         container.appScope.launch { container.importer.importIfNeeded() }
         container.appScope.launch { container.library.syncBundled() }
-        container.appScope.launch { runCatching { container.dictionary.ensureLoaded() } }
+        container.appScope.launch {
+            try { container.dictionary.ensureLoaded() }
+            catch (e: CancellationException) { throw e }
+            catch (e: Exception) { android.util.Log.e("Albion", "Словарь не загружен", e) }
+        }
         // Восстановить состояние модели/загрузки, не загружая веса в память на старте.
+        // Языковая модель ML Kit для книг загружается только по кнопке в «Чтении».
         container.translator.preload()
-        container.bookTranslator.preload()
         container.speech.preload()
         Reminders.createChannel(this)
         // Будильник напоминания всегда соответствует настройкам.
