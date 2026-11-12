@@ -18,7 +18,7 @@ import com.marat.albion.ui.components.SignalLabel
 /** Пометка над трудным словом: сколько раз оно забывалось. */
 @Composable
 internal fun LeechLabel(lapses: Int, modifier: Modifier = Modifier) {
-    SignalLabel("ТРУДНОЕ СЛОВО · ЗАБЫВАЛОСЬ $lapses ${com.marat.albion.ui.library.pluralRu(lapses, "РАЗ", "РАЗА", "РАЗ")}",
+    SignalLabel("Трудное слово · забывалось $lapses ${com.marat.albion.ui.library.pluralRu(lapses, "раз", "раза", "раз")}",
         modifier.fillMaxWidth().padding(horizontal = 16.dp))
 }
 

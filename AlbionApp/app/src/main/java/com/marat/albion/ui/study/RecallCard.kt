@@ -106,7 +106,7 @@ internal fun RecallCard(card: StudyCard, irregular: IrregularData?, state: Recal
             if (card.leech) LeechLabel(card.lapses, Modifier.padding(bottom = 12.dp))
             val cloze = state.cloze
             Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                SignalLabel(if (cloze != null) "ВСТАВЬТЕ СЛОВО В ПРИМЕР" else "ВСПОМНИТЕ СЛОВО ПО-АНГЛИЙСКИ")
+                SignalLabel(if (cloze != null) "Вставьте слово в пример" else "Вспомните слово по-английски")
                 Spacer(Modifier.height(14.dp))
                 if (cloze != null) {
                     Text(
