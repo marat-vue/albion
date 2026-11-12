@@ -173,7 +173,13 @@ class AdaptiveChatHeadingUiTest {
             val keyboard = instrumentation.uiAutomation.windows.firstOrNull { it.type == AccessibilityWindowInfo.TYPE_INPUT_METHOD }
                 ?: error("Keyboard must stay visible during editing")
             val keyboardBounds = Rect().also(keyboard::getBoundsInScreen)
-            val edited = await { it.isEditable && it.text?.toString() == longDraft }
+            var edited = await { it.isEditable && it.text?.toString() == longDraft }
+            // imePadding follows the keyboard animation; give the layout time to settle above it.
+            for (attempt in 0 until 30) {
+                if (bounds(edited).bottom <= keyboardBounds.top) break
+                SystemClock.sleep(100)
+                edited = await { it.isEditable && it.text?.toString() == longDraft }
+            }
             assertTrue("Long draft displaced the conversation", bounds(edited).height() <= 160 * density)
             assertTrue("Editor is covered by the keyboard", bounds(edited).bottom <= keyboardBounds.top)
             val history = await { it.text?.toString() == "Tell me about your day." }
@@ -200,7 +206,8 @@ class AdaptiveChatHeadingUiTest {
                 val level = text("A2")
                 assertWholeText(level)
                 assertEquals(1, level.layout.lineCount)
-                val field = await { it.isEditable }
+                // Without Qwen the editor is disabled, so it is found by its label rather than as editable.
+                val field = await { it.contentDescription?.toString() == "Ваш ответ" }
                 assertTrue(bounds(field).height() <= 80 * density)
                 capture("actual-chat")
             }
