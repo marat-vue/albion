@@ -70,6 +70,8 @@ data class ReviewLogEntity(
     @ColumnInfo(name = "prev_step") val prevStep: Int?,
     @ColumnInfo(name = "prev_reps") val prevReps: Int?,
     @ColumnInfo(name = "prev_lapses") val prevLapses: Int?,
+    /** Откуда ответ: карточка с самооценкой, ввод в «Сегодня» или тренировка (см. ReviewSource). */
+    @ColumnInfo(defaultValue = "card") val source: String = "card",
 )
 
 @Entity(tableName = "grammar_progress")
@@ -225,6 +227,8 @@ data class DeckCounts(
 )
 
 data class DayCount(val day: Long, val count: Int)
+
+data class ReviewPassCount(val answers: Int, val passed: Int)
 
 data class DayAnswer(val cardId: String, val deck: String, val stateBefore: Int)
 

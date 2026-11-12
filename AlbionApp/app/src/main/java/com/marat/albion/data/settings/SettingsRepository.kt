@@ -120,6 +120,7 @@ class SettingsRepository internal constructor(private val store: DataStore<Prefe
         val reduceMotion = booleanPreferencesKey("reduce_motion")
         val themeMode = stringPreferencesKey("theme_mode_v2")
         val grammarOwnAnswers = stringPreferencesKey("grammar_own_answers")
+        val wordOwnAnswers = stringPreferencesKey("word_own_answers")
     }
 
     val settings: Flow<Settings> = data.map { p ->
@@ -172,6 +173,14 @@ class SettingsRepository internal constructor(private val store: DataStore<Prefe
     }
 
     suspend fun clearGrammarOwnAnswers() = edit { it.remove(Keys.grammarOwnAnswers) }
+
+    /** Принятые «Мой ответ тоже верен» варианты слов при вводе RU → EN (синонимы): id слова → ответ. */
+    val wordOwnAnswers: Flow<List<com.marat.albion.data.grammar.OwnAnswer>> =
+        data.map { com.marat.albion.data.grammar.OwnAnswerLog.parse(it[Keys.wordOwnAnswers]) }.distinctUntilChanged()
+
+    suspend fun addWordOwnAnswer(cardId: String, answer: String) = edit {
+        it[Keys.wordOwnAnswers] = com.marat.albion.data.grammar.OwnAnswerLog.append(it[Keys.wordOwnAnswers], cardId, answer)
+    }
 
     fun practiceOptions(game: String, defaultCount: Int = 10): Flow<PracticeOptions> = data.map { p ->
         PracticeOptions(

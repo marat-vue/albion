@@ -66,9 +66,11 @@ class StudyPlannerTest {
         // Новое слово коллекции, выученное через словарь, тоже расходует её лимит.
         val answered = listOf(DayAnswer("cat", Deck.WORDS.id, CardState.NEW))
         assertEquals(1, StudyPlanner.plan(StudySource.Collection(1), words, answered, settings, now).news.size)
-        // Ответ на слово вне коллекции её лимит не трогает.
+        // Новое слово вне коллекции расходует общий бюджет дня, а не лимит самой коллекции.
         val elsewhere = listOf(DayAnswer("fox", Deck.WORDS.id, CardState.NEW))
-        assertEquals(2, StudyPlanner.plan(StudySource.Collection(1), words, elsewhere, settings, now).news.size)
+        assertEquals(1, StudyPlanner.plan(StudySource.Collection(1), words, elsewhere, settings, now).news.size)
+        val bigBudget = settings.copy(newPerDay = 3)
+        assertEquals(2, StudyPlanner.plan(StudySource.Collection(1), words, elsewhere, bigBudget, now).news.size)
     }
 
     @Test fun wordInSeveralCollectionsAppearsOnceInToday() {

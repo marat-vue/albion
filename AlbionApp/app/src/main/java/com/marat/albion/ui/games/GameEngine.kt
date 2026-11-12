@@ -48,7 +48,10 @@ private val FUNCTION_WORDS = setOf("the", "and", "but", "for", "nor", "yet", "it
 
 enum class Phase { Setup, Loading, Playing, Summary }
 
-/** Общее состояние мини-игры: настройка → вопросы → итог. На FSRS не влияет. */
+/**
+ * Общее состояние мини-игры: настройка → вопросы → итог. На FSRS влияют только игры с [Game.gradesMemory]:
+ * их ответ на подошедшее повторение засчитывается автоматически (см. [com.marat.albion.data.repo.AutoGrade]).
+ */
 class GameViewModel(private val c: AppContainer, val game: Game,
     private val initialDeck: Deck? = null, private val focusMistakes: Boolean = false, private val initialCount: Int? = null,
 ) : ViewModel() {
@@ -70,6 +73,9 @@ class GameViewModel(private val c: AppContainer, val game: Game,
     var index by mutableIntStateOf(0)
         private set
     var correct by mutableIntStateOf(0)
+        private set
+    /** Сколько ответов этой тренировки засчитано в повторения FSRS. */
+    var graded by mutableIntStateOf(0)
         private set
     val mistakes = mutableStateListOf<Mistake>()
     private val missed = mutableListOf<CardEntity>()
@@ -99,7 +105,7 @@ class GameViewModel(private val c: AppContainer, val game: Game,
         if (retry == null) saveOptions(markAsLast = true)
         phase = Phase.Loading
         // Новая игра — новые примеры; повтор ошибок — те же задания.
-        if (retry == null) { tenses.clear(); tenseOptions.clear(); puzzles.clear(); shuffledTokens.clear(); sentenceTranslations.clear() }
+        if (retry == null) { clozes.clear(); tenses.clear(); tenseOptions.clear(); puzzles.clear(); shuffledTokens.clear(); sentenceTranslations.clear() }
         translating?.cancel()
         // Фоновый перевод доделывает текущее предложение (обрыв посреди генерации терял работу) и останавливается.
         stopUpcoming = true
@@ -108,6 +114,7 @@ class GameViewModel(private val c: AppContainer, val game: Game,
                 // Нужны карточки, у которых есть пример подходящей длины.
                 Game.SENTENCE -> c.study.gamePool(deck, game.name, (count * 4).coerceAtMost(500), onlyMistakes = onlyMistakes).filter { puzzle(it) != null }.take(count)
                 Game.TENSES -> c.study.gamePool(deck, game.name, (count * 2).coerceAtMost(500), onlyMistakes = onlyMistakes).filter { tense(it) != null }.take(count)
+                Game.CLOZE -> c.study.gamePool(deck, game.name, (count * 4).coerceAtMost(500), onlyMistakes = onlyMistakes).filter { cloze(it) != null }.take(count)
                 // Речь: служебные слова вроде «a» или «to» распознавание не узнаёт отдельно — их пропускаем.
                 Game.SHADOWING, Game.PRONUNCIATION -> c.study.gamePool(deck, game.name, (count * 2).coerceAtMost(500), withAudio = true, onlyMistakes = onlyMistakes)
                     .filter { speakable(it.term) }.take(count)
@@ -116,6 +123,7 @@ class GameViewModel(private val c: AppContainer, val game: Game,
             items = pool
             index = 0
             correct = 0
+            graded = 0
             mistakes.clear()
             missed.clear()
             answered = false
@@ -131,8 +139,11 @@ class GameViewModel(private val c: AppContainer, val game: Game,
         return word.count(Char::isLetter) >= 3 && word !in FUNCTION_WORDS
     }
 
-    /** Засчитать текущий вопрос. */
-    fun record(ok: Boolean, mistake: Mistake? = null) {
+    /**
+     * Засчитать текущий вопрос. [verdict] и [hinted] — результат проверки ввода: по ним подошедшее
+     * повторение слова получает оценку FSRS, если игра проверяет вспоминание ([Game.gradesMemory]).
+     */
+    fun record(ok: Boolean, mistake: Mistake? = null, verdict: com.marat.albion.data.games.Verdict? = null, hinted: Boolean = false) {
         if (phase != Phase.Playing || answered) return
         val card = items.getOrNull(index) ?: return
         answered = true
@@ -143,7 +154,15 @@ class GameViewModel(private val c: AppContainer, val game: Game,
             missed += card
         }
         // Запоминаем и между играми: ошибки попадутся первыми в следующий раз.
-        c.appScope.launch { c.study.recordGame(card.id, game.name, ok, duration, answeredAt) }
+        val grade = verdict?.takeIf { game.gradesMemory }
+        c.appScope.launch {
+            c.study.recordGame(card.id, game.name, ok, duration, answeredAt)
+            if (grade != null) {
+                val rating = c.study.gradeFromPractice(card.id, grade, hinted,
+                    com.marat.albion.data.repo.ReviewSource.game(game.name), duration, answeredAt)
+                if (rating != null) kotlinx.coroutines.withContext(Dispatchers.Main) { graded++ }
+            }
+        }
     }
 
     fun next() {
@@ -243,6 +262,13 @@ class GameViewModel(private val c: AppContainer, val game: Game,
         c.appScope.launch { c.database.sentenceTranslations().upsert(com.marat.albion.data.db.SentenceTranslationEntity(text, clean, edited = true)) }
     }
 
+    private val clozes = HashMap<String, com.marat.albion.data.games.ClozeTask?>()
+
+    /** Пример с пропуском для «Слова в контексте» — один на всю игру. */
+    fun cloze(card: CardEntity): com.marat.albion.data.games.ClozeTask? = clozes.getOrPut(card.id) {
+        com.marat.albion.data.games.Cloze.make(card, preferSecond = kotlin.random.Random.nextBoolean())
+    }
+
     private val tenses = HashMap<String, TenseTask?>()
 
     /** Задание тренажёра времён по глаголу — случайная форма и пример, одно на всю игру. */
@@ -271,6 +297,10 @@ fun GameHost(game: Game, navigator: Navigator, initialDeck: Deck? = null, onlyMi
         GrammarGameHost(game, navigator)
         return
     }
+    if (game == Game.FIX_ERROR) {
+        FixErrorHost(navigator)
+        return
+    }
     val c = LocalAppContainer.current
     val vm = viewModel(key = "game-${game.name}-${initialDeck?.id}-$onlyMistakes-$initialCount") {
         GameViewModel(c, game, initialDeck, onlyMistakes, initialCount)
@@ -282,7 +312,9 @@ fun GameHost(game: Game, navigator: Navigator, initialDeck: Deck? = null, onlyMi
         Game.PRONUNCIATION -> GameFrame(vm, navigator, scoreLabel = "узнано") { card -> PronunciationRound(vm, card) }
         Game.SENTENCE -> GameFrame(vm, navigator, scoreLabel = "без ошибок") { card -> SentenceRound(vm, card) }
         Game.TENSES -> GameFrame(vm, navigator) { card -> TenseRound(vm, card) }
-        Game.GRAMMAR_CHOICE, Game.GRAMMAR_GAP -> Unit
+        Game.DICTATION -> GameFrame(vm, navigator) { card -> DictationRound(vm, card) }
+        Game.CLOZE -> GameFrame(vm, navigator) { card -> ClozeRound(vm, card) }
+        Game.GRAMMAR_CHOICE, Game.GRAMMAR_GAP, Game.FIX_ERROR -> Unit
     }
 }
 
@@ -340,6 +372,9 @@ private fun GameFrame(
                 onRetryMistakes = if (allowRetry) ({ vm.retryMistakes() }) else null,
                 onDone = navigator::back,
                 scoreLabel = scoreLabel,
+                note = vm.graded.takeIf { it > 0 }?.let { n ->
+                    "$n ${com.marat.albion.ui.library.pluralRu(n, "ответ засчитан", "ответа засчитаны", "ответов засчитаны")} в повторения — эти слова не придут в «Сегодня» раньше срока."
+                },
             )
             Phase.Playing -> Column(
                 Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)

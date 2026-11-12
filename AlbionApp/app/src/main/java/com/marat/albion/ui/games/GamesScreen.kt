@@ -28,9 +28,9 @@ import com.marat.albion.ui.theme.appear
 import androidx.compose.foundation.border
 
 internal val practiceGroups = listOf(
-    "Словарный запас" to listOf(Game.TYPE_ANSWER, Game.IRREGULAR),
-    "Грамматика" to listOf(Game.GRAMMAR_CHOICE, Game.GRAMMAR_GAP, Game.SENTENCE, Game.TENSES),
-    "Речь и слух" to listOf(Game.PRONUNCIATION, Game.SHADOWING),
+    "Словарный запас" to listOf(Game.TYPE_ANSWER, Game.IRREGULAR, Game.CLOZE),
+    "Грамматика" to listOf(Game.GRAMMAR_CHOICE, Game.GRAMMAR_GAP, Game.SENTENCE, Game.TENSES, Game.FIX_ERROR),
+    "Речь и слух" to listOf(Game.PRONUNCIATION, Game.SHADOWING, Game.DICTATION),
 )
 
 /**

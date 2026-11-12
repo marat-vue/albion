@@ -32,6 +32,9 @@ internal val Game.editionTitle: String get() = when (this) {
     Game.TENSES -> "ВРЕМЕНА"
     Game.PRONUNCIATION -> "РЕЧЬ"
     Game.SHADOWING -> "РЕЧЬ И РИТМ"
+    Game.DICTATION -> "СЛУХ"
+    Game.CLOZE -> "КОНТЕКСТ"
+    Game.FIX_ERROR -> "ОШИБКИ"
 }
 
 /** Код формата совпадает с нумерацией каталога практики: «02.1» — первое упражнение раздела 02. */

@@ -108,7 +108,14 @@ class StudyRepository(
             .distinctUntilChanged().flowOn(Dispatchers.Default)
 
     private suspend fun overviewOf(words: Vocabulary, s: Settings, now: Long): StudyOverview =
-        StudyPlanner.overview(words, reviews.answersSince(dayStart(now, s.dayStartHour)), s, now)
+        StudyPlanner.overview(words, reviews.answersSince(dayStart(now, s.dayStartHour)), s, now, studyLoad(s, now))
+
+    /** Начало дня и удержание повторений за 7 дней — для бюджета новых слов. */
+    private suspend fun studyLoad(s: Settings, now: Long): StudyLoad {
+        val start = dayStart(now, s.dayStartHour)
+        val week = reviews.reviewPassSince(start - 6 * Fsrs.DAY)
+        return StudyLoad(start, week.answers, week.passed)
+    }
 
     // ---- занятие ----
 
@@ -116,7 +123,7 @@ class StudyRepository(
         val s = settings.current()
         return db.withTransaction {
             val words = vocabulary((source as? StudySource.Dictionary)?.deck)
-            StudyPlanner.plan(source, words, reviews.answersSince(dayStart(now, s.dayStartHour)), s, now)
+            StudyPlanner.plan(source, words, reviews.answersSince(dayStart(now, s.dayStartHour)), s, now, studyLoad(s, now))
         }
     }
 
@@ -173,13 +180,23 @@ class StudyRepository(
     }
 
     /** Сохраняет ответ. Возвращает id записи журнала (для отмены) и новую память. */
-    suspend fun answer(card: CardEntity, rating: Rating, durationMs: Long, now: Long = System.currentTimeMillis()): Pair<Long, Memory> {
+    suspend fun answer(
+        card: CardEntity, rating: Rating, durationMs: Long, now: Long = System.currentTimeMillis(),
+        source: String = ReviewSource.CARD,
+    ): Pair<Long, Memory> {
         val s = settings.current()
-        val fsrs = schedulerFor(s)
         // Чтение прежнего состояния и обе записи — одна атомарная операция.
         return db.withTransaction {
             val combined = word(card.id) ?: card
-            val prev = wordState(combined)
+            saveAnswer(combined, wordState(combined), rating, durationMs, now, source, s)
+        }
+    }
+
+    private suspend fun saveAnswer(
+        combined: CardEntity, prev: ReviewStateEntity?, rating: Rating, durationMs: Long, now: Long,
+        source: String, s: Settings,
+    ): Pair<Long, Memory> {
+            val fsrs = schedulerFor(s)
             val before = prev?.toMemory() ?: Memory()
             var next = fsrs.review(before, rating, now)
             if (next.state == CardState.REVIEW) {
@@ -194,9 +211,50 @@ class StudyRepository(
                     stateBefore = before.state, durationMs = durationMs.coerceIn(0, MAX_DURATION),
                     prevStability = prev?.stability, prevDifficulty = prev?.difficulty, prevDue = prev?.due,
                     prevLastReview = prev?.lastReview, prevStep = prev?.step, prevReps = prev?.reps, prevLapses = prev?.lapses,
+                    source = source,
                 )
             )
-            logId to next
+            return logId to next
+    }
+
+    /**
+     * Ответ из тренировки с проверкой ввода: если слово в повторении и срок подошёл, засчитывает его
+     * в FSRS по [AutoGrade]. Возвращает поставленную оценку или null, если ответ на память не влияет.
+     */
+    suspend fun gradeFromPractice(
+        cardId: String, verdict: com.marat.albion.data.games.Verdict, hinted: Boolean, source: String,
+        durationMs: Long = 0, now: Long = System.currentTimeMillis(),
+    ): Rating? {
+        val s = settings.current()
+        return db.withTransaction {
+            val combined = word(cardId) ?: return@withTransaction null
+            val prev = wordState(combined)
+            if (!AutoGrade.eligible(prev, now)) return@withTransaction null
+            val rating = AutoGrade.rating(verdict, hinted)
+            saveAnswer(combined, prev, rating, durationMs, now, source, s)
+            rating
+        }
+    }
+
+    /** Формат показа слова сегодня: по зрелости памяти (см. [ReviewFormat]). */
+    suspend fun cardFormat(card: CardEntity, memory: Memory, now: Long = System.currentTimeMillis()): CardFormat =
+        ReviewFormat.choose(card, memory, studyDay(now, settings.current().dayStartHour))
+
+    /** Варианты, которые пользователь засчитал для слова кнопкой «Мой ответ тоже верен». */
+    suspend fun ownAnswers(card: CardEntity): List<String> {
+        val ids = WordCards.members(card).mapTo(HashSet()) { it.id } + card.id
+        return settings.wordOwnAnswers.first().filter { it.taskId in ids }.map { it.answer }
+    }
+
+    suspend fun addOwnAnswer(card: CardEntity, answer: String) = settings.addWordOwnAnswer(card.id, answer)
+
+    /** Откладывает слово на [days] дней от начала учебного дня. Это не ответ: журнал не пишется. */
+    suspend fun postpone(card: CardEntity, days: Int = Leech.POSTPONE_DAYS, now: Long = System.currentTimeMillis()) {
+        val s = settings.current()
+        db.withTransaction {
+            val combined = word(card.id) ?: card
+            val state = wordState(combined) ?: return@withTransaction
+            reviews.upsertState(state.copy(due = dayStart(now, s.dayStartHour) + days * Fsrs.DAY))
         }
     }
 
@@ -319,6 +377,11 @@ class StudyRepository(
         games.insert(GameAnswerLogEntity(game = game, itemId = targetId, correct = ok, answeredAt = now,
             durationMs = durationMs.coerceIn(0, MAX_GAME_DURATION)))
     }
+
+    /** Ответ в упражнении без карточек (например, «Исправьте ошибку»): только в журнал практики. */
+    suspend fun recordAnswer(game: String, itemId: String, ok: Boolean, durationMs: Long = 0, now: Long = System.currentTimeMillis()) =
+        games.insert(GameAnswerLogEntity(game = game, itemId = itemId, correct = ok, answeredAt = now,
+            durationMs = durationMs.coerceIn(0, MAX_GAME_DURATION)))
 
     /** Грамматические задания для игры; level = "" — все уровни. */
     suspend fun grammarPool(kind: String, level: String, count: Int) =

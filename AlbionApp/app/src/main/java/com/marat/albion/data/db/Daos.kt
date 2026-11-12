@@ -131,6 +131,10 @@ interface ReviewDao {
     @Query("SELECT COUNT(*) FROM review_log WHERE state_before = 2 AND rating > 1 AND reviewed_at >= :since")
     fun observeReviewPassed(since: Long): Flow<Int>
 
+    /** Ответы на повторения и сколько из них вспомнили — для удержания за неделю. */
+    @Query("SELECT COUNT(*) AS answers, COALESCE(SUM(CASE WHEN rating > 1 THEN 1 ELSE 0 END), 0) AS passed FROM review_log WHERE state_before = 2 AND reviewed_at >= :since")
+    suspend fun reviewPassSince(since: Long): ReviewPassCount
+
     @Query("SELECT COUNT(*) FROM review_log")
     fun observeTotalReviews(): Flow<Int>
 

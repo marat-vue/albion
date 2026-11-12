@@ -8,6 +8,11 @@ import com.marat.albion.data.db.CardEntity
 import com.marat.albion.data.fsrs.CardState
 import com.marat.albion.data.fsrs.Fsrs
 import com.marat.albion.data.fsrs.Rating
+import com.marat.albion.data.games.Cloze
+import com.marat.albion.data.games.ClozeTask
+import com.marat.albion.data.repo.CardFormat
+import com.marat.albion.data.repo.Leech
+import com.marat.albion.data.repo.ReviewSource
 import com.marat.albion.data.repo.StudyRepository
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -24,6 +29,17 @@ data class StudyCard(
     val fromLearning: Boolean,
     /** Подписи интервалов для кнопок оценки. */
     val intervals: Map<Rating, String>,
+    /** Сколько раз слово забывалось. */
+    val lapses: Int = 0,
+    /** «Трудное» слово: забывалось много раз и не закрепилось (см. [Leech]). */
+    val leech: Boolean = false,
+    /** Отложить можно только слово в повторении: учебный шаг сдвигать на неделю бессмысленно. */
+    val canPostpone: Boolean = false,
+    /** Формат по зрелости: классика с самооценкой, ввод RU → EN или пропуск в примере. */
+    val format: CardFormat = CardFormat.Classic,
+    val cloze: ClozeTask? = null,
+    /** Засчитанные раньше варианты ответа («Мой ответ тоже верен»). */
+    val ownAnswers: List<String> = emptyList(),
 )
 
 data class StudyState(
@@ -105,7 +121,33 @@ class StudyViewModel(private val repo: StudyRepository, private val source: Stud
         _state.update { it.copy(error = message, canUndo = undoStack.isNotEmpty()) }
     }
 
-    fun answer(rating: Rating) {
+    /** Ответ на зрелое слово вводом: оценку ставит проверка, источник — формат карточки. */
+    fun answerChecked(rating: Rating) {
+        val current = _state.value.current ?: return
+        answer(rating, if (current.format == CardFormat.Cloze) ReviewSource.CARD_CLOZE else ReviewSource.CARD_TYPED)
+    }
+
+    /** «Мой ответ тоже верен»: вариант запоминается для этого слова, ответ засчитывается как «Хорошо». */
+    fun acceptOwnAnswer(answer: String) {
+        val current = _state.value.current ?: return
+        if (answering || answer.isBlank()) return
+        answering = true
+        viewModelScope.launch {
+            try {
+                repo.addOwnAnswer(current.card, answer)
+            } catch (e: CancellationException) {
+                answering = false
+                throw e
+            } catch (e: Exception) {
+                saveFailed("Не удалось запомнить ваш вариант. Попробуйте ещё раз.", e)
+                return@launch
+            }
+            answering = false
+            answerChecked(Rating.Good)
+        }
+    }
+
+    fun answer(rating: Rating, source: String = ReviewSource.CARD) {
         val current = _state.value.current ?: return
         if (!_state.value.revealed || answering) return
         answering = true
@@ -113,7 +155,7 @@ class StudyViewModel(private val repo: StudyRepository, private val source: Stud
         viewModelScope.launch {
             val duration = System.currentTimeMillis() - shownAt
             val (logId, memory) = try {
-                repo.answer(current.card, rating, duration)
+                repo.answer(current.card, rating, duration, source = source)
             } catch (e: CancellationException) {
                 answering = false
                 throw e
@@ -133,6 +175,27 @@ class StudyViewModel(private val repo: StudyRepository, private val source: Stud
                     lastRating = rating,
                 )
             }
+            showNext()
+        }
+    }
+
+    /** Трудное слово — отложить на неделю. Это не ответ: в журнал и в «Отменить» не попадает. */
+    fun postpone() {
+        val current = _state.value.current ?: return
+        if (answering) return
+        answering = true
+        _state.update { it.copy(error = null) }
+        viewModelScope.launch {
+            try {
+                repo.postpone(current.card)
+            } catch (e: CancellationException) {
+                answering = false
+                throw e
+            } catch (e: Exception) {
+                saveFailed("Не удалось отложить слово. Попробуйте ещё раз.", e)
+                return@launch
+            }
+            _state.update { it.copy(lastRating = null) }
             showNext()
         }
     }
@@ -221,6 +284,7 @@ class StudyViewModel(private val repo: StudyRepository, private val source: Stud
     private suspend fun present(card: CardEntity, fromLearning: Boolean) {
         val memory = repo.memory(card.id)
         val now = System.currentTimeMillis()
+        val format = repo.cardFormat(card, memory, now)
         val fsrs = repo.scheduler()
         val preview = fsrs.preview(memory, now)
         val intervals = preview.mapValues { (_, m) ->
@@ -237,7 +301,11 @@ class StudyViewModel(private val repo: StudyRepository, private val source: Stud
                 loading = false,
                 finished = false,
                 revealed = false,
-                current = StudyCard(card, repo.irregular(card), memory.state == CardState.NEW, fromLearning, intervals),
+                current = StudyCard(card, repo.irregular(card), memory.state == CardState.NEW, fromLearning, intervals,
+                    lapses = memory.lapses, leech = Leech.isLeech(memory.lapses, memory.stability),
+                    canPostpone = memory.state == CardState.REVIEW,
+                    format = format, cloze = if (format == CardFormat.Cloze) Cloze.make(card) else null,
+                    ownAnswers = if (format == CardFormat.Typed) repo.ownAnswers(card) else emptyList()),
                 newCount = news.size,
                 learningCount = learning.size,
                 reviewCount = reviews.size,
