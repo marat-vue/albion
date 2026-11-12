@@ -39,7 +39,8 @@ object TranscriptParser {
         clean(json.decodeFromString(ListSerializer(Segment.serializer()), text.trimStart('﻿')))
 
     private val SRT_TIME = Regex("""(\d{1,2}):(\d{2}):(\d{2})[,.](\d{1,3})\s*-->\s*(\d{1,2}):(\d{2}):(\d{2})[,.](\d{1,3})""")
-    private val TAG = Regex("<[^>]+>|\\{\\\\[^}]*}")
+    // Android (ICU) не принимает неэкранированные } и ] вне класса символов, в отличие от JVM.
+    private val TAG = Regex("<[^>]+>|\\{\\\\[^}]*\\}")
 
     fun parseSrt(text: String): Transcript {
         val segments = mutableListOf<Segment>()
@@ -58,9 +59,9 @@ object TranscriptParser {
     private fun srtMs(h: String, m: String, s: String, frac: String): Long =
         ((h.toLong() * 60 + m.toLong()) * 60 + s.toLong()) * 1000 + frac.padEnd(3, '0').take(3).toLong()
 
-    private val JSON_START = Regex("""^\[\s*(\{|])""")
-    private val LRC_OFFSET = Regex("""^\[offset:\s*([+-]?\d+)]""", RegexOption.IGNORE_CASE)
-    private val LRC_STAMP = Regex("""\[(\d{1,3}):(\d{1,2})(?:[.:](\d{1,3}))?]""")
+    private val JSON_START = Regex("""^\[\s*(\{|\])""")
+    private val LRC_OFFSET = Regex("""^\[offset:\s*([+-]?\d+)\]""", RegexOption.IGNORE_CASE)
+    private val LRC_STAMP = Regex("""\[(\d{1,3}):(\d{1,2})(?:[.:](\d{1,3}))?\]""")
     private val LRC_WORD = Regex("""<(\d{1,3}):(\d{1,2})(?:[.:](\d{1,3}))?>""")
 
     /** Конец последней строки LRC неизвестен: берём длительность записи или 5 секунд. */
