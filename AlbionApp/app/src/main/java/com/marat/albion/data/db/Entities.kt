@@ -228,6 +228,8 @@ data class DeckCounts(
 
 data class DayCount(val day: Long, val count: Int)
 
+data class ReviewPassCount(val answers: Int, val passed: Int)
+
 data class DayAnswer(val cardId: String, val deck: String, val stateBefore: Int)
 
 /** Статья офлайн-словаря EN → RU (FreeDict / Викисловарь), встроенного в приложение. */

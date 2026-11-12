@@ -108,7 +108,14 @@ class StudyRepository(
             .distinctUntilChanged().flowOn(Dispatchers.Default)
 
     private suspend fun overviewOf(words: Vocabulary, s: Settings, now: Long): StudyOverview =
-        StudyPlanner.overview(words, reviews.answersSince(dayStart(now, s.dayStartHour)), s, now)
+        StudyPlanner.overview(words, reviews.answersSince(dayStart(now, s.dayStartHour)), s, now, studyLoad(s, now))
+
+    /** Начало дня и удержание повторений за 7 дней — для бюджета новых слов. */
+    private suspend fun studyLoad(s: Settings, now: Long): StudyLoad {
+        val start = dayStart(now, s.dayStartHour)
+        val week = reviews.reviewPassSince(start - 6 * Fsrs.DAY)
+        return StudyLoad(start, week.answers, week.passed)
+    }
 
     // ---- занятие ----
 
@@ -116,7 +123,7 @@ class StudyRepository(
         val s = settings.current()
         return db.withTransaction {
             val words = vocabulary((source as? StudySource.Dictionary)?.deck)
-            StudyPlanner.plan(source, words, reviews.answersSince(dayStart(now, s.dayStartHour)), s, now)
+            StudyPlanner.plan(source, words, reviews.answersSince(dayStart(now, s.dayStartHour)), s, now, studyLoad(s, now))
         }
     }
 

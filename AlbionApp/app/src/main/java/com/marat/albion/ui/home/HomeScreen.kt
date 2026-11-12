@@ -202,6 +202,10 @@ internal fun TodayCard(state: HomeState, sessionSize: Int, modifier: Modifier, c
                 "Новые слова приходят из ваших коллекций. Создайте коллекцию или тренируйте словарь целиком."
             else -> "Все карточки на сегодня повторены. Время для книги."
         }, style = MaterialTheme.typography.bodySmall, color = LocalContentColor.current)
+        if (loaded) state.study.today.newNote?.let { note ->
+            Spacer(Modifier.height(4.dp))
+            Text(note, style = MaterialTheme.typography.bodySmall, color = LocalContentColor.current)
+        }
         if (!loaded || available > 0) {
             Disclosure("Объём занятия", "${answerLabel(sessionSize)}") {
                 SegmentedPicker(sizes.map { "$it" }, sizes.indexOf(sessionSize).coerceAtLeast(0), { onSize(sizes[it]) }, inverse = true)

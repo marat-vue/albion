@@ -54,7 +54,12 @@ data class CollectionSummary(
 }
 
 /** Занятие «Сегодня»: что ждёт повторения везде и сколько новых слов дают коллекции. */
-data class TodaySummary(val due: Int = 0, val newAvailable: Int = 0) {
+data class TodaySummary(
+    val due: Int = 0,
+    val newAvailable: Int = 0,
+    /** Почему новых слов сегодня меньше обычного; null — бюджет как в настройках. */
+    val newNote: String? = null,
+) {
     val toStudy get() = due + newAvailable
 }
 
@@ -100,19 +105,35 @@ internal class Vocabulary(
 }
 
 /**
- * Один и тот же отбор слов питает занятие, счётчики и напоминания. Лимиты новых и повторений
- * действуют на каждый словарь и каждую коллекцию отдельно и считаются по сегодняшним ответам.
+ * Один и тот же отбор слов питает занятие, счётчики и напоминания. Лимиты повторений действуют
+ * на каждый словарь и коллекцию отдельно. Новые слова из коллекций (и в «Сегодня», и в занятии
+ * по коллекции) ограничены ещё и общим бюджетом дня [NewWordBudget]. Всё считается по сегодняшним ответам.
  */
 internal object StudyPlanner {
 
-    fun plan(source: StudySource, words: Vocabulary, answered: List<DayAnswer>, s: Settings, now: Long): SessionQueue =
-        when (source) {
+    fun plan(
+        source: StudySource, words: Vocabulary, answered: List<DayAnswer>, s: Settings, now: Long,
+        load: StudyLoad = StudyLoad(),
+    ): SessionQueue {
+        val budget = budget(words, s, load)
+        return when (source) {
             is StudySource.Dictionary -> dictionary(source.deck, words, answered, s, now)
-            is StudySource.Collection -> collection(source.id, words, answered, s, now)
-            StudySource.Today -> today(words, answered, s, now)
+            is StudySource.Collection -> collection(source.id, words, answered, s, now, newLeftToday(budget, answered))
+            StudySource.Today -> today(words, answered, s, now, newLeftToday(budget, answered))
         }
+    }
 
-    fun overview(words: Vocabulary, answered: List<DayAnswer>, s: Settings, now: Long): StudyOverview {
+    /** Бюджет новых слов на сегодня: база из настроек с поправкой на удержание и прогноз. */
+    fun budget(words: Vocabulary, s: Settings, load: StudyLoad): NewBudget =
+        NewWordBudget.compute(s.newPerDay, load, NewWordBudget.forecast(words.cards.mapNotNull(words::state), load.dayStart))
+
+    /** Общий бюджет расходуют все новые слова, начатые сегодня. */
+    private fun newLeftToday(budget: NewBudget, answered: List<DayAnswer>) =
+        max(0, budget.limit - answered.count { it.stateBefore == CardState.NEW })
+
+    fun overview(words: Vocabulary, answered: List<DayAnswer>, s: Settings, now: Long, load: StudyLoad = StudyLoad()): StudyOverview {
+        val budget = budget(words, s, load)
+        val newLeft = newLeftToday(budget, answered)
         val byDeck = words.counts(now).associateBy { it.deck }
         val dictionaries = Deck.entries.map { deck ->
             val c = byDeck[deck.id] ?: return@map DeckSummary(deck)
@@ -122,33 +143,40 @@ internal object StudyPlanner {
         val collections = words.collections.map { collection ->
             val pool = words.inCollection(collection.id)
             val memory = pool.mapNotNull(words::state)
-            val plan = collection(collection.id, words, answered, s, now)
+            val plan = collection(collection.id, words, answered, s, now, newLeft)
             CollectionSummary(collection, pool.size, memory.size, plan.reviews.size + plan.learning.size,
                 memory.count { it.state == CardState.REVIEW && it.stability >= 21 }, plan.news.size)
         }
-        val today = today(words, answered, s, now)
+        val today = today(words, answered, s, now, newLeft)
         return StudyOverview(dictionaries, collections,
-            TodaySummary(today.learning.size + today.reviews.size, today.news.size))
+            TodaySummary(today.learning.size + today.reviews.size, today.news.size, budget.reason))
     }
 
     private fun dictionary(deck: Deck, words: Vocabulary, answered: List<DayAnswer>, s: Settings, now: Long, withNew: Boolean = true) =
         queue(words.inDeck(deck), answered.filter { it.deck == deck.id }, words, s, now, withNew)
 
-    private fun collection(id: Long, words: Vocabulary, answered: List<DayAnswer>, s: Settings, now: Long): SessionQueue {
+    private fun collection(id: Long, words: Vocabulary, answered: List<DayAnswer>, s: Settings, now: Long, newCap: Int): SessionQueue {
         val pool = words.inCollection(id)
         val ids = pool.flatMapTo(HashSet()) { card -> WordCards.members(card).map { it.id } }
-        return queue(pool, answered.filter { it.cardId in ids }, words, s, now, withNew = true)
+        return queue(pool, answered.filter { it.cardId in ids }, words, s, now, withNew = true, newCap = newCap)
     }
 
-    /** Повторения — по всем словарям (с их лимитами), новые слова — только из коллекций, по очереди из каждой. */
-    private fun today(words: Vocabulary, answered: List<DayAnswer>, s: Settings, now: Long): SessionQueue {
+    /**
+     * Повторения — по всем словарям (с их лимитами), новые слова — только из коллекций, по очереди
+     * из каждой, но не больше общего бюджета дня [newCap].
+     */
+    private fun today(words: Vocabulary, answered: List<DayAnswer>, s: Settings, now: Long, newCap: Int): SessionQueue {
         val decks = Deck.entries.map { dictionary(it, words, answered, s, now, withNew = false) }
-        val news = roundRobin(words.collections.map { collection(it.id, words, answered, s, now).news }).distinctBy { it.id }
+        val news = roundRobin(words.collections.map { collection(it.id, words, answered, s, now, newCap).news })
+            .distinctBy { it.id }.take(newCap)
         return SessionQueue(decks.flatMap { it.learning }, decks.flatMap { it.reviews }.shuffled(), news)
     }
 
-    private fun queue(pool: List<CardEntity>, answered: List<DayAnswer>, words: Vocabulary, s: Settings, now: Long, withNew: Boolean): SessionQueue {
-        val newLeft = if (withNew) max(0, s.newPerDay - answered.count { it.stateBefore == CardState.NEW }) else 0
+    private fun queue(
+        pool: List<CardEntity>, answered: List<DayAnswer>, words: Vocabulary, s: Settings, now: Long, withNew: Boolean,
+        newCap: Int = Int.MAX_VALUE,
+    ): SessionQueue {
+        val newLeft = if (withNew) minOf(newCap, max(0, s.newPerDay - answered.count { it.stateBefore == CardState.NEW })) else 0
         val reviewLeft = max(0, s.reviewsPerDay - answered.count { it.stateBefore == CardState.REVIEW })
         val learning = pool.filter {
             val m = words.state(it)
