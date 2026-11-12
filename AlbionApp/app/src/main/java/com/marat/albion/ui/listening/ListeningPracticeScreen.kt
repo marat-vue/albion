@@ -293,7 +293,7 @@ private fun annotateDictation(r: DictationResult): AnnotatedString = buildAnnota
 @Composable
 private fun Summary(correct: Int, total: Int, mode: ListeningPracticeMode, onBack: () -> Unit, onAgain: () -> Unit) {
     Column(Modifier.fillMaxSize().padding(gutter), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Eyebrow(mode.title.uppercase())
+        Eyebrow(mode.title)
         Text("$correct из $total", style = MaterialTheme.typography.displaySmall)
         Text(
             when {

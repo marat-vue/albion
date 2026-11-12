@@ -26,7 +26,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.AnnotatedString
@@ -125,7 +124,7 @@ internal fun RecallCard(card: StudyCard, irregular: IrregularData?, state: Recal
                         Spacer(Modifier.height(14.dp))
                         Text(lengthSkeleton(card.card.term), style = MaterialTheme.typography.titleLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center,
-                            modifier = Modifier.background(MaterialTheme.colorScheme.surfaceContainer, RectangleShape)
+                            modifier = Modifier.background(MaterialTheme.colorScheme.surfaceContainer, MaterialTheme.shapes.small)
                                 .padding(horizontal = 14.dp, vertical = 6.dp))
                     }
                 }

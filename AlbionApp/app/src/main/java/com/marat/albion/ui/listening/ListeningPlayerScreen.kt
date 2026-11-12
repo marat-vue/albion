@@ -41,7 +41,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
@@ -313,8 +315,8 @@ private fun SegmentRow(
     val pickWord by rememberUpdatedState(onWord)
     Row(
         Modifier.fillMaxWidth()
-            .background(if (active) scheme.surfaceContainerLow else scheme.background)
-            .then(if (looped) Modifier.border(1.dp, scheme.outline) else Modifier)
+            .background(if (active) scheme.surfaceContainerLow else scheme.background, MaterialTheme.shapes.small)
+            .then(if (looped) Modifier.border(1.dp, scheme.outline, MaterialTheme.shapes.small) else Modifier)
             .padding(vertical = 8.dp),
         verticalAlignment = Alignment.Top,
     ) {
@@ -392,7 +394,7 @@ private fun PlayerControls(
             })
             Spacer(Modifier.width(20.dp))
             Box(
-                Modifier.size(64.dp).background(scheme.primary)
+                Modifier.size(64.dp).clip(CircleShape).background(scheme.primary, CircleShape)
                     .clickable(role = Role.Button, onClickLabel = if (state.playing) "Пауза" else "Слушать") { player.toggle() }
                     .semantics { contentDescription = if (state.playing) "Пауза" else "Слушать" },
                 contentAlignment = Alignment.Center,
@@ -404,10 +406,11 @@ private fun PlayerControls(
                 transcript.segments.getOrNull(current + 1)?.let { player.seekToPhrase(it.s, it.e); onSeek(it.s) }
             }, enabled = current + 1 < transcript.segments.size)
         }
+        // Скорость — своей строкой: рядом с повторами ей не хватало ширины, и сегменты вставали столбиком.
+        SegmentedPicker(SPEEDS.map { speedLabel(it) }, SPEEDS.indexOf(state.speed).coerceAtLeast(0),
+            { player.setSpeed(SPEEDS[it]) }, Modifier.fillMaxWidth().padding(top = 8.dp))
         Row(Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically) {
-            SegmentedPicker(SPEEDS.map { speedLabel(it) }, SPEEDS.indexOf(state.speed).coerceAtLeast(0),
-                { player.setSpeed(SPEEDS[it]) }, Modifier.weight(1.4f))
             val phrase = transcript.segments.getOrNull(current.coerceAtLeast(0))
             LoopToggle("Фраза", state.loop?.phrase == true, Modifier.weight(1f), "Повтор текущей фразы") {
                 phrase?.let { player.togglePhraseLoop(it.s, it.e) }
@@ -425,14 +428,14 @@ private fun PlayerControls(
 
 private fun speedLabel(speed: Float) = when (speed) { 0.75f -> "0.75×"; 1.25f -> "1.25×"; else -> "1×" }
 
-/** Переключатель повтора: выбранное состояние — полная инверсия, как везде в Mono. */
+/** Переключатель повтора: выбранное состояние — инверсная плашка, как у остальных выборов. */
 @Composable
 private fun LoopToggle(label: String, on: Boolean, modifier: Modifier, description: String, onClick: () -> Unit) {
     val scheme = MaterialTheme.colorScheme
     Box(
-        modifier.heightIn(min = 48.dp)
-            .background(if (on) scheme.selectedContainer else scheme.background)
-            .border(1.dp, if (on) scheme.selectedContainer else scheme.outline)
+        modifier.heightIn(min = 48.dp).clip(MaterialTheme.shapes.medium)
+            .background(if (on) scheme.selectedContainer else scheme.background, MaterialTheme.shapes.medium)
+            .border(1.dp, if (on) scheme.selectedContainer else scheme.outline, MaterialTheme.shapes.medium)
             .clickable(role = Role.Switch, onClick = onClick)
             .semantics { contentDescription = description; stateDescription = if (on) "Включён" else "Выключен" }
             .padding(horizontal = 6.dp),

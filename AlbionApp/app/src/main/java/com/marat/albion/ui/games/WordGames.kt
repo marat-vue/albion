@@ -139,7 +139,7 @@ fun DictationRound(vm: GameViewModel, card: CardEntity) {
             Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(top = 16.dp, bottom = 4.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            TaskCard(centered = true, label = "ЗАПИШИТЕ, ЧТО УСЛЫШАЛИ") {
+            TaskCard(centered = true, label = "Запишите, что услышали") {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     PracticeAudioButton(playing = audio.playingKey == key, onClick = { play() }, size = 64.dp)
                     GhostButton("Медленнее", onClick = { play(0.7f) }, icon = AlbionIcons.SlowMotionVideo)

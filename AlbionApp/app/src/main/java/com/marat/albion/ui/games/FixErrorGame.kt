@@ -37,10 +37,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.semantics.Role
@@ -240,8 +240,8 @@ private fun FixErrorRound(vm: FixErrorViewModel, task: FixTask) {
                             word,
                             style = MaterialTheme.typography.titleLarge.copy(fontFamily = AlbionFonts.Reading),
                             color = fg,
-                            modifier = Modifier.heightIn(min = 48.dp)
-                                .border(if (found && isError) 2.dp else .75.dp, border, RectangleShape)
+                            modifier = Modifier.heightIn(min = 48.dp).clip(MaterialTheme.shapes.small)
+                                .border(if (found && isError) 2.dp else .75.dp, border, MaterialTheme.shapes.small)
                                 .clickable(enabled = !found && i !in missedTaps, role = Role.Button) {
                                     if (isError) found = true else { missedTaps = missedTaps + i; shake++ }
                                 }

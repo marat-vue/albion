@@ -56,6 +56,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.semantics.Role
@@ -262,12 +263,14 @@ fun lerpColor(a: Color, b: Color, t: Float) = androidx.compose.ui.graphics.lerp(
 
 /** Озвучка: круглая кнопка; во время звучания — залитая, с расходящимся кольцом. */
 @Composable
-fun AudioButton(playing: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier, size: Dp = 44.dp, primary: Boolean = true) {
+fun AudioButton(playing: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier, size: Dp = 44.dp, primary: Boolean = true,
+                tint: Color = Color.Unspecified) {
     val player = com.marat.albion.LocalAppContainer.current.audio
     val scheme = MaterialTheme.colorScheme
     val interaction = remember { MutableInteractionSource() }
     val bg by animateColorAsState(if (playing) scheme.primary else if (primary) scheme.surfaceContainerHigh else Color.Transparent, label = "audioBg")
-    val fg by animateColorAsState(if (playing) scheme.onPrimary else scheme.onSurface, label = "audioFg")
+    // [tint] — для контурной кнопки на выбранной (инверсной) строке.
+    val fg by animateColorAsState(if (playing) scheme.onPrimary else tint.takeOrElse { scheme.onSurface }, label = "audioFg")
     Box(
         modifier.size(size.coerceAtLeast(48.dp)).pressScale(interaction, 0.88f)
             .clickable(interaction, null, role = Role.Button) { if (playing) player.stop() else onClick() },
@@ -285,7 +288,7 @@ fun AudioButton(playing: Boolean, onClick: () -> Unit, modifier: Modifier = Modi
 }
 
 @Composable
-fun LevelBadge(level: String?, modifier: Modifier = Modifier) {
+fun LevelBadge(level: String?, modifier: Modifier = Modifier, color: Color = Color.Unspecified) {
     if (level.isNullOrBlank()) return
     Text(
         level.uppercase(),
@@ -293,6 +296,7 @@ fun LevelBadge(level: String?, modifier: Modifier = Modifier) {
         modifier = modifier.heightIn(min = 28.dp).border(1.dp, MaterialTheme.colorScheme.outline, Capsule)
             .wrapContentHeight(Alignment.CenterVertically).padding(horizontal = 10.dp),
         style = MaterialTheme.typography.labelSmall,
+        color = color,
     )
 }
 
