@@ -75,10 +75,11 @@ class SpeechToText(context: Context, private val scope: CoroutineScope) {
     suspend fun transcribe(pcm: FloatArray, hint: String = ""): String = clean(recognize(pcm, hint, words = false))
 
     /**
-     * Words with timing and confidence, for checking pronunciation. No hint on purpose:
-     * knowing the expected phrase, Whisper would "hear" it in an unclear recording.
+     * Words with timing and confidence, for checking pronunciation. No hint by default:
+     * knowing the expected phrase, Whisper would "hear" it in an unclear recording. A forced choice
+     * (minimal pairs) passes both candidates so neither is favoured.
      */
-    suspend fun words(pcm: FloatArray): List<HeardWord> = SpokenWords.parse(recognize(pcm, "", words = true))
+    suspend fun words(pcm: FloatArray, hint: String = ""): List<HeardWord> = SpokenWords.parse(recognize(pcm, hint, words = true))
 
     private suspend fun recognize(pcm: FloatArray, hint: String, words: Boolean): String = mutex.withLock {
         idle?.cancel()

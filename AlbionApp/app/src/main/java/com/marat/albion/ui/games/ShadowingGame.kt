@@ -329,7 +329,7 @@ private fun stressTip(r: ShadowReport, words: List<ChartWord>): String? {
 }
 
 @Composable
-private fun SpeechInstallSheet(onDismiss: () -> Unit) {
+internal fun SpeechInstallSheet(onDismiss: () -> Unit) {
     com.marat.albion.ui.components.ScrollableSheet("Распознавание речи", onDismiss) {
         com.marat.albion.ui.conversation.SpeechModelControls()
     }

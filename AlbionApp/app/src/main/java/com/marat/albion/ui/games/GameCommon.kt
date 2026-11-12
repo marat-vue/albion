@@ -160,6 +160,14 @@ enum class Game(
             "Верное слово в другой форме засчитывается как «почти». Подошедшие повторения засчитываются в «Сегодня».",
         listOf(Deck.WORDS, Deck.PHRASAL, Deck.IDIOMS, Deck.COLLOCATIONS),
     ),
+    MINIMAL_PAIRS(
+        "Минимальные пары",
+        "Ship или sheep — услышьте разницу",
+        "Диктор произносит одно слово из пары, различающейся одним звуком (ship / sheep, think / sink, west / vest), — " +
+            "выберите, какое прозвучало. Затем произнесите его сами: Whisper на телефоне скажет, что он услышал. " +
+            "Пары подобраны по звукам, которые русскоязычным труднее всего различать. Повторения в «Сегодня» не меняются.",
+        listOf(Deck.WORDS),
+    ),
     FIX_ERROR(
         "Исправьте ошибку",
         "Найдите ошибку и исправьте её",
@@ -189,12 +197,14 @@ enum class Game(
             DICTATION -> AlbionIcons.VolumeUp
             CLOZE -> AlbionIcons.TextFields
             FIX_ERROR -> AlbionIcons.BorderColor
+            MINIMAL_PAIRS -> AlbionIcons.Hearing
         }
 
     /** Как называть единицу занятия: «10 слов», «10 фраз». */
     val unit: String get() = when (this) {
         SENTENCE, FIX_ERROR -> "предложений"
         IRREGULAR -> "глаголов"
+        MINIMAL_PAIRS -> "пар"
         TENSES, GRAMMAR_CHOICE, GRAMMAR_GAP -> "заданий"
         else -> "слов"
     }
