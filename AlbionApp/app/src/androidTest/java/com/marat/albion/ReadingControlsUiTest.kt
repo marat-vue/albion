@@ -224,7 +224,15 @@ class ReadingControlsUiTest {
         val menu = target(await { it.contentDescription?.toString() == description })
         assertTarget(menu)
         click(menu)
-        val remove = await { it.text?.toString() == "Удалить книгу" }
+        var remove = await { it.text?.toString() == "Удалить книгу" }
+        // The menu scales in; measure its item once the popup has finished growing.
+        for (attempt in 0 until 20) {
+            SystemClock.sleep(100)
+            val next = await { it.text?.toString() == "Удалить книгу" }
+            val settled = bounds(target(next)) == bounds(target(remove))
+            remove = next
+            if (settled) break
+        }
         assertTarget(target(remove))
         assertWholeText(text("Удалить книгу"))
         capture("visible-book-menu-${book.id.hashCode()}")

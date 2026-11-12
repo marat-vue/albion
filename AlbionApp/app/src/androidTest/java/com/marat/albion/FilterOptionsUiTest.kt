@@ -133,10 +133,11 @@ class FilterOptionsUiTest {
         instrumentation.waitForIdleSync(); SystemClock.sleep(350)
     }
     private fun scrollTo(predicate: (AccessibilityNodeInfo) -> Boolean): AccessibilityNodeInfo {
-        repeat(20) {
+        // A page-sized scroll can jump past a control at large text; look back as well as forward.
+        for (direction in listOf(AccessibilityNodeInfo.ACTION_SCROLL_FORWARD, AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD)) repeat(20) {
             val root = root()
             find(root, predicate)?.let { return it }
-            find(root) { it.isScrollable && !it.isEditable }?.performAction(AccessibilityNodeInfo.ACTION_SCROLL_FORWARD)
+            find(root) { it.isScrollable && !it.isEditable }?.performAction(direction)
             instrumentation.waitForIdleSync(); SystemClock.sleep(250)
         }
         error("Filter control not found: ${visibleText(root())}")
