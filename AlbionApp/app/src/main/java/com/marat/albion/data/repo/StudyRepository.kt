@@ -236,6 +236,16 @@ class StudyRepository(
         }
     }
 
+    /** Откладывает слово на [days] дней от начала учебного дня. Это не ответ: журнал не пишется. */
+    suspend fun postpone(card: CardEntity, days: Int = Leech.POSTPONE_DAYS, now: Long = System.currentTimeMillis()) {
+        val s = settings.current()
+        db.withTransaction {
+            val combined = word(card.id) ?: card
+            val state = wordState(combined) ?: return@withTransaction
+            reviews.upsertState(state.copy(due = dayStart(now, s.dayStartHour) + days * Fsrs.DAY))
+        }
+    }
+
     /** Отменяет ответ: восстанавливает прежнее состояние карточки. */
     suspend fun undo(logId: Long): CardEntity? = db.withTransaction {
         val log = reviews.log(logId) ?: return@withTransaction null

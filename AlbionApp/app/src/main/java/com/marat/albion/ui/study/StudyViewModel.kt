@@ -8,6 +8,7 @@ import com.marat.albion.data.db.CardEntity
 import com.marat.albion.data.fsrs.CardState
 import com.marat.albion.data.fsrs.Fsrs
 import com.marat.albion.data.fsrs.Rating
+import com.marat.albion.data.repo.Leech
 import com.marat.albion.data.repo.StudyRepository
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -24,6 +25,10 @@ data class StudyCard(
     val fromLearning: Boolean,
     /** Подписи интервалов для кнопок оценки. */
     val intervals: Map<Rating, String>,
+    /** Сколько раз слово забывалось. */
+    val lapses: Int = 0,
+    /** «Трудное» слово: забывалось много раз и не закрепилось (см. [Leech]). */
+    val leech: Boolean = false,
 )
 
 data class StudyState(
@@ -137,6 +142,27 @@ class StudyViewModel(private val repo: StudyRepository, private val source: Stud
         }
     }
 
+    /** Трудное слово — отложить на неделю. Это не ответ: в журнал и в «Отменить» не попадает. */
+    fun postpone() {
+        val current = _state.value.current ?: return
+        if (answering) return
+        answering = true
+        _state.update { it.copy(error = null) }
+        viewModelScope.launch {
+            try {
+                repo.postpone(current.card)
+            } catch (e: CancellationException) {
+                answering = false
+                throw e
+            } catch (e: Exception) {
+                saveFailed("Не удалось отложить слово. Попробуйте ещё раз.", e)
+                return@launch
+            }
+            _state.update { it.copy(lastRating = null) }
+            showNext()
+        }
+    }
+
     fun undo() {
         if (answering) return
         val entry = undoStack.lastOrNull() ?: return
@@ -237,7 +263,8 @@ class StudyViewModel(private val repo: StudyRepository, private val source: Stud
                 loading = false,
                 finished = false,
                 revealed = false,
-                current = StudyCard(card, repo.irregular(card), memory.state == CardState.NEW, fromLearning, intervals),
+                current = StudyCard(card, repo.irregular(card), memory.state == CardState.NEW, fromLearning, intervals,
+                    lapses = memory.lapses, leech = Leech.isLeech(memory.lapses, memory.stability)),
                 newCount = news.size,
                 learningCount = learning.size,
                 reviewCount = reviews.size,

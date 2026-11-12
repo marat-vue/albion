@@ -171,7 +171,8 @@ internal object StudyPlanner {
         val decks = Deck.entries.map { dictionary(it, words, answered, s, now, withNew = false) }
         val news = roundRobin(words.collections.map { collection(it.id, words, answered, s, now, newCap).news })
             .distinctBy { it.id }.take(newCap)
-        return SessionQueue(decks.flatMap { it.learning }, decks.flatMap { it.reviews }.shuffled(), news)
+        val reviews = Leech.limit(decks.flatMap { it.reviews }.shuffled(), words::state)
+        return SessionQueue(decks.flatMap { it.learning }, reviews, news)
     }
 
     private fun queue(
@@ -190,6 +191,7 @@ internal object StudyPlanner {
             val m = words.state(it)
             m != null && m.state == CardState.REVIEW && m.due <= now
         }.sortedByDescending { overdueness(words.state(it)!!, now) }.take(reviewLeft).shuffled()
+            .let { Leech.limit(it, words::state) }
         if (newLeft == 0) return SessionQueue(learning, due, emptyList())
         val fresh = pool.filter { words.state(it) == null }
         val ordered = when (s.newOrder) {

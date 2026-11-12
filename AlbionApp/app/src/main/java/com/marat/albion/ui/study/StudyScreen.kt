@@ -187,7 +187,12 @@ fun StudyScreen(source: StudySource, navigator: Navigator, answerLimit: Int? = n
                                         revealed = if (isCurrent) state.revealed else true,
                                         onReveal = { feedback.reveal(); vm.reveal() },
                                         showHint = !compact,
-                                        front = { CardFront(sc.card, sc.irregular, audio, settings.showIpaOnFront) },
+                                        front = {
+                                            Column {
+                                                if (sc.leech) LeechLabel(sc.lapses, Modifier.padding(bottom = 12.dp))
+                                                CardFront(sc.card, sc.irregular, audio, settings.showIpaOnFront)
+                                            }
+                                        },
                                         back = { CardBack(sc.card, sc.irregular, audio, showRussian = settings.showRussian) },
                                     )
                                 }
@@ -210,6 +215,7 @@ fun StudyScreen(source: StudySource, navigator: Navigator, answerLimit: Int? = n
                                         if (!compact) com.marat.albion.ui.components.CoachMark("study.swipe",
                                             "Смахните карточку: вправо — «Хорошо», влево — «Снова». Или выберите оценку ниже")
                                         RatingBar(current.intervals, rate)
+                                        if (current.leech) LeechActions(current.lapses) { c.audio.stop(); vm.postpone() }
                                     }
                                 }
                             }
