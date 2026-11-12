@@ -42,6 +42,9 @@ class AppContainer(context: Context) {
     val bookTranslator = com.marat.albion.data.library.BookTranslator(appScope)
     val speech = com.marat.albion.data.speech.SpeechToText(context, appScope)
     val conversations = com.marat.albion.data.conversation.ConversationRepository(database, translator)
+    /** «Аудио с текстом»: треки, прогресс прослушивания и общий плеер (он же — в фоновой службе). */
+    val listeningLibrary = com.marat.albion.data.listening.ListeningRepository(context, database, dictionary, json)
+    val listening = com.marat.albion.audio.ListeningPlayer(context, listeningLibrary::saveProgress)
 }
 
 class AlbionApp : Application() {

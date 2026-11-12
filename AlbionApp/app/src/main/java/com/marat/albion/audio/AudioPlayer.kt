@@ -96,6 +96,19 @@ class AudioPlayer internal constructor(
         if (requestId == current) play(deck, file, text, key)
     }
 
+    /**
+     * Отрезок [startMs, endMs) длинной записи — фраза трека в диктанте, cloze и шэдоуинге.
+     * Скорость из настроек учитывается так же, как у карточек.
+     */
+    fun playClip(uri: Uri, startMs: Long, endMs: Long, key: String, rate: Float = 1f) =
+        playMedia(uri, key, speed * rate, volume, clip = startMs to endMs)
+
+    suspend fun playClipDelayed(uri: Uri, startMs: Long, endMs: Long, key: String, delayMs: Long) {
+        val current = requestId
+        delay(delayMs)
+        if (requestId == current) playClip(uri, startMs, endMs, key)
+    }
+
     /** Проигрывает собственную запись пользователя (шэдоуинг) — всегда в обычном темпе. */
     fun playFile(file: java.io.File, key: String) {
         if (!file.exists()) return
@@ -111,7 +124,10 @@ class AudioPlayer internal constructor(
         if (requestId == current) playFile(file, key)
     }
 
-    private fun playMedia(uri: Uri, key: String, rate: Float, mediaVolume: Float, fallback: (() -> Unit)? = null) {
+    private fun playMedia(
+        uri: Uri, key: String, rate: Float, mediaVolume: Float,
+        fallback: (() -> Unit)? = null, clip: Pair<Long, Long>? = null,
+    ) {
         // Сначала останавливаем прежнюю запись; её STATE_IDLE не относится к новой.
         stop()
         val engine = player ?: createPlayer(context).also { player = it }
@@ -135,7 +151,12 @@ class AudioPlayer internal constructor(
         playerListener = listener
         engine.addListener(listener)
         _playing.value = key
-        engine.setMediaItem(MediaItem.fromUri(uri))
+        engine.setMediaItem(
+            if (clip == null) MediaItem.fromUri(uri)
+            else MediaItem.Builder().setUri(uri).setClippingConfiguration(
+                MediaItem.ClippingConfiguration.Builder().setStartPositionMs(clip.first).setEndPositionMs(clip.second).build()
+            ).build()
+        )
         engine.setPlaybackSpeed(rate)
         engine.volume = mediaVolume
         engine.prepare()

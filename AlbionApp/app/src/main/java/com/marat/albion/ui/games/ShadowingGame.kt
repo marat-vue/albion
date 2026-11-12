@@ -55,12 +55,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.marat.albion.LocalAppContainer
-import com.marat.albion.audio.AudioDecoder
 import com.marat.albion.audio.VoiceRecorder
 import com.marat.albion.data.audio.Prosody
 import com.marat.albion.data.audio.ProsodyAnalyzer
 import com.marat.albion.data.audio.ShadowReport
-import com.marat.albion.data.content.Deck
 import com.marat.albion.data.db.CardEntity
 import com.marat.albion.ui.components.Eyebrow
 import com.marat.albion.ui.components.GhostButton
@@ -85,14 +83,32 @@ private const val PASS = 60
  */
 @Composable
 fun ShadowingRound(vm: GameViewModel, card: CardEntity) {
+    val reference = remember(card.id) { CardShadowReference(card) }
+    ShadowingPanel(reference, header = { TermBlock(card) }) { ok, score ->
+        vm.record(ok, if (ok) null else Mistake(card.meaningRu, score?.let { "$it%" } ?: "нет записи", card.term))
+        vm.next()
+    }
+}
+
+/**
+ * Сам шэдоуинг для любого эталона ([ShadowReference]): карточки или фразы трека.
+ * [onNext] получает «засчитано» и лучший результат в процентах (null — не с чем было сравнить).
+ */
+@Composable
+fun ShadowingPanel(
+    reference: ShadowReference,
+    header: @Composable () -> Unit,
+    nextLabel: String = "Следующее",
+    onNext: (ok: Boolean, best: Int?) -> Unit,
+) {
     val c = LocalAppContainer.current
+    val id = reference.id
     val context = LocalContext.current
     val recorder = remember { VoiceRecorder(context.applicationContext) }
     val recording by recorder.recording.collectAsStateWithLifecycle()
     val level by recorder.level.collectAsStateWithLifecycle()
     val playing by c.audio.playing.collectAsStateWithLifecycle()
-    val deck = Deck.byId(card.deck) ?: Deck.WORDS
-    val file = remember(card.id) { recorder.fileFor(card.id) }
+    val file = remember(id) { recorder.fileFor(id) }
     val scope = rememberCoroutineScope()
     var micDenied by remember { mutableStateOf(false) }
     val reduced = com.marat.albion.ui.theme.LocalReducedMotion.current
@@ -101,35 +117,33 @@ fun ShadowingRound(vm: GameViewModel, card: CardEntity) {
     val speechModel by c.speech.models.state.collectAsStateWithLifecycle()
     var installSpeech by remember { mutableStateOf(false) }
     // Что звучит в записи диктора: подписи слов на графике и допустимые омофоны (read/red) для проверки.
-    val originalWords = remember(card.id) { CompletableDeferred<List<HeardWord>?>() }
-    var diktorWords by remember(card.id) { mutableStateOf<List<HeardWord>?>(null) }
-    var clarity by remember(card.id) { mutableStateOf<ClarityState>(ClarityState.Idle) }
-    var clarityJob by remember(card.id) { mutableStateOf<Job?>(null) }
+    val originalWords = remember(id) { CompletableDeferred<List<HeardWord>?>() }
+    var diktorWords by remember(id) { mutableStateOf<List<HeardWord>?>(null) }
+    var clarity by remember(id) { mutableStateOf<ClarityState>(ClarityState.Idle) }
+    var clarityJob by remember(id) { mutableStateOf<Job?>(null) }
     // Имя файла озвучки — ровно то, что произносит диктор («read (past).mp3» → «read»).
-    val expected = remember(card.id) {
-        SpokenWords.split(card.audio?.substringBeforeLast('.')?.substringBefore(" (") ?: card.term).ifEmpty { SpokenWords.split(card.term) }
-    }
-    var original by remember(card.id) { mutableStateOf<Prosody?>(null) }
-    var originalReady by remember(card.id) { mutableStateOf(false) }
-    var hasTake by rememberSaveable(card.id) { mutableStateOf(false) }
-    var analyzing by remember(card.id) { mutableStateOf(false) }
-    var report by remember(card.id) { mutableStateOf<ShadowReport?>(null) }
-    var unclear by remember(card.id) { mutableStateOf(false) }
-    var best by rememberSaveable(card.id) { mutableStateOf<Int?>(null) }
-    var takes by rememberSaveable(card.id) { mutableStateOf(0) }
+    val expected = remember(id) { reference.expectedWords() }
+    var original by remember(id) { mutableStateOf<Prosody?>(null) }
+    var originalReady by remember(id) { mutableStateOf(false) }
+    var hasTake by rememberSaveable(id) { mutableStateOf(false) }
+    var analyzing by remember(id) { mutableStateOf(false) }
+    var report by remember(id) { mutableStateOf<ShadowReport?>(null) }
+    var unclear by remember(id) { mutableStateOf(false) }
+    var best by rememberSaveable(id) { mutableStateOf<Int?>(null) }
+    var takes by rememberSaveable(id) { mutableStateOf(0) }
     // Скользящее окно уровней для «волны» во время записи.
-    val wave = remember(card.id) { mutableStateListOf<Float>().apply { repeat(32) { add(0f) } } }
+    val wave = remember(id) { mutableStateListOf<Float>().apply { repeat(32) { add(0f) } } }
 
     androidx.lifecycle.compose.LifecycleEventEffect(androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
         if (androidx.core.content.ContextCompat.checkSelfPermission(context, android.Manifest.permission.RECORD_AUDIO) == android.content.pm.PackageManager.PERMISSION_GRANTED) micDenied = false
     }
     DisposableEffect(Unit) { onDispose { recorder.clear() } }
-    LaunchedEffect(card.id) {
-        c.audio.playDelayed(deck, card.audio, card.term, "orig:${card.id}", delayMs = 350)
+    LaunchedEffect(id) {
+        reference.playDelayed(c.audio, "orig:$id", delayMs = 350)
     }
     // Мелодика диктора — один раз на карточку, в фоне.
-    LaunchedEffect(card.id) {
-        val pcm = card.audio?.let { name -> withContext(Dispatchers.Default) { AudioDecoder.decodeCardAudio(context, deck, name) } }
+    LaunchedEffect(id) {
+        val pcm = withContext(Dispatchers.Default) { reference.decode(context) }
         original = pcm?.let { withContext(Dispatchers.Default) { ProsodyAnalyzer.analyze(it) } }
         originalReady = true
         val words = if (pcm != null && speechModel.ready) {
@@ -142,8 +156,8 @@ fun ShadowingRound(vm: GameViewModel, card: CardEntity) {
         if (recording) { wave.removeAt(0); wave.add(level) }
     }
 
-    fun playOriginal(rate: Float = 1f, key: String = "orig:${card.id}") = c.audio.play(deck, card.audio, card.term, key, rate)
-    fun playMine() = c.audio.playFile(file, "mine:${card.id}")
+    fun playOriginal(rate: Float = 1f, key: String = "orig:$id") = reference.play(c.audio, key, rate)
+    fun playMine() = c.audio.playFile(file, "mine:${id}")
 
     fun checkClarity(samples: FloatArray) {
         clarityJob?.cancel()
@@ -198,7 +212,7 @@ fun ShadowingRound(vm: GameViewModel, card: CardEntity) {
     fun compare() {
         scope.launch {
             playOriginal()
-            c.audio.playFileAfterCurrent(file, "mine:${card.id}")
+            c.audio.playFileAfterCurrent(file, "mine:${id}")
         }
     }
 
@@ -209,8 +223,7 @@ fun ShadowingRound(vm: GameViewModel, card: CardEntity) {
             score != null -> score >= PASS
             else -> hasTake && original == null // сравнивать не с чем — засчитываем саму запись
         }
-        vm.record(ok, if (ok) null else Mistake(card.meaningRu, score?.let { "$it%" } ?: "нет записи", card.term))
-        vm.next()
+        onNext(ok, score)
     }
 
     Column(Modifier.fillMaxSize().padding(horizontal = gutter)) {
@@ -218,7 +231,7 @@ fun ShadowingRound(vm: GameViewModel, card: CardEntity) {
             Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(top = 16.dp, bottom = 4.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            TermBlock(card)
+            header()
             Spacer(Modifier.height(16.dp))
             ShadowSteps(active = when { recording -> 1; hasTake -> 2; else -> 0 })
 
@@ -228,12 +241,12 @@ fun ShadowingRound(vm: GameViewModel, card: CardEntity) {
                 horizontalArrangement = Arrangement.SpaceEvenly,
                 verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
-                PlaybackAction(AlbionIcons.PlayArrow, "Диктор", { playOriginal() }, enabled = !recording && !analyzing, active = playing == "orig:${card.id}", slot = micSize + MicLip)
+                PlaybackAction(AlbionIcons.PlayArrow, "Диктор", { playOriginal() }, enabled = !recording && !analyzing, active = playing == "orig:${id}", slot = micSize + MicLip)
                 RecordButton(recording = recording, level = level, onClick = ::toggleRecord, size = micSize, enabled = !analyzing && originalReady)
                 PlaybackAction(
                     AlbionIcons.SlowMotionVideo, "Медленно",
-                    { playOriginal(0.7f, "slow:${card.id}") },
-                    enabled = card.audio != null && !recording && !analyzing, active = playing == "slow:${card.id}", slot = micSize + MicLip,
+                    { playOriginal(0.7f, "slow:${id}") },
+                    enabled = reference.hasAudio && !recording && !analyzing, active = playing == "slow:${id}", slot = micSize + MicLip,
                 )
             }
 
@@ -265,7 +278,7 @@ fun ShadowingRound(vm: GameViewModel, card: CardEntity) {
                 analyzing -> ShadowStatus("Сравниваю с диктором…")
                 unclear -> ShadowStatus("Не удалось разобрать запись — говорите громче и ближе к телефону", warm = true)
                 report != null -> ShadowStatus("Попытка $takes" + (best?.takeIf { takes > 1 }?.let { " · лучшая $it%" } ?: ""))
-                hasTake && original == null -> ShadowStatus("Для этой карточки нет записи диктора — сравните на слух")
+                hasTake && original == null -> ShadowStatus("Здесь нет записи диктора — сравните на слух")
                 else -> ShadowStatus("Послушайте диктора, затем запишите свой голос")
             }
 
@@ -287,7 +300,7 @@ fun ShadowingRound(vm: GameViewModel, card: CardEntity) {
         // До первой записи главное действие — микрофон, поэтому «Пропустить» второстепенная, как в «Произношении».
         if (!recording && !analyzing && originalReady && !hasTake) GhostButton("Пропустить", onClick = ::next, modifier = Modifier.padding(vertical = 12.dp))
         else PrimaryButton(
-            when { recording -> "Остановить запись"; analyzing -> "Сравниваем…"; !originalReady -> "Готовим образец…"; else -> "Следующее" },
+            when { recording -> "Остановить запись"; analyzing -> "Сравниваем…"; !originalReady -> "Готовим образец…"; else -> nextLabel },
             onClick = { if (recording) recorder.stop() else next() },
             enabled = !analyzing && originalReady,
             trailingIcon = AlbionIcons.ArrowForward,
