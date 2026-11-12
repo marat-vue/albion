@@ -41,7 +41,7 @@ class CompactUiTest {
     private val labels = listOf("Сегодня", "Учебник", "Чтение", "Практика", "Прогресс")
 
     @Test fun compactHomeKeepsStartVisibleAndTabsKeepTheirTargets(): Unit = runBlocking {
-        container.importer.importIfNeeded()
+        container.ensureStudyToday()
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
             for (width in listOf(320, 360)) for (scale in listOf(1f, 1.5f, 2f)) {
                 val name = "home-$width-$scale"

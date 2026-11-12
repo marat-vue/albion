@@ -52,7 +52,7 @@ class WindowAndPanelsUiTest {
     @Before fun prepare(): Unit = runBlocking {
         val landscape = InstrumentationRegistry.getArguments().getString("testLandscape") == "true"
         instrumentation.uiAutomation.setRotation(if (landscape) UiAutomation.ROTATION_FREEZE_90 else UiAutomation.ROTATION_FREEZE_0)
-        c.importer.importIfNeeded()
+        c.ensureStudyToday()
     }
 
     @Test fun settingsDisclosureLabelsKeepWholeWordsAtTheSystemFontSize() {

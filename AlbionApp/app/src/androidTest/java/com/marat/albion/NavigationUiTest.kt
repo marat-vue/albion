@@ -99,6 +99,7 @@ class NavigationUiTest {
     }
 
     @Test fun lessonSurvivesSwitchAndReselectReturnsToSectionRoot() {
+        runBlocking { (instrumentation.targetContext.applicationContext as AlbionApp).container.ensureStudyToday() }
         ActivityScenario.launch(MainActivity::class.java).use {
             clickText("Учебник")
             click(awaitNode { it.text?.toString() in setOf("Читать урок", "Сначала открыть правило") })

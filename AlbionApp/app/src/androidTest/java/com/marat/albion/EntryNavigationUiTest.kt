@@ -57,7 +57,7 @@ class EntryNavigationUiTest {
 
     @Before fun prepareWindow(): Unit = runBlocking {
         instrumentation.uiAutomation.setRotation(UiAutomation.ROTATION_FREEZE_0)
-        c.importer.importIfNeeded()
+        c.ensureStudyToday()
     }
 
     @Test fun readyContentNeverWaitsForTheDecorativeIntro() {

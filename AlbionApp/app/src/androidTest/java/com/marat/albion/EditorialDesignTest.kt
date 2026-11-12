@@ -23,7 +23,7 @@ class EditorialDesignTest {
     private val c get() = (instrumentation.targetContext.applicationContext as AlbionApp).container
 
     @Test fun primaryScreensAndSensoryPreferencesWorkInBothThemes(): Unit = runBlocking {
-        c.importer.importIfNeeded()
+        c.ensureStudyToday()
         val original = c.settings.current()
         val manager = instrumentation.targetContext.getSystemService(Context.UI_MODE_SERVICE) as UiModeManager
         val originalNight = manager.nightMode
