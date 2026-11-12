@@ -33,6 +33,8 @@ data class StudyCard(
     val lapses: Int = 0,
     /** «Трудное» слово: забывалось много раз и не закрепилось (см. [Leech]). */
     val leech: Boolean = false,
+    /** Отложить можно только слово в повторении: учебный шаг сдвигать на неделю бессмысленно. */
+    val canPostpone: Boolean = false,
     /** Формат по зрелости: классика с самооценкой, ввод RU → EN или пропуск в примере. */
     val format: CardFormat = CardFormat.Classic,
     val cloze: ClozeTask? = null,
@@ -129,14 +131,18 @@ class StudyViewModel(private val repo: StudyRepository, private val source: Stud
     fun acceptOwnAnswer(answer: String) {
         val current = _state.value.current ?: return
         if (answering || answer.isBlank()) return
+        answering = true
         viewModelScope.launch {
             try {
                 repo.addOwnAnswer(current.card, answer)
             } catch (e: CancellationException) {
+                answering = false
                 throw e
             } catch (e: Exception) {
-                android.util.Log.e("Albion", "Свой вариант ответа", e)
+                saveFailed("Не удалось запомнить ваш вариант. Попробуйте ещё раз.", e)
+                return@launch
             }
+            answering = false
             answerChecked(Rating.Good)
         }
     }
@@ -297,6 +303,7 @@ class StudyViewModel(private val repo: StudyRepository, private val source: Stud
                 revealed = false,
                 current = StudyCard(card, repo.irregular(card), memory.state == CardState.NEW, fromLearning, intervals,
                     lapses = memory.lapses, leech = Leech.isLeech(memory.lapses, memory.stability),
+                    canPostpone = memory.state == CardState.REVIEW,
                     format = format, cloze = if (format == CardFormat.Cloze) Cloze.make(card) else null,
                     ownAnswers = if (format == CardFormat.Typed) repo.ownAnswers(card) else emptyList()),
                 newCount = news.size,

@@ -231,7 +231,7 @@ fun StudyScreen(source: StudySource, navigator: Navigator, answerLimit: Int? = n
                                         if (!compact) com.marat.albion.ui.components.CoachMark("study.swipe",
                                             "Смахните карточку: вправо — «Хорошо», влево — «Снова». Или выберите оценку ниже")
                                         RatingBar(current.intervals, rate)
-                                        if (current.leech) LeechActions(current.lapses) { c.audio.stop(); vm.postpone() }
+                                        if (current.leech && current.canPostpone) LeechActions(current.lapses) { c.audio.stop(); vm.postpone() }
                                     }
                                 }
                             }

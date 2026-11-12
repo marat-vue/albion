@@ -46,7 +46,7 @@ object FixError {
         val correct = task.acceptedAnswers.firstOrNull()?.trim() ?: return null
         if (correct in DASHES) return null
         val wrongOptions = task.optionList.map { it.trim() }
-            .filter { it !in DASHES && !it.equals(correct, ignoreCase = true) }
+            .filter { option -> option !in DASHES && task.acceptedAnswers.none { it.trim().equals(option, ignoreCase = true) } }
         val wrong = pick(wrongOptions) ?: return null
         val before = prompt.textPart(0, wrong)
         val sentence = before + wrong + prompt.parts[1]
