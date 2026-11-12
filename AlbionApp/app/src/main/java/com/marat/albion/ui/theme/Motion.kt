@@ -201,7 +201,8 @@ fun Modifier.sharedElement(key: Any): Modifier = composed {
         this@composed.sharedBounds(
             rememberSharedContentState(key), animated,
             boundsTransform = { _, _ -> Springs.card() },
-            resizeMode = androidx.compose.animation.SharedTransitionScope.ResizeMode.RemeasureToBounds,
+            // Масштаб, а не перемер: тяжёлые экраны (читалка, урок) не перемеряются каждый кадр.
+            resizeMode = androidx.compose.animation.SharedTransitionScope.ResizeMode.scaleToBounds(),
         )
     }
 }

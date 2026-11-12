@@ -47,8 +47,10 @@ fun AlbionSwitch(checked: Boolean, modifier: Modifier = Modifier, enabled: Boole
     val reduced = LocalReducedMotion.current
     val position by animateFloatAsState(if (checked) 1f else 0f,
         if (reduced) snap() else Springs.toggle(), label = "switch")
-    val track by animateColorAsState(if (checked) scheme.primary else scheme.surfaceContainerHighest, label = "switchTrack")
-    val thumb by animateColorAsState(if (checked) scheme.onPrimary else scheme.surfaceContainerLowest, label = "switchThumb")
+    val track by animateColorAsState(if (checked) scheme.primary else scheme.surfaceContainerHighest,
+        if (reduced) snap() else androidx.compose.animation.core.spring(), label = "switchTrack")
+    val thumb by animateColorAsState(if (checked) scheme.onPrimary else scheme.surfaceContainerLowest,
+        if (reduced) snap() else androidx.compose.animation.core.spring(), label = "switchThumb")
     val edge = if (checked) scheme.primary else scheme.controlBorder
     Box(modifier.size(width = 50.dp, height = 30.dp).alpha(if (enabled) 1f else .38f)
         .clip(Capsule).background(track).border(1.dp, edge, Capsule).padding(4.dp)) {

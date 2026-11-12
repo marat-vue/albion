@@ -60,7 +60,7 @@ fun DrawScope.drawRingProgress(track: Color?, color: Color, fraction: Float, str
     drawArc(color, -90f, 360f * f, false, topLeft, arc, style = Stroke(strokeWidth, cap = StrokeCap.Round))
 }
 
-/** Прежнее имя: геометрия стала круглой, вызовы получают кольцо автоматически. */
+/** Прежнее имя: оставлено для экранов из параллельных веток (практики, аудиоплеер) — они получают круглое кольцо без правок. */
 @Deprecated("Кольцо теперь круглое", ReplaceWith("drawRingProgress(track, color, fraction, strokeWidth, inset)"))
 fun DrawScope.drawSquareProgress(track: Color?, color: Color, fraction: Float, strokeWidth: Float, inset: Float = strokeWidth / 2) =
     drawRingProgress(track, color, fraction, strokeWidth, inset)

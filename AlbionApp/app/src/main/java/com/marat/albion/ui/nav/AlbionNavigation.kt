@@ -188,7 +188,8 @@ fun AlbionNavigation() {
             val barVisible = chromeVisible && !wide
             var barHeight by remember { mutableStateOf(0.dp) }
             val density = LocalDensity.current
-            val chrome = if (barVisible) barHeight else 0.dp
+            // Отступ под панелью меняется плавно — уходящий экран не «подпрыгивает».
+            val chrome by com.marat.albion.ui.theme.quietDpAsState(if (barVisible) barHeight else 0.dp, label = "chrome")
             Box(Modifier.fillMaxSize()) {
                 val rail = chromeVisible && wide
                 Row(Modifier.fillMaxSize().hazeSource(haze)) {

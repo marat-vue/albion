@@ -128,6 +128,7 @@ internal fun BottomBar(selected: TopLevel, haze: HazeState, modifier: Modifier =
     val measurer = rememberTextMeasurer()
     val density = LocalDensity.current
     val scheme = MaterialTheme.colorScheme
+    // Стекло — тоже «живой» эффект (контент плывёт под панелью), поэтому «Меньше движения» делает её непрозрачной.
     val glass = !LocalReducedMotion.current
     var open by rememberSaveable { mutableStateOf(false) }
     val tint = scheme.background
