@@ -368,3 +368,18 @@ interface SentenceTranslationDao {
     )
     suspend fun startedWithExamples(deck: String, limit: Int): List<CardEntity>
 }
+
+@Dao
+interface LeechHintDao : com.marat.albion.data.repo.LeechHintStore {
+    @Query("SELECT * FROM leech_hints WHERE card_id = :cardId")
+    override suspend fun get(cardId: String): LeechHintEntity?
+
+    @Query("SELECT * FROM leech_hints WHERE card_id = :cardId")
+    override fun observe(cardId: String): Flow<LeechHintEntity?>
+
+    @Upsert
+    override suspend fun upsert(row: LeechHintEntity)
+
+    @Query("DELETE FROM leech_hints WHERE card_id = :cardId")
+    override suspend fun delete(cardId: String)
+}

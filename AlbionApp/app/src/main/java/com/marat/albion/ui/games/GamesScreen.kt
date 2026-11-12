@@ -31,7 +31,7 @@ import androidx.compose.foundation.border
 internal val practiceGroups = listOf(
     "Словарный запас" to listOf(Game.TYPE_ANSWER, Game.IRREGULAR, Game.CLOZE),
     "Грамматика" to listOf(Game.GRAMMAR_CHOICE, Game.GRAMMAR_GAP, Game.SENTENCE, Game.TENSES, Game.FIX_ERROR),
-    "Речь и слух" to listOf(Game.PRONUNCIATION, Game.SHADOWING, Game.DICTATION),
+    "Речь и слух" to listOf(Game.PRONUNCIATION, Game.SHADOWING, Game.DICTATION, Game.MINIMAL_PAIRS),
 )
 
 /**

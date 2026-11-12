@@ -63,7 +63,7 @@ class GameViewModel(private val c: AppContainer, val game: Game,
     var mode by mutableIntStateOf(0)
     /** Играть только слова, на которых вы ошибались в этой игре. */
     var onlyMistakes by mutableStateOf(false)
-    private val needAudio get() = game == Game.SHADOWING || game == Game.PRONUNCIATION
+    private val needAudio get() = game == Game.SHADOWING || game == Game.PRONUNCIATION || game == Game.MINIMAL_PAIRS
 
     /** Сколько ошибок накоплено в выбранной колоде — для экрана настройки. */
     fun observeAvailable(deck: com.marat.albion.data.content.Deck) = c.study.observeWordCounts().map { it[deck.id] ?: 0 }
@@ -105,7 +105,7 @@ class GameViewModel(private val c: AppContainer, val game: Game,
         if (retry == null) saveOptions(markAsLast = true)
         phase = Phase.Loading
         // Новая игра — новые примеры; повтор ошибок — те же задания.
-        if (retry == null) { clozes.clear(); tenses.clear(); tenseOptions.clear(); puzzles.clear(); shuffledTokens.clear(); sentenceTranslations.clear() }
+        if (retry == null) { clozes.clear(); tenses.clear(); tenseOptions.clear(); puzzles.clear(); shuffledTokens.clear(); sentenceTranslations.clear(); pairTasks.clear(); pairCards.clear() }
         translating?.cancel()
         // Фоновый перевод доделывает текущее предложение (обрыв посреди генерации терял работу) и останавливается.
         stopUpcoming = true
@@ -116,6 +116,7 @@ class GameViewModel(private val c: AppContainer, val game: Game,
                 Game.TENSES -> c.study.gamePool(deck, game.name, (count * 2).coerceAtMost(500), onlyMistakes = onlyMistakes).filter { tense(it) != null }.take(count)
                 Game.CLOZE -> c.study.gamePool(deck, game.name, (count * 4).coerceAtMost(500), onlyMistakes = onlyMistakes).filter { cloze(it) != null }.take(count)
                 // Речь: служебные слова вроде «a» или «to» распознавание не узнаёт отдельно — их пропускаем.
+                Game.MINIMAL_PAIRS -> minimalPairs()
                 Game.SHADOWING, Game.PRONUNCIATION -> c.study.gamePool(deck, game.name, (count * 2).coerceAtMost(500), withAudio = true, onlyMistakes = onlyMistakes)
                     .filter { speakable(it.term) }.take(count)
                 else -> c.study.gamePool(deck, game.name, count.coerceAtMost(500), withAudio = needAudio, onlyMistakes = onlyMistakes)
@@ -133,6 +134,34 @@ class GameViewModel(private val c: AppContainer, val game: Game,
     }
 
     fun retryMistakes() = start(missed.toList())
+
+    /** Пары словаря (id словаря → пары): поиск по транскрипциям тяжёлый, считаем один раз. */
+    private var pairs: Pair<String, List<com.marat.albion.data.games.MinimalPair>>? = null
+    private val pairCards = HashMap<String, CardEntity>()
+    private val pairTasks = HashMap<String, com.marat.albion.data.games.PairTask>()
+
+    /** Задание «Минимальных пар» для карточки, которая звучит в раунде. */
+    fun pairTask(card: CardEntity): com.marat.albion.data.games.PairTask? = pairTasks[card.id]
+
+    /** Карточка слова из пары — её озвучка и транскрипция. */
+    fun pairCard(id: String): CardEntity? = pairCards[id]
+
+    /**
+     * Пары по транскрипциям всех слов с озвучкой (считаются один раз за экран); слова с ошибками — первыми.
+     * Раунд — карточка звучащего слова.
+     */
+    private suspend fun minimalPairs(): List<CardEntity> {
+        val all = c.study.gamePool(deck, game.name, Int.MAX_VALUE, withAudio = true)
+        val found = pairs?.takeIf { it.first == deck.id }?.second ?: kotlinx.coroutines.withContext(Dispatchers.Default) {
+            com.marat.albion.data.games.MinimalPairs.find(all.map { com.marat.albion.data.games.PairWord(it.id, it.term, it.ipa) })
+        }.also { pairs = deck.id to it }
+        all.forEach { pairCards[it.id] = it }
+        val order = if (onlyMistakes) c.study.gamePool(deck, game.name, Int.MAX_VALUE, withAudio = true, onlyMistakes = true).map { it.id }
+            else all.map { it.id }
+        val tasks = com.marat.albion.data.games.MinimalPairs.session(found, order, count)
+        tasks.forEach { pairTasks[it.target.id] = it }
+        return tasks.mapNotNull { pairCards[it.target.id] }
+    }
 
     private fun speakable(term: String): Boolean {
         val word = term.trim().lowercase()
@@ -314,6 +343,7 @@ fun GameHost(game: Game, navigator: Navigator, initialDeck: Deck? = null, onlyMi
         Game.TENSES -> GameFrame(vm, navigator) { card -> TenseRound(vm, card) }
         Game.DICTATION -> GameFrame(vm, navigator) { card -> DictationRound(vm, card) }
         Game.CLOZE -> GameFrame(vm, navigator) { card -> ClozeRound(vm, card) }
+        Game.MINIMAL_PAIRS -> GameFrame(vm, navigator, scoreLabel = "на слух") { card -> MinimalPairRound(vm, card) }
         Game.GRAMMAR_CHOICE, Game.GRAMMAR_GAP, Game.FIX_ERROR -> Unit
     }
 }

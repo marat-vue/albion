@@ -35,6 +35,7 @@ internal val Game.editionTitle: String get() = when (this) {
     Game.DICTATION -> "Слух"
     Game.CLOZE -> "Контекст"
     Game.FIX_ERROR -> "Ошибки"
+    Game.MINIMAL_PAIRS -> "Звуки"
 }
 
 /** Код формата совпадает с нумерацией каталога практики: «02.1» — первое упражнение раздела 02. */

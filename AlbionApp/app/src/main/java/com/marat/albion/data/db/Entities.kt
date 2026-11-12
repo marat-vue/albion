@@ -255,3 +255,17 @@ data class SentenceTranslationEntity(
     val edited: Boolean = false,
     @ColumnInfo(name = "updated_at") val updatedAt: Long = System.currentTimeMillis(),
 )
+
+/**
+ * Подсказка к «трудному» слову: мнемоника и контрастные примеры. Черновик пишет модель на устройстве
+ * по запросу; ученик может его поправить — тогда [edited] защищает текст от перегенерации.
+ */
+@Entity(tableName = "leech_hints")
+data class LeechHintEntity(
+    @PrimaryKey @ColumnInfo(name = "card_id") val cardId: String,
+    val mnemonic: String,
+    /** Примеры по одному на строку. */
+    val examples: String,
+    val edited: Boolean = false,
+    @ColumnInfo(name = "updated_at") val updatedAt: Long = System.currentTimeMillis(),
+)

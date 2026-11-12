@@ -77,6 +77,8 @@ object AlbionIcons {
     val VolumeUp = pen("Listen", "M3 9h4l5-5v16l-5-5H3z M16 8c2 2 2 6 0 8 M19 5c4 4 4 10 0 14", true)
     val Mic = pen("Microphone", "M9 5a3 3 0 0 1 6 0v7a3 3 0 0 1-6 0z M5 11v1a7 7 0 0 0 14 0v-1 M12 19v3 M8 22h8")
     val RecordVoiceOver = pen("Speech", "M8 9a3 3 0 1 1 0-6 3 3 0 0 1 0 6 M2 21v-3a6 6 0 0 1 12 0v3 M17 5c3 2 3 6 0 8 M20 2c5 4 5 10 0 14")
+    /** Ухо: «Минимальные пары» — различать звуки на слух. */
+    val Hearing = pen("Hearing", "M6 9a6 6 0 0 1 12 0c0 4-4 5-4 9a3 3 0 0 1-6 0 M9.5 9a2.5 2.5 0 0 1 5 0c0 1.5-1.5 2-2.5 3")
     val PlayArrow = pen("Play", "M8 4.5v15L19.5 12z")
     val Stop = pen("Stop", "M6.5 6.5h11v11h-11z")
     val SlowMotionVideo = pen("Slow", "M20 12a8 8 0 1 1-8-8 M12 1v6 M18 3l-3 4 M23 7l-5 2 M10 9l5 3-5 3z")
