@@ -25,11 +25,28 @@ object AudioDecoder {
         }
     }.getOrNull()
 
-    private fun decode(extractor: MediaExtractor): FloatArray? {
+    /**
+     * Отрезок записи трека (фраза для шэдоуинга): из assets ([assetPath]) или из файла.
+     * Точность — до кадра mp3 (~26 мс), для сравнения мелодики этого достаточно.
+     */
+    fun decodeClip(context: Context, assetPath: String?, file: java.io.File?, startMs: Long, endMs: Long): FloatArray? = runCatching {
+        val extractor = MediaExtractor()
+        try {
+            if (assetPath != null) context.assets.openFd(assetPath).use { afd ->
+                extractor.setDataSource(afd.fileDescriptor, afd.startOffset, afd.length)
+            } else extractor.setDataSource(requireNotNull(file) { "Нет файла записи" }.absolutePath)
+            decode(extractor, startMs * 1000, endMs * 1000)
+        } finally {
+            extractor.release()
+        }
+    }.getOrNull()
+
+    private fun decode(extractor: MediaExtractor, startUs: Long = 0, endUs: Long = Long.MAX_VALUE): FloatArray? {
         val track = (0 until extractor.trackCount).firstOrNull {
             extractor.getTrackFormat(it).getString(MediaFormat.KEY_MIME)?.startsWith("audio/") == true
         } ?: return null
         extractor.selectTrack(track)
+        if (startUs > 0) extractor.seekTo(startUs, MediaExtractor.SEEK_TO_PREVIOUS_SYNC)
         val format = extractor.getTrackFormat(track)
         var rate = format.getInteger(MediaFormat.KEY_SAMPLE_RATE)
         var channels = format.getInteger(MediaFormat.KEY_CHANNEL_COUNT)
@@ -47,7 +64,7 @@ object AudioDecoder {
                     if (inIndex >= 0) {
                         val buf = codec.getInputBuffer(inIndex)!!
                         val size = extractor.readSampleData(buf, 0)
-                        if (size < 0) {
+                        if (size < 0 || extractor.sampleTime > endUs) {
                             codec.queueInputBuffer(inIndex, 0, 0, 0, MediaCodec.BUFFER_FLAG_END_OF_STREAM)
                             inputDone = true
                         } else {
@@ -68,6 +85,8 @@ object AudioDecoder {
                     outIndex >= 0 -> {
                         val buf = codec.getOutputBuffer(outIndex)!!.order(ByteOrder.LITTLE_ENDIAN)
                         buf.position(info.offset); buf.limit(info.offset + info.size)
+                        // Кадры до начала отрезка (после перехода к ближайшему ключевому) пропускаем.
+                        if (info.presentationTimeUs < startUs) buf.position(buf.limit())
                         if (floatPcm) {
                             val fb = buf.asFloatBuffer()
                             while (fb.hasRemaining()) pcm += (fb.get().coerceIn(-1f, 1f) * 32767).toInt().toShort()
