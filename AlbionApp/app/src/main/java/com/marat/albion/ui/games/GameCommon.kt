@@ -582,7 +582,7 @@ internal fun NextDock(ok: Boolean?, title: String? = null, label: String = "Да
             .semantics { liveRegion = androidx.compose.ui.semantics.LiveRegionMode.Polite },
     ) {
         Row(Modifier.padding(start = 4.dp, bottom = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(24.dp).background(fg, MaterialTheme.shapes.extraSmall), contentAlignment = Alignment.Center) {
+            Box(Modifier.size(24.dp).background(fg, androidx.compose.foundation.shape.CircleShape), contentAlignment = Alignment.Center) {
                 Icon(if (ok == false) AlbionIcons.Close else AlbionIcons.Check, null, Modifier.size(16.dp), tint = bg)
             }
             Spacer(Modifier.width(10.dp))

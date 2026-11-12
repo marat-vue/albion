@@ -63,7 +63,7 @@ class MainActivity : ComponentActivity() {
                             AlbionNavigation()
                             if (launching) com.marat.albion.ui.launch.LaunchScreen(
                                 ready = !held && importStatus !is ImportStatus.Checking && importStatus !is ImportStatus.Importing,
-                                status = (importStatus as? ImportStatus.Importing)?.let { "ГОТОВИМ МАТЕРИАЛЫ · ${it.index}/${it.total}" }
+                                status = (importStatus as? ImportStatus.Importing)?.let { "Готовим материалы · ${it.index}/${it.total}" }
                                     ?: if (importStatus is ImportStatus.Checking) "ПРОВЕРЯЕМ МАТЕРИАЛЫ" else null,
                                 onFinished = { launching = false },
                             )

@@ -539,7 +539,7 @@ internal fun OptionButton(text: String, state: OptionState, index: Int? = null, 
             .padding(horizontal = 18.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(Modifier.size(30.dp).border(.75.dp, fg.copy(alpha = .3f), MaterialTheme.shapes.extraSmall), contentAlignment = Alignment.Center) {
+        Box(Modifier.size(30.dp).border(1.dp, fg.copy(alpha = .3f), androidx.compose.foundation.shape.CircleShape), contentAlignment = Alignment.Center) {
             when (state) {
                 OptionState.Correct -> Icon(AlbionIcons.Check, null, tint = fg, modifier = Modifier.size(16.dp))
                 OptionState.Wrong -> Icon(AlbionIcons.Close, null, tint = fg, modifier = Modifier.size(16.dp))

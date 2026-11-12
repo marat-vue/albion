@@ -244,7 +244,7 @@ private fun ListView(list: MdList, modifier: Modifier) {
                             null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp),
                         )
                         list.ordered -> Text("${list.start + index}", style = MaterialTheme.typography.titleMedium.copy(color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 16.sp * LocalMdEnv.current.scale))
-                        else -> Box(Modifier.size(4.dp).background(MaterialTheme.colorScheme.onSurface))
+                        else -> Box(Modifier.size(5.dp).background(MaterialTheme.colorScheme.onSurface, androidx.compose.foundation.shape.CircleShape))
                     }
                 }
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {

@@ -68,10 +68,10 @@ internal fun PracticeStage(
 }
 
 @Composable
+@Suppress("UNUSED_PARAMETER") // Номер больше не печатается: подпись раздела — обычный заголовок.
 internal fun PracticeSectionLabel(number: String, text: String, modifier: Modifier = Modifier) {
     Row(modifier.fillMaxWidth()
         .padding(top = 22.dp, bottom = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-        SignalLabel(number, Modifier.padding(end = 10.dp))
         Text(text, style = MaterialTheme.typography.titleSmall)
     }
 }
