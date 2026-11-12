@@ -1,0 +1,20 @@
+{
+  "extraKnownMarketplaces": {
+    "android-skills": {
+      "source": { "source": "github", "repo": "android/skills" }
+    },
+    "claude-plugins-official": {
+      "source": { "source": "github", "repo": "anthropics/claude-plugins-official" }
+    },
+    "claude-code-workflows": {
+      "source": { "source": "github", "repo": "wshobson/agents" }
+    }
+  },
+  "enabledPlugins": {
+    "android-skills@android-skills": true,
+    "kotlin-lsp@claude-plugins-official": true,
+    "ui-design@claude-code-workflows": true
+  },
+  "enableAllProjectMcpServers": false,
+  "enabledMcpjsonServers": ["mobile-mcp"]
+}

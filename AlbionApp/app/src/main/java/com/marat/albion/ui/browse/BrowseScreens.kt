@@ -348,7 +348,7 @@ private fun CardRow(card: CardEntity, showRussian: Boolean, detailed: Boolean, q
         else Modifier.toggleable(picked, role = androidx.compose.ui.semantics.Role.Checkbox) { onClick() }
     val highlighted = selected || picked == true
     Column(modifier.fillMaxWidth().selectedRow(highlighted).then(clickable)) {
-        Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 18.dp)) {
+        Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 14.dp)) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
                 Column(Modifier.weight(1f)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
