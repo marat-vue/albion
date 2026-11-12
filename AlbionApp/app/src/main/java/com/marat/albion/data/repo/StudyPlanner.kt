@@ -116,11 +116,13 @@ internal object StudyPlanner {
         load: StudyLoad = StudyLoad(),
     ): SessionQueue {
         val budget = budget(words, s, load)
-        return when (source) {
+        val queue = when (source) {
             is StudySource.Dictionary -> dictionary(source.deck, words, answered, s, now)
             is StudySource.Collection -> collection(source.id, words, answered, s, now, newLeftToday(budget, answered))
             StudySource.Today -> today(words, answered, s, now, newLeftToday(budget, answered))
         }
+        // Похожие слова разводим только в самом занятии: счётчикам порядок не важен.
+        return queue.copy(reviews = SimilarWords.spread(queue.reviews), news = SimilarWords.spread(queue.news))
     }
 
     /** Бюджет новых слов на сегодня: база из настроек с поправкой на удержание и прогноз. */
