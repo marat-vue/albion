@@ -109,6 +109,7 @@ class WindowAndPanelsUiTest {
     }
 
     @Test fun tabletOpensAnOverviewAndKeepsTheExplicitLessonSelection(): Unit = runBlocking {
+        assumeSplitPanes()
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
             show(scenario, "tablet-overview") { AlbionNavigation() }
             selectDestination("Учебник")
@@ -133,6 +134,7 @@ class WindowAndPanelsUiTest {
     }
 
     @Test fun verticalHingeSeparatesPanesAndFocusUsesOneUnbrokenPanel(): Unit = runBlocking {
+        assumeSplitPanes()
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
             scenario.onActivity { activity = it }
             val size = activity!!.resources.displayMetrics
@@ -164,6 +166,7 @@ class WindowAndPanelsUiTest {
     }
 
     @Test fun tabletopKeepsNavigationAboveTheFoldAndDetailsBelowIt(): Unit = runBlocking {
+        assumeSplitPanes()
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
             scenario.onActivity { activity = it }
             val size = activity!!.resources.displayMetrics
@@ -274,6 +277,7 @@ class WindowAndPanelsUiTest {
     }
 
     @Test fun rtlNavigationKeepsTheRailAndPanelsOutsideTheHinge() {
+        assumeSplitPanes()
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
             scenario.onActivity { activity = it }
             val size = activity!!.resources.displayMetrics
@@ -297,6 +301,7 @@ class WindowAndPanelsUiTest {
     }
 
     @Test fun largeTextOnAFoldUsesASingleReadablePanel() {
+        assumeSplitPanes()
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
             scenario.onActivity { activity = it }
             val size = activity!!.resources.displayMetrics
@@ -443,6 +448,9 @@ class WindowAndPanelsUiTest {
         }
         return result
     }
+    /** List–detail needs a tablet or an unfolded foldable; a phone always shows one pane. */
+    private fun assumeSplitPanes() = org.junit.Assume.assumeTrue("Needs a tablet or foldable (smallest width ≥ 600 dp)",
+        instrumentation.targetContext.resources.configuration.smallestScreenWidthDp >= 600)
     private fun show(scenario: ActivityScenario<MainActivity>, name: String, settle: Long = 700, content: @Composable () -> Unit) {
         scenario.onActivity { current ->
             activity = current
