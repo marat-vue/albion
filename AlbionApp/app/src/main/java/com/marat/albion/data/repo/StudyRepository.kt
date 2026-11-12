@@ -173,13 +173,23 @@ class StudyRepository(
     }
 
     /** Сохраняет ответ. Возвращает id записи журнала (для отмены) и новую память. */
-    suspend fun answer(card: CardEntity, rating: Rating, durationMs: Long, now: Long = System.currentTimeMillis()): Pair<Long, Memory> {
+    suspend fun answer(
+        card: CardEntity, rating: Rating, durationMs: Long, now: Long = System.currentTimeMillis(),
+        source: String = ReviewSource.CARD,
+    ): Pair<Long, Memory> {
         val s = settings.current()
-        val fsrs = schedulerFor(s)
         // Чтение прежнего состояния и обе записи — одна атомарная операция.
         return db.withTransaction {
             val combined = word(card.id) ?: card
-            val prev = wordState(combined)
+            saveAnswer(combined, wordState(combined), rating, durationMs, now, source, s)
+        }
+    }
+
+    private suspend fun saveAnswer(
+        combined: CardEntity, prev: ReviewStateEntity?, rating: Rating, durationMs: Long, now: Long,
+        source: String, s: Settings,
+    ): Pair<Long, Memory> {
+            val fsrs = schedulerFor(s)
             val before = prev?.toMemory() ?: Memory()
             var next = fsrs.review(before, rating, now)
             if (next.state == CardState.REVIEW) {
@@ -194,9 +204,28 @@ class StudyRepository(
                     stateBefore = before.state, durationMs = durationMs.coerceIn(0, MAX_DURATION),
                     prevStability = prev?.stability, prevDifficulty = prev?.difficulty, prevDue = prev?.due,
                     prevLastReview = prev?.lastReview, prevStep = prev?.step, prevReps = prev?.reps, prevLapses = prev?.lapses,
+                    source = source,
                 )
             )
-            logId to next
+            return logId to next
+    }
+
+    /**
+     * Ответ из тренировки с проверкой ввода: если слово в повторении и срок подошёл, засчитывает его
+     * в FSRS по [AutoGrade]. Возвращает поставленную оценку или null, если ответ на память не влияет.
+     */
+    suspend fun gradeFromPractice(
+        cardId: String, verdict: com.marat.albion.data.games.Verdict, hinted: Boolean, source: String,
+        durationMs: Long = 0, now: Long = System.currentTimeMillis(),
+    ): Rating? {
+        val s = settings.current()
+        return db.withTransaction {
+            val combined = word(cardId) ?: return@withTransaction null
+            val prev = wordState(combined)
+            if (!AutoGrade.eligible(prev, now)) return@withTransaction null
+            val rating = AutoGrade.rating(verdict, hinted)
+            saveAnswer(combined, prev, rating, durationMs, now, source, s)
+            rating
         }
     }
 

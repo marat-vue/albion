@@ -48,7 +48,10 @@ private val FUNCTION_WORDS = setOf("the", "and", "but", "for", "nor", "yet", "it
 
 enum class Phase { Setup, Loading, Playing, Summary }
 
-/** Общее состояние мини-игры: настройка → вопросы → итог. На FSRS не влияет. */
+/**
+ * Общее состояние мини-игры: настройка → вопросы → итог. На FSRS влияют только игры с [Game.gradesMemory]:
+ * их ответ на подошедшее повторение засчитывается автоматически (см. [com.marat.albion.data.repo.AutoGrade]).
+ */
 class GameViewModel(private val c: AppContainer, val game: Game,
     private val initialDeck: Deck? = null, private val focusMistakes: Boolean = false, private val initialCount: Int? = null,
 ) : ViewModel() {
@@ -70,6 +73,9 @@ class GameViewModel(private val c: AppContainer, val game: Game,
     var index by mutableIntStateOf(0)
         private set
     var correct by mutableIntStateOf(0)
+        private set
+    /** Сколько ответов этой тренировки засчитано в повторения FSRS. */
+    var graded by mutableIntStateOf(0)
         private set
     val mistakes = mutableStateListOf<Mistake>()
     private val missed = mutableListOf<CardEntity>()
@@ -116,6 +122,7 @@ class GameViewModel(private val c: AppContainer, val game: Game,
             items = pool
             index = 0
             correct = 0
+            graded = 0
             mistakes.clear()
             missed.clear()
             answered = false
@@ -131,8 +138,11 @@ class GameViewModel(private val c: AppContainer, val game: Game,
         return word.count(Char::isLetter) >= 3 && word !in FUNCTION_WORDS
     }
 
-    /** Засчитать текущий вопрос. */
-    fun record(ok: Boolean, mistake: Mistake? = null) {
+    /**
+     * Засчитать текущий вопрос. [verdict] и [hinted] — результат проверки ввода: по ним подошедшее
+     * повторение слова получает оценку FSRS, если игра проверяет вспоминание ([Game.gradesMemory]).
+     */
+    fun record(ok: Boolean, mistake: Mistake? = null, verdict: com.marat.albion.data.games.Verdict? = null, hinted: Boolean = false) {
         if (phase != Phase.Playing || answered) return
         val card = items.getOrNull(index) ?: return
         answered = true
@@ -143,7 +153,15 @@ class GameViewModel(private val c: AppContainer, val game: Game,
             missed += card
         }
         // Запоминаем и между играми: ошибки попадутся первыми в следующий раз.
-        c.appScope.launch { c.study.recordGame(card.id, game.name, ok, duration, answeredAt) }
+        val grade = verdict?.takeIf { game.gradesMemory }
+        c.appScope.launch {
+            c.study.recordGame(card.id, game.name, ok, duration, answeredAt)
+            if (grade != null) {
+                val rating = c.study.gradeFromPractice(card.id, grade, hinted,
+                    com.marat.albion.data.repo.ReviewSource.game(game.name), duration, answeredAt)
+                if (rating != null) kotlinx.coroutines.withContext(Dispatchers.Main) { graded++ }
+            }
+        }
     }
 
     fun next() {
@@ -340,6 +358,9 @@ private fun GameFrame(
                 onRetryMistakes = if (allowRetry) ({ vm.retryMistakes() }) else null,
                 onDone = navigator::back,
                 scoreLabel = scoreLabel,
+                note = vm.graded.takeIf { it > 0 }?.let { n ->
+                    "$n ${com.marat.albion.ui.library.pluralRu(n, "ответ засчитан", "ответа засчитаны", "ответов засчитаны")} в повторения — эти слова не придут в «Сегодня» раньше срока."
+                },
             )
             Phase.Playing -> Column(
                 Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)

@@ -148,6 +148,12 @@ enum class Game(
 
     val isGrammar get() = this == GRAMMAR_CHOICE || this == GRAMMAR_GAP
 
+    /**
+     * Ответ проверяет вспоминание слова по значению — подошедшее повторение засчитывается в FSRS.
+     * Формы глаголов, диктант, выбор, плашки и речь память слова не проверяют.
+     */
+    val gradesMemory get() = this == TYPE_ANSWER
+
     val icon: ImageVector
         get() = when (this) {
             TYPE_ANSWER -> AlbionIcons.Keyboard
@@ -396,6 +402,8 @@ fun GameSummary(
     game: Game?, correct: Int, total: Int, mistakes: List<Mistake>,
     onRestart: () -> Unit, onRetryMistakes: (() -> Unit)?, onDone: () -> Unit,
     scoreLabel: String = "верно", title: String = game?.title.orEmpty(), restartLabel: String = "Ещё раз",
+    /** Пояснение под итогом — например, сколько ответов засчитано в повторения. */
+    note: String? = null,
 ) {
     val feedback = LocalFeedback.current
     LaunchedEffect(Unit) { if (total > 0) feedback.complete() }
@@ -424,6 +432,10 @@ fun GameSummary(
                 } else Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     SummaryMetric("БЕЗ ОШИБОК", correct, Modifier.weight(1f))
                     SummaryMetric("К ПОВТОРЕНИЮ", (total - correct).coerceAtLeast(0), Modifier.weight(1f))
+                }
+                note?.let {
+                    Text(it, Modifier.fillMaxWidth().padding(top = 12.dp), style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
                 }
                 if (mistakes.isNotEmpty()) {
                     Row(Modifier.fillMaxWidth().padding(top = 32.dp, bottom = 12.dp), verticalAlignment = Alignment.Bottom) {
