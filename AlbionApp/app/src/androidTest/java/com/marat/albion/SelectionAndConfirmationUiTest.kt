@@ -76,6 +76,7 @@ class SelectionAndConfirmationUiTest {
                 }
             }
             assertTrue("Selected text contrast", contrast(content, container) >= 4.5)
+            assertTrue("Selected plate contrast", contrast(container, background) >= 3.0)
             assertTrue("Selected boundary contrast", contrast(border, background) >= 3.0)
             assertEquals(content, text("Первый выбор").layout.layoutInput.style.color)
             click(await { it.contentDescription?.toString() == "Режим" })

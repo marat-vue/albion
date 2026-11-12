@@ -36,6 +36,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.*
 import org.junit.Before
+import org.junit.After
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.io.File
@@ -44,6 +45,8 @@ import java.io.File
 class WindowAndPanelsUiTest {
     private val instrumentation get() = InstrumentationRegistry.getInstrumentation()
     private val c get() = (instrumentation.targetContext.applicationContext as AlbionApp).container
+    private var testCollection: Long? = null
+    @After fun removeTestCollection(): Unit = runBlocking { c.removeTestCollection(testCollection) }
     private var activity: MainActivity? = null
     private var reduced by mutableStateOf(true)
     private var folds by mutableStateOf<List<WindowFold>>(emptyList())
@@ -52,7 +55,7 @@ class WindowAndPanelsUiTest {
     @Before fun prepare(): Unit = runBlocking {
         val landscape = InstrumentationRegistry.getArguments().getString("testLandscape") == "true"
         instrumentation.uiAutomation.setRotation(if (landscape) UiAutomation.ROTATION_FREEZE_90 else UiAutomation.ROTATION_FREEZE_0)
-        c.ensureStudyToday()
+        testCollection = c.ensureStudyToday()
     }
 
     @Test fun settingsDisclosureLabelsKeepWholeWordsAtTheSystemFontSize() {

@@ -38,6 +38,7 @@ import com.marat.albion.ui.theme.*
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.*
 import org.junit.Before
+import org.junit.After
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.io.File
@@ -50,6 +51,8 @@ import java.util.concurrent.TimeUnit
 class EntryNavigationUiTest {
     private val instrumentation get() = InstrumentationRegistry.getInstrumentation()
     private val c get() = (instrumentation.targetContext.applicationContext as AlbionApp).container
+    private var testCollection: Long? = null
+    @After fun removeTestCollection(): Unit = runBlocking { c.removeTestCollection(testCollection) }
     private var activity: MainActivity? = null
     private var reduced by mutableStateOf(true)
     private val density get() = activity!!.resources.displayMetrics.density
@@ -57,7 +60,7 @@ class EntryNavigationUiTest {
 
     @Before fun prepareWindow(): Unit = runBlocking {
         instrumentation.uiAutomation.setRotation(UiAutomation.ROTATION_FREEZE_0)
-        c.ensureStudyToday()
+        testCollection = c.ensureStudyToday()
     }
 
     @Test fun readyContentNeverWaitsForTheDecorativeIntro() {

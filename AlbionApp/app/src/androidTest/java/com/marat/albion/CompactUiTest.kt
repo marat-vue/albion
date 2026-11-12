@@ -26,9 +26,13 @@ import com.marat.albion.ui.library.TranslationSheet
 import com.marat.albion.ui.nav.AlbionNavigation
 import com.marat.albion.ui.theme.AlbionTheme
 import androidx.compose.material3.MaterialTheme
+import com.marat.albion.data.library.BookTranslationPhase
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
+import org.junit.After
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.io.File
@@ -38,10 +42,12 @@ import java.io.File
 class CompactUiTest {
     private val instrumentation get() = InstrumentationRegistry.getInstrumentation()
     private val container get() = (instrumentation.targetContext.applicationContext as AlbionApp).container
+    private var testCollection: Long? = null
+    @After fun removeTestCollection(): Unit = runBlocking { container.removeTestCollection(testCollection) }
     private val labels = listOf("Сегодня", "Учебник", "Чтение", "Практика", "Прогресс")
 
     @Test fun compactHomeKeepsStartVisibleAndTabsKeepTheirTargets(): Unit = runBlocking {
-        container.ensureStudyToday()
+        testCollection = container.ensureStudyToday()
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
             for (width in listOf(320, 360)) for (scale in listOf(1f, 1.5f, 2f)) {
                 val name = "home-$width-$scale"
@@ -165,12 +171,15 @@ class CompactUiTest {
             if (stable == 3) return now
             last = now
         }
-        return last
+        error("Вкладки не перестали двигаться: $last")
     }
     /** With the ML Kit model installed the sheet leads with the automatic translation, otherwise with the dictionary. */
-    private suspend fun shownMeaning(word: String): String =
-        try { container.bookTranslator.translate(word) }
-        catch (_: IllegalStateException) { container.dictionary.lookup(word).first().senses.first() }
+    private suspend fun shownMeaning(word: String): String {
+        val translator = container.bookTranslator
+        translator.refresh()
+        val status = withTimeout(10_000) { translator.state.first { it.phase != BookTranslationPhase.Checking } }
+        return if (status.ready) translator.translate(word) else container.dictionary.lookup(word).first().senses.first()
+    }
     private fun awaitText(text: String) = awaitNode { it.text?.toString() == text }
 
     private fun awaitTab(label: String): AccessibilityNodeInfo {
