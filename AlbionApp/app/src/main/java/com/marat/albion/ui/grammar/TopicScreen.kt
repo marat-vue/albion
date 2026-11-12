@@ -1,6 +1,5 @@
 package com.marat.albion.ui.grammar
 
-import androidx.compose.ui.graphics.RectangleShape
 import com.marat.albion.ui.components.QuietCircularProgressIndicator as CircularProgressIndicator
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.contentDescription
@@ -287,7 +286,7 @@ private fun TopicFooter(
         if (hasQuiz) {
             Column(
                 Modifier.fillMaxWidth()
-                    .border(1.dp, MaterialTheme.colorScheme.outline, RectangleShape).padding(20.dp),
+                    .border(1.dp, MaterialTheme.colorScheme.outline, MaterialTheme.shapes.medium).padding(20.dp),
             ) {
                 Eyebrow("Проверьте себя", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(Modifier.height(10.dp))
@@ -339,7 +338,7 @@ private fun NavArrows(onPrev: (() -> Unit)?, onContents: (() -> Unit)?, onNext: 
                 contentDescription = "Оглавление",
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(44.dp)
-                    .clip(RectangleShape)
+                    .clip(MaterialTheme.shapes.medium)
                     .clickable(interactionSource = interaction, indication = androidx.compose.foundation.LocalIndication.current, onClick = onContents)
                     .padding(12.dp),
             )
@@ -355,9 +354,9 @@ private fun RoundArrow(icon: ImageVector, description: String, filled: Boolean, 
     val interaction = remember { MutableInteractionSource() }
     Box(
         Modifier.size(58.dp)
-            .clip(RectangleShape)
+            .clip(MaterialTheme.shapes.medium)
             .background(if (filled && enabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.background)
-            .border(1.dp, if (enabled) (if (filled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline) else MaterialTheme.colorScheme.outlineVariant, RectangleShape)
+            .border(1.dp, if (enabled) (if (filled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline) else MaterialTheme.colorScheme.outlineVariant, MaterialTheme.shapes.medium)
             .clickable(interactionSource = interaction, indication = androidx.compose.foundation.LocalIndication.current, enabled = enabled) { onClick?.invoke() },
         contentAlignment = Alignment.Center,
     ) {

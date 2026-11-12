@@ -30,7 +30,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -162,7 +161,7 @@ internal fun CheckRow(label: String, checked: Boolean, modifier: Modifier = Modi
             if (supporting != null) Text(supporting, style = MaterialTheme.typography.bodySmall,
                 color = if (checked) scheme.selectedContent else scheme.onSurfaceVariant)
         }
-        Box(Modifier.size(22.dp).border(1.5.dp, if (checked) fg else scheme.controlBorder, RectangleShape), contentAlignment = Alignment.Center) {
+        Box(Modifier.size(22.dp).border(1.5.dp, if (checked) fg else scheme.controlBorder, MaterialTheme.shapes.extraSmall), contentAlignment = Alignment.Center) {
             if (checked) Icon(AlbionIcons.Check, null, Modifier.size(18.dp), tint = fg)
         }
     }

@@ -1,6 +1,7 @@
 package com.marat.albion.ui.games
 
-import androidx.compose.ui.graphics.RectangleShape
+import com.marat.albion.ui.theme.Capsule
+
 import com.marat.albion.ui.theme.controlBorder
 import com.marat.albion.ui.theme.IpaStyle
 import androidx.compose.ui.semantics.contentDescription
@@ -331,7 +332,7 @@ fun TypeAnswerRound(vm: GameViewModel, card: CardEntity) {
                         style = MaterialTheme.typography.titleLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center,
-                        modifier = Modifier.background(MaterialTheme.colorScheme.surfaceContainer, RectangleShape).padding(horizontal = 14.dp, vertical = 6.dp),
+                        modifier = Modifier.background(MaterialTheme.colorScheme.surfaceContainer, Capsule).padding(horizontal = 14.dp, vertical = 6.dp),
                     )
                 }
             }

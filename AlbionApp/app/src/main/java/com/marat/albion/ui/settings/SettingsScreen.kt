@@ -1,7 +1,6 @@
 package com.marat.albion.ui.settings
 
 import com.marat.albion.ui.components.TextButton
-import androidx.compose.ui.graphics.RectangleShape
 import com.marat.albion.ui.components.DestructiveConfirmationDialog
 import com.marat.albion.ui.theme.selectedContent
 import androidx.compose.foundation.layout.height
@@ -31,6 +30,8 @@ import com.marat.albion.data.content.ImportStatus
 import com.marat.albion.data.settings.NewCardOrder
 import com.marat.albion.data.settings.Settings
 import com.marat.albion.ui.components.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.draw.clip
 import com.marat.albion.ui.theme.*
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
@@ -172,15 +173,16 @@ private fun RadioSettingOption(title: String, selected: Boolean, onClick: () -> 
     Row(
         modifier = Modifier.fillMaxWidth()
             .heightIn(min = 48.dp)
-            .selectionSurface(selected)
+            .clip(MaterialTheme.shapes.small)
+            .selectionSurface(selected, MaterialTheme.shapes.small)
             .selectable(selected = selected, role = Role.RadioButton, onClick = onClick)
             .padding(horizontal = 12.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        // Квадратная отметка: на инверсной плашке выбора берёт цвет её содержимого.
+        // Круглая отметка: на инверсной плашке выбора берёт цвет её содержимого.
         val mark = if (selected) MaterialTheme.colorScheme.selectedContent else MaterialTheme.colorScheme.onSurfaceVariant
-        Box(Modifier.size(20.dp).border(1.5.dp, mark, RectangleShape), contentAlignment = Alignment.Center) {
-            if (selected) Box(Modifier.size(10.dp).background(mark))
+        Box(Modifier.size(20.dp).border(1.5.dp, mark, CircleShape), contentAlignment = Alignment.Center) {
+            if (selected) Box(Modifier.size(10.dp).background(mark, CircleShape))
         }
         Spacer(Modifier.width(12.dp))
         Text(
@@ -207,7 +209,7 @@ internal fun SliderSetting(
             Text(title, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface)
             Text(
                 value, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.background(MaterialTheme.colorScheme.primaryContainer, RectangleShape).padding(horizontal = 10.dp, vertical = 2.dp),
+                modifier = Modifier.background(MaterialTheme.colorScheme.primaryContainer, Capsule).padding(horizontal = 10.dp, vertical = 2.dp),
             )
         }
         val step = (range.endInclusive - range.start) / (steps + 1)
@@ -230,10 +232,13 @@ internal fun SliderSetting(
 
 @Composable
 internal fun SwitchSetting(title: String, checked: Boolean, onChange: (Boolean) -> Unit) {
-    Row(Modifier.fillMaxWidth().heightIn(min = 56.dp).toggleable(value = checked, role = Role.Switch, onValueChange = onChange).padding(vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+    val feedback = com.marat.albion.ui.theme.LocalFeedback.current
+    Row(Modifier.fillMaxWidth().heightIn(min = 56.dp)
+        .toggleable(value = checked, role = Role.Switch) { feedback.selection(); onChange(it) }
+        .padding(vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
         Text(title, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.weight(1f))
         Spacer(Modifier.width(12.dp))
-        SquareSwitch(checked)
+        AlbionSwitch(checked)
     }
 }
 
@@ -247,21 +252,6 @@ internal fun ActionRow(title: String, destructive: Boolean = false, onClick: () 
             modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(vertical = 14.dp),
         )
         Hairline()
-    }
-}
-
-/** Переключатель с прямыми углами: квадратный бегунок едет по прямоугольной дорожке. */
-@Composable
-private fun SquareSwitch(checked: Boolean) {
-    val scheme = MaterialTheme.colorScheme
-    val reduced = com.marat.albion.ui.theme.LocalReducedMotion.current
-    val offset by androidx.compose.animation.core.animateDpAsState(if (checked) 22.dp else 0.dp,
-        if (reduced) androidx.compose.animation.core.snap() else com.marat.albion.ui.theme.Springs.snappy(), label = "switch")
-    val track by androidx.compose.animation.animateColorAsState(if (checked) scheme.primary else androidx.compose.ui.graphics.Color.Transparent, label = "switchTrack")
-    val thumb by androidx.compose.animation.animateColorAsState(if (checked) scheme.onPrimary else scheme.onSurfaceVariant, label = "switchThumb")
-    Box(Modifier.size(width = 52.dp, height = 30.dp).background(track)
-        .border(1.5.dp, if (checked) scheme.primary else scheme.outline, RectangleShape).padding(4.dp)) {
-        Box(Modifier.offset(x = offset).size(22.dp).background(thumb))
     }
 }
 

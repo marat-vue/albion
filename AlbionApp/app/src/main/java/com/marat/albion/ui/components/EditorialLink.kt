@@ -1,6 +1,7 @@
 package com.marat.albion.ui.components
 
-import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.foundation.shape.CircleShape
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -50,7 +51,7 @@ fun EditorialLink(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (icon != null || index != null) {
-            Box(Modifier.size(44.dp).background(MaterialTheme.colorScheme.surfaceContainerHigh, RectangleShape), contentAlignment = Alignment.Center) {
+            Box(Modifier.size(44.dp).background(MaterialTheme.colorScheme.surfaceContainerHigh, CircleShape), contentAlignment = Alignment.Center) {
                 if (icon != null) Icon(icon, null, Modifier.size(22.dp))
                 else if (index != null) Text(index, style = MaterialTheme.typography.labelLarge)
             }

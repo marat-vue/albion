@@ -1,6 +1,7 @@
 package com.marat.albion.ui.games
 
-import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.foundation.shape.CircleShape
+
 import com.marat.albion.ui.components.AlbionIcons
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -427,7 +428,7 @@ internal fun ReportCard(r: ShadowReport, words: List<ChartWord> = emptyList(), s
                 Spacer(Modifier.height(4.dp))
                 tips.forEach { tip ->
                     Row(Modifier.padding(vertical = 4.dp)) {
-                        Box(Modifier.padding(top = 9.dp, end = 10.dp).size(6.dp).background(MaterialTheme.colorScheme.primary, RectangleShape))
+                        Box(Modifier.padding(top = 9.dp, end = 10.dp).size(6.dp).background(MaterialTheme.colorScheme.primary, CircleShape))
                         Text(tip, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
                     }
                 }

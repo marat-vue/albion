@@ -1,6 +1,7 @@
 package com.marat.albion.ui.stats
 
-import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.foundation.shape.CircleShape
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
@@ -103,7 +104,7 @@ internal fun ActivityCalendar(counts: List<Int>, endDay: Long) {
                                         contentAlignment = Alignment.Center) {
                                         Text(date.dayOfMonth.toString(), Modifier.clearAndSetSemantics {}, style = style, color = foreground)
                                         if (day == endDay) Box(Modifier.align(Alignment.BottomCenter).padding(bottom = 2.dp)
-                                            .size(3.dp).background(foreground, RectangleShape).clearAndSetSemantics {})
+                                            .size(3.dp).background(foreground, CircleShape).clearAndSetSemantics {})
                                     }
                                 }
                             }

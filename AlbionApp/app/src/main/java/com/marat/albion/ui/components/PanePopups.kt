@@ -106,14 +106,14 @@ fun PaneAlertDialog(
     onDismissRequest: () -> Unit,
     confirmButton: @Composable () -> Unit,
     modifier: Modifier = Modifier,
-    shape: Shape = AlertDialogDefaults.shape,
+    shape: Shape = MaterialTheme.shapes.extraLarge,
     dismissButton: (@Composable () -> Unit)? = null,
     icon: (@Composable () -> Unit)? = null,
     title: (@Composable () -> Unit)? = null,
     text: (@Composable () -> Unit)? = null,
 ) {
     AlertDialog(onDismissRequest, confirmButton = { ConstrainPopupToPane(); confirmButton() },
-        modifier = modifier.then(Modifier.border(.75.dp, MaterialTheme.colorScheme.outlineVariant, shape)),
+        modifier = modifier.then(Modifier.border(1.dp, MaterialTheme.colorScheme.outlineVariant, shape)),
         dismissButton = dismissButton, icon = icon, title = title, text = text, shape = shape,
         containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
 }

@@ -1,6 +1,5 @@
 package com.marat.albion.ui.games
 
-import androidx.compose.ui.graphics.RectangleShape
 import com.marat.albion.ui.components.QuietCircularProgressIndicator as CircularProgressIndicator
 import com.marat.albion.ui.theme.controlBorder
 import com.marat.albion.ui.theme.pressScale
@@ -250,6 +249,7 @@ fun GrammarGameHost(game: Game, navigator: Navigator) {
                 Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)
                     .windowInsetsPadding(WindowInsets.navigationBars.union(WindowInsets.ime)),
             ) {
+                com.marat.albion.ui.theme.AnswerHaptics(vm.correct, vm.mistakes.size)
                 val leave = rememberLeaveGuard(active = vm.index > 0) { vm.backToSetup() }
                 GameTopRow(vm.game, vm.index, vm.items.size, onClose = leave)
                 AnimatedContent(
@@ -309,6 +309,7 @@ fun TopicQuizHost(topic: Int, topicId: String, title: String, navigator: Navigat
                 Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)
                     .windowInsetsPadding(WindowInsets.navigationBars.union(WindowInsets.ime)),
             ) {
+                com.marat.albion.ui.theme.AnswerHaptics(vm.correct, vm.mistakes.size)
                 val leave = rememberLeaveGuard(active = vm.index > 0, onLeave = navigator::back)
                 GameTopRow(null, vm.index, vm.items.size, onClose = leave, title = quizTitle)
                 AnimatedContent(
@@ -407,11 +408,11 @@ private fun Explanation(task: GrammarTaskEntity, openRule: (Int) -> Unit) {
         task.topic?.let { n ->
 
             Row(
-                Modifier.padding(top = 10.dp).fillMaxWidth().heightIn(min = 48.dp).clip(RectangleShape)
+                Modifier.padding(top = 10.dp).fillMaxWidth().heightIn(min = 48.dp).clip(MaterialTheme.shapes.small)
                     // Без фокуса: после «Готово» на клавиатуре ссылка не должна подсвечиваться.
                     .clickable { openRule(n) }
-                    .background(MaterialTheme.colorScheme.surface, RectangleShape)
-                    .border(1.dp, MaterialTheme.colorScheme.secondary, RectangleShape)
+                    .background(MaterialTheme.colorScheme.surface, MaterialTheme.shapes.small)
+                    .border(1.dp, MaterialTheme.colorScheme.secondary, MaterialTheme.shapes.small)
                     .padding(horizontal = 16.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {

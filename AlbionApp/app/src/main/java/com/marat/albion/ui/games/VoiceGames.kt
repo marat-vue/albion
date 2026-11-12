@@ -1,7 +1,8 @@
 package com.marat.albion.ui.games
 
-import com.marat.albion.ui.components.drawSquareProgress
-import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.foundation.shape.CircleShape
+
+import com.marat.albion.ui.components.drawRingProgress
 import com.marat.albion.ui.theme.controlBorder
 import com.marat.albion.ui.theme.IpaStyle
 import com.marat.albion.ui.components.AlbionIcons
@@ -105,8 +106,8 @@ internal fun PlaybackAction(
         Box(
             Modifier.size(size)
                 .pressScale(interaction, .95f).clip(MaterialTheme.shapes.medium)
-                .background(lerpColor(MaterialTheme.colorScheme.surface, MaterialTheme.colorScheme.primary, on), RectangleShape)
-                .border(1.dp, if (!enabled) MaterialTheme.colorScheme.outlineVariant else lerpColor(MaterialTheme.colorScheme.controlBorder, MaterialTheme.colorScheme.primary, on), RectangleShape)
+                .background(lerpColor(MaterialTheme.colorScheme.surface, MaterialTheme.colorScheme.primary, on), MaterialTheme.shapes.medium)
+                .border(1.dp, if (!enabled) MaterialTheme.colorScheme.outlineVariant else lerpColor(MaterialTheme.colorScheme.controlBorder, MaterialTheme.colorScheme.primary, on), MaterialTheme.shapes.medium)
                 .clickable(interaction, indication = androidx.compose.foundation.LocalIndication.current, enabled = enabled, role = Role.Button, onClick = onClick),
             contentAlignment = Alignment.Center,
         ) {
@@ -148,9 +149,9 @@ internal fun MicButton(
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Box(Modifier.size(size), contentAlignment = Alignment.Center) {
             if (active) Canvas(Modifier.size(size)) {
-                drawSquareProgress(line.copy(alpha = .15f), face, amp, 2.dp.toPx(), inset = 2.dp.toPx())
+                drawRingProgress(line.copy(alpha = .15f), face, amp, 2.dp.toPx(), inset = 2.dp.toPx())
             }
-            Box(Modifier.size((size - 24.dp).coerceAtLeast(48.dp)).pressScale(interaction, .94f).clip(RectangleShape).background(face, RectangleShape)
+            Box(Modifier.size((size - 24.dp).coerceAtLeast(48.dp)).pressScale(interaction, .94f).clip(CircleShape).background(face, CircleShape)
                 .clickable(interaction, indication = androidx.compose.foundation.LocalIndication.current, enabled = enabled, role = Role.Button) { feedback.selection(); onClick() },
                 contentAlignment = Alignment.Center) {
                 Icon(if (active) AlbionIcons.Stop else AlbionIcons.Mic,

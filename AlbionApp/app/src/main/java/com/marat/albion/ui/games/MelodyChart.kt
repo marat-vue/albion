@@ -1,6 +1,7 @@
 package com.marat.albion.ui.games
 
-import androidx.compose.ui.graphics.RectangleShape
+import com.marat.albion.ui.theme.Capsule
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -56,8 +57,8 @@ internal fun MelodyChart(report: ShadowReport, words: List<ChartWord> = emptyLis
                 if (mine.available) MelodyLegend(dashed = true, label = "Вы")
             }
             Row(
-                Modifier.fillMaxWidth().background(band, RectangleShape)
-                    .border(.75.dp, grid, RectangleShape)
+                Modifier.fillMaxWidth().background(band, MaterialTheme.shapes.small)
+                    .border(.75.dp, grid, MaterialTheme.shapes.small)
                     .padding(start = 10.dp, end = 12.dp, top = 10.dp, bottom = 8.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
@@ -173,7 +174,7 @@ private fun WordLabels(words: List<ChartWord>, frames: Int, inset: androidx.comp
 private fun MelodyLegend(dashed: Boolean, label: String) {
     val color = if (dashed) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.primary
     Row(
-        Modifier.background(MaterialTheme.colorScheme.surfaceContainer, RectangleShape).padding(horizontal = 10.dp, vertical = 4.dp),
+        Modifier.background(MaterialTheme.colorScheme.surfaceContainer, Capsule).padding(horizontal = 10.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Canvas(Modifier.size(width = 24.dp, height = 8.dp)) {

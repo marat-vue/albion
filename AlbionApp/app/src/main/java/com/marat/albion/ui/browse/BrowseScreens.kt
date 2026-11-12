@@ -366,7 +366,7 @@ private fun CardRow(card: CardEntity, showRussian: Boolean, detailed: Boolean, q
                 AudioButton(playing = playing, onClick = onPlay, size = 48.dp, primary = false)
                 if (picked != null) Box(Modifier.padding(start = 8.dp).size(48.dp), contentAlignment = Alignment.Center) {
                     val mark = if (picked) MaterialTheme.colorScheme.selectedContent else MaterialTheme.colorScheme.controlBorder
-                    Box(Modifier.size(22.dp).border(1.5.dp, mark, androidx.compose.ui.graphics.RectangleShape), contentAlignment = Alignment.Center) {
+                    Box(Modifier.size(22.dp).border(1.5.dp, mark, MaterialTheme.shapes.extraSmall), contentAlignment = Alignment.Center) {
                         if (picked) Icon(AlbionIcons.Check, null, Modifier.size(18.dp), tint = mark)
                     }
                 }

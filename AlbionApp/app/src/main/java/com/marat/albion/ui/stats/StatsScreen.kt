@@ -1,6 +1,7 @@
 package com.marat.albion.ui.stats
 
-import androidx.compose.ui.graphics.RectangleShape
+import com.marat.albion.ui.theme.Capsule
+
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
 import com.marat.albion.ui.theme.appear
@@ -248,7 +249,7 @@ private fun BarChart(values: List<Int>, startDay: Long, forecast: Boolean = fals
         verticalAlignment = Alignment.Bottom,
     ) {
         values.forEachIndexed { i, v ->
-            Box(Modifier.weight(1f).fillMaxHeight().background(if (i == selected) MaterialTheme.colorScheme.surfaceContainer else Color.Transparent, RectangleShape), contentAlignment = Alignment.BottomCenter) {
+            Box(Modifier.weight(1f).fillMaxHeight().background(if (i == selected) MaterialTheme.colorScheme.surfaceContainer else Color.Transparent, MaterialTheme.shapes.extraSmall), contentAlignment = Alignment.BottomCenter) {
                 val h = if (v == 0) 0.015f else (v.toFloat() / max).coerceAtLeast(0.04f)
                 val color = when {
                     v == 0 -> MaterialTheme.colorScheme.outlineVariant
@@ -257,7 +258,7 @@ private fun BarChart(values: List<Int>, startDay: Long, forecast: Boolean = fals
                     i == selected -> MaterialTheme.colorScheme.primary
                     else -> MaterialTheme.colorScheme.primary.copy(alpha = 0.55f)
                 }
-                Box(Modifier.fillMaxWidth().fillMaxHeight(h * if (reduced) 1f else grow.value).background(color, RectangleShape))
+                Box(Modifier.fillMaxWidth().fillMaxHeight(h * if (reduced) 1f else grow.value).background(color, MaterialTheme.shapes.extraSmall))
             }
         }
     }
@@ -292,7 +293,7 @@ private fun DeckBreakdown(s: Stats) {
                 Text(if (c.started < c.total) "Начато ${c.started} карточек · следующий рубеж ${minOf(c.total, (c.started / 10 + 1) * 10)}" else "Начат весь словарь · ${c.started} карточек",
                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(Modifier.height(8.dp))
-                Row(Modifier.fillMaxWidth().height(10.dp).clip(RectangleShape).background(MaterialTheme.colorScheme.surfaceContainerHighest)) {
+                Row(Modifier.fillMaxWidth().height(10.dp).clip(Capsule).background(MaterialTheme.colorScheme.surfaceContainerHighest)) {
                     val total = c.total.coerceAtLeast(1).toFloat()
                     if (c.learning > 0) Box(Modifier.weight(c.learning / total).fillMaxHeight().background(MaterialTheme.colorScheme.secondary))
                     if (young > 0) Box(Modifier.weight(young / total).fillMaxHeight().background(MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)))
@@ -343,8 +344,8 @@ private fun WeekStrip(week: List<Int>) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 // День с ответами — ирис с галочкой, сегодня дополнительно обведено.
                 Box(Modifier.size(30.dp)
-                    .background(if (count > 0) MaterialTheme.colorScheme.primary else content.copy(alpha = 0.12f), RectangleShape)
-                    .then(if (today) Modifier.border(1.5.dp, MaterialTheme.colorScheme.primary, RectangleShape) else Modifier),
+                    .background(if (count > 0) MaterialTheme.colorScheme.primary else content.copy(alpha = 0.12f), MaterialTheme.shapes.extraSmall)
+                    .then(if (today) Modifier.border(1.5.dp, MaterialTheme.colorScheme.primary, MaterialTheme.shapes.extraSmall) else Modifier),
                     contentAlignment = Alignment.Center) {
                     if (count > 0) Icon(com.marat.albion.ui.components.AlbionIcons.Check, null, Modifier.size(16.dp),
                         tint = MaterialTheme.colorScheme.onPrimary)

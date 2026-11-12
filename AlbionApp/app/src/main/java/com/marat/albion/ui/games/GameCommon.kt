@@ -1,7 +1,8 @@
 package com.marat.albion.ui.games
 
-import com.marat.albion.ui.components.drawSquareProgress
-import androidx.compose.ui.graphics.RectangleShape
+import com.marat.albion.ui.theme.Capsule
+
+import com.marat.albion.ui.components.drawRingProgress
 import androidx.compose.foundation.layout.isImeVisible
 import com.marat.albion.ui.theme.appear
 import com.marat.albion.ui.components.SegmentedPicker
@@ -315,7 +316,7 @@ internal fun SegmentedProgress(index: Int, total: Int, modifier: Modifier = Modi
                 else if (i == index) MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)
                 else MaterialTheme.colorScheme.surfaceContainerHighest,
                 if (reduced) snap() else com.marat.albion.ui.theme.Springs.smooth(), label = "segment$i")
-            Box(Modifier.weight(1f).fillMaxHeight().background(fill, RectangleShape))
+            Box(Modifier.weight(1f).fillMaxHeight().background(fill, Capsule))
         }
     }
 }
@@ -468,7 +469,7 @@ private fun ResultRing(correct: Int, total: Int, modifier: Modifier = Modifier) 
     val arc = MaterialTheme.colorScheme.primary
     Box(modifier.size(164.dp), contentAlignment = Alignment.Center) {
         androidx.compose.foundation.Canvas(Modifier.fillMaxSize()) {
-            drawSquareProgress(track, arc, if (reduced) target else sweep.value, 2.dp.toPx(), inset = 8.dp.toPx())
+            drawRingProgress(track, arc, if (reduced) target else sweep.value, 2.dp.toPx(), inset = 8.dp.toPx())
         }
         com.marat.albion.ui.theme.AnimatedNumber(if (total == 0) 0 else correct * 100 / total,
             if (LocalDensity.current.fontScale > 1.3f) MaterialTheme.typography.headlineMedium else MaterialTheme.typography.displayMedium, suffix = "%")

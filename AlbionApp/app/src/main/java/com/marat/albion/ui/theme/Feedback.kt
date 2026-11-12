@@ -35,6 +35,18 @@ class AlbionFeedback(
     fun reveal() {
         if (haptics) view?.performHapticFeedback(HapticFeedbackConstants.CONTEXT_CLICK)
     }
+    /** Верный ответ: короткое подтверждение. */
+    fun correct() {
+        if (haptics) view?.performHapticFeedback(
+            if (Build.VERSION.SDK_INT >= 30) HapticFeedbackConstants.CONFIRM else HapticFeedbackConstants.VIRTUAL_KEY,
+        )
+    }
+    /** Ошибка: двойной «отказ» — заметно, но не тревожно. */
+    fun wrong() {
+        if (haptics) view?.performHapticFeedback(
+            if (Build.VERSION.SDK_INT >= 30) HapticFeedbackConstants.REJECT else HapticFeedbackConstants.LONG_PRESS,
+        )
+    }
     fun complete() {
         if (haptics) view?.performHapticFeedback(
             if (Build.VERSION.SDK_INT >= 30) HapticFeedbackConstants.CONFIRM else HapticFeedbackConstants.CONTEXT_CLICK,
@@ -77,4 +89,18 @@ fun AlbionExperience(settings: Settings, content: @Composable () -> Unit) {
         LocalReducedMotion provides (settings.reduceMotion || systemReduced),
         content = content,
     )
+}
+
+/**
+ * Отклик на ответы по счётчикам сессии: рост [correct] — подтверждение, рост [wrong] — отказ.
+ * Первое значение (и возврат к нулю при новой попытке) не вибрирует.
+ */
+@Composable
+fun AnswerHaptics(correct: Int, wrong: Int) {
+    val feedback = LocalFeedback.current
+    val last = remember { intArrayOf(correct, wrong) }
+    androidx.compose.runtime.LaunchedEffect(correct, wrong) {
+        if (correct > last[0]) feedback.correct() else if (wrong > last[1]) feedback.wrong()
+        last[0] = correct; last[1] = wrong
+    }
 }

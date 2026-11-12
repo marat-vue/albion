@@ -1,6 +1,7 @@
 package com.marat.albion.ui.components
 
-import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.foundation.shape.CircleShape
+import com.marat.albion.ui.theme.Capsule
 import com.marat.albion.ui.theme.selectedBorder
 import com.marat.albion.ui.theme.selectedContent
 import com.marat.albion.ui.theme.selectedContainer
@@ -88,9 +89,8 @@ fun Hairline(modifier: Modifier = Modifier, color: Color = MaterialTheme.colorSc
 
 @Composable
 fun SectionHeader(title: String, modifier: Modifier = Modifier, trailing: String? = null) {
-    SectionHeading(title, trailing, modifier, leadingGap = 10.dp) {
-        Box(Modifier.size(4.dp).background(MaterialTheme.colorScheme.primary))
-    }
+    // Редакционный заголовок раздела: Literata без маркеров, счётчик — тихой подписью справа.
+    SectionHeading(title, trailing, modifier, leadingGap = 0.dp, editorial = true) {}
 }
 
 /** Заголовок сохраняет системный размер шрифта; действия уступают ему полную строку при нехватке места. */
@@ -127,7 +127,7 @@ internal fun AdaptiveScreenTitle(title: String, modifier: Modifier = Modifier, t
     }
 }
 
-/** Круглая кнопка-иконка; [filled] — с тонкой подложкой. */
+/** Круглая кнопка-иконка; [filled] — на тональной подложке без контура. */
 @Composable
 fun RoundIconButton(
     icon: ImageVector,
@@ -142,13 +142,12 @@ fun RoundIconButton(
     val feedback = LocalFeedback.current
     val interaction = remember { MutableInteractionSource() }
     Box(
-        modifier.size(48.dp).pressScale(interaction, 0.94f).clip(MaterialTheme.shapes.medium)
+        modifier.size(48.dp).pressScale(interaction, 0.94f).clip(CircleShape)
             .clickable(interaction, ripple(), enabled = enabled, role = Role.Button) { feedback.selection(); onClick() },
         contentAlignment = Alignment.Center,
     ) {
         Box(
-            Modifier.size(42.dp).background(if (filled) MaterialTheme.colorScheme.surfaceContainerLow else Color.Transparent, MaterialTheme.shapes.medium)
-                .then(if (filled) Modifier.border(1.dp, MaterialTheme.colorScheme.controlBorder, MaterialTheme.shapes.medium) else Modifier),
+            Modifier.size(40.dp).background(if (filled) MaterialTheme.colorScheme.surfaceContainerHigh else Color.Transparent, CircleShape),
             contentAlignment = Alignment.Center,
         ) {
             Icon(icon, contentDescription, tint = if (enabled) tint else tint.copy(alpha = 0.38f), modifier = Modifier.size(22.dp))
@@ -161,7 +160,7 @@ fun SettingsShortcut(onClick: () -> Unit) {
     RoundIconButton(AlbionIcons.Settings, "Настройки", onClick, filled = true)
 }
 
-/** Спокойная поверхность с одной внешней границей. */
+/** Спокойная поверхность: тон слоя и контур 1 px, углы 12 dp, без тени. */
 @Composable
 fun Panel(
     modifier: Modifier = Modifier,
@@ -171,9 +170,9 @@ fun Panel(
     color: Color = MaterialTheme.colorScheme.surfaceContainerLow,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    val shape = MaterialTheme.shapes.large
+    val shape = MaterialTheme.shapes.medium
     val edge = if (borderColor != Color.Unspecified) borderColor else if (onClick != null) MaterialTheme.colorScheme.controlBorder else MaterialTheme.colorScheme.outlineVariant
-    val border = BorderStroke(if (onClick != null) 1.dp else .75.dp, edge)
+    val border = BorderStroke(1.dp, edge)
     if (onClick != null) {
         val feedback = LocalFeedback.current
         val interaction = remember { MutableInteractionSource() }
@@ -207,7 +206,7 @@ private fun PillButton(
     val fg by animateColorAsState(if (enabled) content else MaterialTheme.colorScheme.onSurfaceVariant, label = "pillFg")
     Surface(
         onClick = { feedback.selection(); onClick() }, enabled = enabled, interactionSource = interaction,
-        modifier = modifier.fillMaxWidth().heightIn(min = 56.dp).pressScale(interaction, 0.97f),
+        modifier = modifier.fillMaxWidth().heightIn(min = 52.dp).pressScale(interaction, 0.97f),
         shape = MaterialTheme.shapes.medium, color = bg, contentColor = fg,
         border = border?.let { BorderStroke(1.dp, it) },
     ) {
@@ -216,7 +215,7 @@ private fun PillButton(
     }
 }
 
-/** Главное действие экрана: капсула цвета чернил. [inverse] — для тёмных подложек. */
+/** Главное действие экрана: графитовая плашка 12 dp. [inverse] — для тёмных подложек. */
 @Composable
 fun PrimaryButton(
     text: String,
@@ -234,7 +233,7 @@ fun PrimaryButton(
         tone == ButtonTone.Error -> scheme.error to scheme.onError
         else -> scheme.primary to scheme.onPrimary
     }
-    PillButton(onClick, modifier, container, content, null, enabled, PaddingValues(horizontal = 24.dp, vertical = 16.dp)) {
+    PillButton(onClick, modifier, container, content, null, enabled, PaddingValues(horizontal = 24.dp, vertical = 14.dp)) {
         if (icon != null) { Icon(icon, null, Modifier.size(20.dp)); Spacer(Modifier.width(10.dp)) }
         Text(text, modifier = Modifier.weight(1f),
             style = MaterialTheme.typography.labelLarge, textAlign = if (trailingIcon != null) TextAlign.Start else TextAlign.Center)
@@ -242,14 +241,14 @@ fun PrimaryButton(
     }
 }
 
-/** Второстепенное действие: прозрачная капсула с тонкой обводкой. */
+/** Второстепенное действие: прозрачная плашка с контуром 1 px. */
 @Composable
 fun GhostButton(
     text: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     icon: ImageVector? = null,
-    contentPadding: PaddingValues = PaddingValues(horizontal = 24.dp, vertical = 16.dp),
+    contentPadding: PaddingValues = PaddingValues(horizontal = 24.dp, vertical = 14.dp),
     enabled: Boolean = true,
 ) {
     PillButton(onClick, modifier, Color.Transparent, MaterialTheme.colorScheme.onSurface,
@@ -274,8 +273,8 @@ fun AudioButton(playing: Boolean, onClick: () -> Unit, modifier: Modifier = Modi
             .clickable(interaction, null, role = Role.Button) { if (playing) player.stop() else onClick() },
         contentAlignment = Alignment.Center,
     ) {
-        Box(Modifier.size(size).clip(RectangleShape).background(bg, RectangleShape)
-            .border(.75.dp, if (playing) fg.copy(alpha = .55f) else scheme.outline, RectangleShape), contentAlignment = Alignment.Center) {
+        Box(Modifier.size(size).clip(CircleShape).background(bg, CircleShape)
+            .then(if (primary || playing) Modifier else Modifier.border(1.dp, scheme.outline, CircleShape)), contentAlignment = Alignment.Center) {
             Icon(
                 if (playing) AlbionIcons.Stop else AlbionIcons.VolumeUp,
                 contentDescription = if (playing) "Остановить озвучку" else "Озвучить",
@@ -291,7 +290,7 @@ fun LevelBadge(level: String?, modifier: Modifier = Modifier) {
     Text(
         level.uppercase(),
         // Одна высота с [Chip]: рядом стоящие «article» и «A1» больше не прыгают по вертикали.
-        modifier = modifier.heightIn(min = 28.dp).border(1.dp, MaterialTheme.colorScheme.outline, RectangleShape)
+        modifier = modifier.heightIn(min = 28.dp).border(1.dp, MaterialTheme.colorScheme.outline, Capsule)
             .wrapContentHeight(Alignment.CenterVertically).padding(horizontal = 10.dp),
         style = MaterialTheme.typography.labelSmall,
     )
@@ -301,13 +300,13 @@ fun LevelBadge(level: String?, modifier: Modifier = Modifier) {
 fun Chip(text: String, modifier: Modifier = Modifier) {
     Text(
         text,
-        modifier = modifier.heightIn(min = 28.dp).background(MaterialTheme.colorScheme.surfaceContainerHigh, RectangleShape)
+        modifier = modifier.heightIn(min = 28.dp).background(MaterialTheme.colorScheme.surfaceContainerHigh, Capsule)
             .wrapContentHeight(Alignment.CenterVertically).padding(horizontal = 12.dp, vertical = 4.dp),
         style = MaterialTheme.typography.labelMedium,
     )
 }
 
-/** Прогресс: прямая дорожка, заполнение догоняет значение на пружине. */
+/** Прогресс: дорожка-капсула, заполнение догоняет значение на пружине. */
 @Composable
 fun ThinProgress(
     progress: Float,
@@ -320,9 +319,10 @@ fun ThinProgress(
     val p by animateFloatAsState(progress.coerceIn(0f, 1f),
         if (reduced) androidx.compose.animation.core.snap() else Springs.smooth(), label = "progress")
     Canvas(modifier.fillMaxWidth().height(height).progressSemantics(progress.coerceIn(0f, 1f))) {
-        drawRect(track)
+        val r = androidx.compose.ui.geometry.CornerRadius(size.height / 2)
+        drawRoundRect(track, cornerRadius = r)
         val w = size.width * p
-        if (w > 0f) drawRect(color, size = Size(w, size.height))
+        if (w > 0f) drawRoundRect(color, size = Size(w.coerceAtLeast(size.height), size.height), cornerRadius = r)
     }
 }
 
@@ -331,7 +331,7 @@ fun EmptyState(title: String, message: String, modifier: Modifier = Modifier) {
     Column(modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 40.dp).appear(),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Box(Modifier.size(56.dp).background(MaterialTheme.colorScheme.surfaceContainerHigh, RectangleShape), contentAlignment = Alignment.Center) {
+        Box(Modifier.size(56.dp).background(MaterialTheme.colorScheme.surfaceContainerHigh, CircleShape), contentAlignment = Alignment.Center) {
             Icon(AlbionIcons.Inventory2, null, Modifier.size(24.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         Text(title, style = MaterialTheme.typography.titleLarge, textAlign = TextAlign.Center)
@@ -339,7 +339,7 @@ fun EmptyState(title: String, message: String, modifier: Modifier = Modifier) {
     }
 }
 
-/** Верхняя панель вложенных экранов: круглая «назад», заголовок и действия. */
+/** Верхняя панель вложенных экранов: круглая «назад», заголовок Literata и действия. */
 @Composable
 fun TopBar(
     onBack: () -> Unit,
@@ -353,14 +353,14 @@ fun TopBar(
     ) {
         RoundIconButton(AlbionIcons.ArrowBack, "Назад", onBack, filled = true)
         if (title != null) Text(
-            title, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis,
+            title, style = MaterialTheme.typography.titleLarge, maxLines = 1, overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f).padding(start = 12.dp),
         ) else Spacer(Modifier.weight(1f))
         actions()
     }
 }
 
-/** Слайдер: тонкая дорожка и вертикальная риска, которая утолщается при перетаскивании. */
+/** Слайдер: дорожка-капсула и круглый бегунок, который подрастает при перетаскивании. */
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 fun ThinSlider(
@@ -372,7 +372,7 @@ fun ThinSlider(
 ) {
     val interaction = remember { MutableInteractionSource() }
     val dragged by interaction.collectIsDraggedAsState()
-    val thumbWidth by animateDpAsState(if (dragged) 8.dp else 4.dp, Springs.snappy(), label = "thumb")
+    val thumbWidth by animateDpAsState(if (dragged) 26.dp else 22.dp, Springs.snappy(), label = "thumb")
     val colors = SliderDefaults.colors(
         thumbColor = MaterialTheme.colorScheme.primary,
         activeTrackColor = MaterialTheme.colorScheme.primary,
@@ -382,7 +382,9 @@ fun ThinSlider(
     Slider(
         value = value, onValueChange = onValueChange, valueRange = valueRange, steps = steps,
         modifier = modifier, colors = colors, interactionSource = interaction,
-        thumb = { Box(Modifier.size(width = thumbWidth, height = 28.dp).background(MaterialTheme.colorScheme.primary, RectangleShape)) },
+        thumb = { Box(Modifier.size(28.dp), contentAlignment = Alignment.Center) {
+            Box(Modifier.size(thumbWidth).background(MaterialTheme.colorScheme.primary, CircleShape))
+        } },
         track = { state ->
             SliderDefaults.Track(sliderState = state, colors = colors, modifier = Modifier.height(6.dp),
                 drawStopIndicator = null, drawTick = { _, _ -> }, thumbTrackGapSize = 4.dp)
@@ -409,7 +411,7 @@ fun SegmentedPicker(
     val on = if (inverse) scheme.onBackground else scheme.selectedContent
     val off = if (inverse) scheme.background else scheme.onSurfaceVariant
     val reduced = LocalReducedMotion.current
-    val shape = MaterialTheme.shapes.small
+    val shape = Capsule
     val style = MaterialTheme.typography.labelLarge
     val measurer = androidx.compose.ui.text.rememberTextMeasurer()
     BoxWithConstraints(modifier.fillMaxWidth()) {
@@ -418,13 +420,13 @@ fun SegmentedPicker(
         val density = androidx.compose.ui.platform.LocalDensity.current
         val fits = with(density) { labels.maxOf { it.size.width }.toDp() + 20.dp <= (maxWidth - 8.dp) / options.size }
         if (!fits) {
-            Column(Modifier.fillMaxWidth().selectableGroup().background(track, shape).padding(4.dp),
+            Column(Modifier.fillMaxWidth().selectableGroup().background(track, MaterialTheme.shapes.medium).padding(4.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 options.forEachIndexed { i, label ->
                     val active = i == selected
-                    Box(Modifier.fillMaxWidth().heightIn(min = 48.dp).clip(shape)
+                    Box(Modifier.fillMaxWidth().heightIn(min = 48.dp).clip(MaterialTheme.shapes.small)
                         .background(if (active) { if (inverse) scheme.background else scheme.selectedContainer } else Color.Transparent)
-                        .then(if (active) Modifier.border(1.dp, if (inverse) scheme.background.copy(alpha = .3f) else scheme.selectedBorder, shape) else Modifier)
+                        .then(if (active) Modifier.border(1.dp, if (inverse) scheme.background.copy(alpha = .3f) else scheme.selectedBorder, MaterialTheme.shapes.small) else Modifier)
                         .selectable(active, role = Role.RadioButton) { if (!active) { feedback.selection(); onSelect(i) } }
                         .padding(horizontal = 12.dp, vertical = 12.dp), contentAlignment = Alignment.Center) {
                         Text(label, Modifier.fillMaxWidth(), style = style, color = if (active) on else off, textAlign = TextAlign.Center)
@@ -453,7 +455,7 @@ fun SegmentedPicker(
     }
 }
 
-/** Вариант в вертикальном списке выбора: строка-карточка, кружок отметки заполняется на пружине. */
+/** Вариант в вертикальном списке выбора: строка-карточка, круглая отметка заполняется на пружине. */
 @Composable
 fun ChoiceRow(label: String, selected: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier, supporting: String? = null) {
     val feedback = LocalFeedback.current
@@ -476,8 +478,8 @@ fun ChoiceRow(label: String, selected: Boolean, onClick: () -> Unit, modifier: M
             Text(label, style = MaterialTheme.typography.titleMedium, color = fg)
             if (supporting != null) Text(supporting, style = MaterialTheme.typography.bodySmall, color = if (selected) scheme.selectedContent else scheme.onSurfaceVariant)
         }
-        Box(Modifier.size(22.dp).border(1.5.dp, if (selected) mark else scheme.controlBorder, RectangleShape), contentAlignment = Alignment.Center) {
-            Box(Modifier.size(10.dp * dot).background(mark, RectangleShape))
+        Box(Modifier.size(22.dp).border(1.5.dp, if (selected) mark else scheme.controlBorder, CircleShape), contentAlignment = Alignment.Center) {
+            Box(Modifier.size(10.dp * dot).background(mark, CircleShape))
         }
     }
 }

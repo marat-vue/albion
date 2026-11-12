@@ -34,7 +34,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
 import kotlinx.coroutines.delay
 
-/** Спокойное движение: плавное проявление и мягкая остановка без отскока. */
+/** Спокойное движение: плавное проявление и мягкая остановка. */
 object Easing {
     val Emphasized = CubicBezierEasing(0.25f, 0.1f, 0.25f, 1f)
     val EmphasizedDecelerate = CubicBezierEasing(0.16f, 0.6f, 0.3f, 1f)
@@ -42,11 +42,19 @@ object Easing {
     val Standard = CubicBezierEasing(0.25f, 0.1f, 0.25f, 1f)
 }
 
-/** Критически затухающие пружины: без упругого отскока. */
+/**
+ * Пружины: служебные переходы затухают критически, а «физические» объекты —
+ * карточки, бегунки, отметки — с лёгким отскоком (damping ≈ 0.8).
+ * При «Меньше движения» всё это заменяется мгновенной сменой (см. quiet*-обёртки).
+ */
 object Springs {
     fun <T> snappy() = spring<T>(dampingRatio = 1f, stiffness = 420f)
     fun <T> smooth() = spring<T>(dampingRatio = 1f, stiffness = 200f)
-    fun <T> bouncy() = spring<T>(dampingRatio = 1f, stiffness = 280f)
+    fun <T> bouncy() = spring<T>(dampingRatio = .8f, stiffness = 320f)
+    /** Карточка: переворот, появление следующей, возврат после свайпа. */
+    fun <T> card() = spring<T>(dampingRatio = .8f, stiffness = 260f)
+    /** Бегунок переключателя. */
+    fun <T> toggle() = spring<T>(dampingRatio = .75f, stiffness = 700f)
 }
 
 /** Removing the animation state also stops an in-flight transition when the setting changes. */

@@ -1,6 +1,7 @@
 package com.marat.albion.ui.games
 
-import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.foundation.shape.CircleShape
+
 import com.marat.albion.ui.theme.quietItem
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -108,7 +109,7 @@ fun GamesScreen(navigator: Navigator) {
                 Panel(Modifier.fillMaxWidth().appear(3), onClick = { navigator.open(com.marat.albion.ui.nav.ConversationsRoute) },
                     contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(Modifier.size(44.dp).border(.75.dp, MaterialTheme.colorScheme.outlineVariant, RectangleShape), contentAlignment = Alignment.Center) {
+                        Box(Modifier.size(44.dp).border(.75.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape), contentAlignment = Alignment.Center) {
                             Icon(AlbionIcons.Chat, null, Modifier.size(22.dp))
                         }
                         Spacer(Modifier.width(14.dp))
@@ -176,7 +177,7 @@ private fun PracticeTile(game: Game, modifier: Modifier = Modifier, onClick: () 
 private fun MistakeRow(game: Game, deck: Deck?, count: Int, onClick: () -> Unit) {
     Panel(Modifier.fillMaxWidth(), onClick = onClick, contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(40.dp).background(MaterialTheme.colorScheme.errorContainer, RectangleShape), contentAlignment = Alignment.Center) {
+            Box(Modifier.size(40.dp).background(MaterialTheme.colorScheme.errorContainer, CircleShape), contentAlignment = Alignment.Center) {
                 Text("$count", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.error)
             }
             Spacer(Modifier.width(14.dp))

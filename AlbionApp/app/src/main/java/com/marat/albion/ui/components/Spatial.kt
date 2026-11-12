@@ -31,15 +31,18 @@ fun AlbionMark(modifier: Modifier = Modifier, color: Color = MaterialTheme.color
             moveTo(w * .32f, h * .65f)
             lineTo(w * .68f, h * .65f)
         }
-        drawPath(path, color, style = Stroke(1.7.dp.toPx(), join = androidx.compose.ui.graphics.StrokeJoin.Miter))
-        val dot = 3.5.dp.toPx()
-        drawRect(color, Offset(w * .5f - dot / 2, h * .86f - dot / 2), androidx.compose.ui.geometry.Size(dot, dot))
+        drawPath(path, color, style = Stroke(1.7.dp.toPx(), cap = androidx.compose.ui.graphics.StrokeCap.Round,
+            join = androidx.compose.ui.graphics.StrokeJoin.Round))
+        drawCircle(color, 1.9.dp.toPx(), Offset(w * .5f, h * .86f))
     }
 }
 
+/**
+ * Заголовок модуля. Номер больше не печатается «технической» подписью вида «04 / НАВЫКИ»:
+ * редакционный заголовок Literata сам задаёт ритм страницы; [number] оставлен ради совместимости.
+ */
 @Composable
+@Suppress("UNUSED_PARAMETER")
 fun ModuleHeading(number: String, title: String, trailing: String? = null, modifier: Modifier = Modifier, compact: Boolean = false) {
-    SectionHeading(title, trailing, modifier, leadingGap = 12.dp, compact = compact) {
-        SignalLabel(number, color = MaterialTheme.colorScheme.primary)
-    }
+    SectionHeading(title, trailing, modifier, leadingGap = 0.dp, compact = compact, editorial = true) {}
 }
