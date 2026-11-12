@@ -112,7 +112,10 @@ class FilterOptionsUiTest {
     private fun choose(label: String, option: String, screenshot: String? = null) {
         activate(scrollTo { it.contentDescription?.toString() == label })
         val item = scrollTo { it.text?.toString() == option }
-        val bounds = Rect().also(target(item)::getBoundsInScreen)
+        // A long menu can leave the option half-visible at its edge; measure it once it is fully on screen.
+        target(item).performAction(AccessibilityNodeInfo.AccessibilityAction.ACTION_SHOW_ON_SCREEN.id)
+        instrumentation.waitForIdleSync(); SystemClock.sleep(250)
+        val bounds = Rect().also(target(scrollTo { it.text?.toString() == option })::getBoundsInScreen)
         val density = instrumentation.targetContext.resources.displayMetrics.density
         assertTrue("Menu option has a short touch target: $option", bounds.height() / density >= 48)
         screenshot?.let(::capture)

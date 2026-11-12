@@ -213,7 +213,7 @@ fun BrowseScreen(deck: Deck, navigator: Navigator, collectionId: Long? = null) {
                 modifier = Modifier.padding(horizontal = gutter).padding(bottom = 8.dp))
             SearchField(query, { query = it }, "Слово или перевод", Modifier.padding(horizontal = gutter))
             if (compactFilters) {
-                Row(Modifier.fillMaxWidth().padding(horizontal = gutter).padding(top = 4.dp, bottom = 4.dp),
+                Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min).padding(horizontal = gutter).padding(top = 4.dp, bottom = 4.dp),
                     verticalAlignment = Alignment.CenterVertically) {
                     BrowseFilterButton(activeFilters, openFilters, Modifier.weight(1f))
                     FieldIconButton(if (detailed) AlbionIcons.List else AlbionIcons.Menu,

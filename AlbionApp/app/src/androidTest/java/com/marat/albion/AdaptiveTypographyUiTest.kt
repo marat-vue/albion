@@ -178,7 +178,7 @@ class AdaptiveTypographyUiTest {
             show(scenario, "grammar-screen") { GrammarScreen(nav) }
             val title = text("Учебник")
             assertWholeText(title)
-            assertEquals(28.sp, title.layout.layoutInput.style.fontSize)
+            assertEquals(com.marat.albion.ui.theme.Typography.displaySmall.fontSize, title.layout.layoutInput.style.fontSize)
             assertTrue(title.heading)
             val large = activity!!.resources.configuration.fontScale > 1.3f
             for (label in if (large) listOf("Поиск", "Меню учебника") else listOf("Справочники", "Настройки")) {

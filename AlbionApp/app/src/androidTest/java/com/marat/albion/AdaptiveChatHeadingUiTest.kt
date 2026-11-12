@@ -109,7 +109,7 @@ class AdaptiveChatHeadingUiTest {
                 assertWholeText(heading)
                 assertWholeText(count)
                 assertTrue("Section title is missing its heading role", heading.heading)
-                assertEquals(16.sp, heading.layout.layoutInput.style.fontSize)
+                assertEquals(com.marat.albion.ui.theme.Typography.titleLarge.fontSize, heading.layout.layoutInput.style.fontSize)
                 assertFalse("Counter overlaps title", heading.bounds.overlaps(count.bounds))
                 if (activity!!.resources.configuration.fontScale > 1.3f) {
                     assertTrue("Counter must yield the line to a long title", count.bounds.top >= heading.bounds.bottom)
