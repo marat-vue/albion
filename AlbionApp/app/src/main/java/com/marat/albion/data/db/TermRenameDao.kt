@@ -25,6 +25,12 @@ interface TermRenameDao {
     @Query("UPDATE OR IGNORE collection_words SET term = :newKey WHERE deck = :deck AND term = :oldKey")
     suspend fun moveCollectionWords(deck: String, oldKey: String, newKey: String)
 
+    @Query("UPDATE OR IGNORE leech_hints SET card_id = :new WHERE card_id = :old")
+    suspend fun moveLeechHint(old: String, new: String)
+
+    @Query("DELETE FROM leech_hints WHERE card_id = :old")
+    suspend fun dropLeechHint(old: String)
+
     @Query("DELETE FROM collection_words WHERE deck = :deck AND term = :oldKey")
     suspend fun dropCollectionWords(deck: String, oldKey: String)
 
@@ -36,6 +42,8 @@ interface TermRenameDao {
         moveGameStats(old, new)
         dropGameStats(old)
         moveGameAnswers(old, new)
+        moveLeechHint(old, new)
+        dropLeechHint(old)
     }
 
     /** Коллекции хранят слово по ключу термина, а не по id карточки. */

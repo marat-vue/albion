@@ -105,7 +105,7 @@ class GameViewModel(private val c: AppContainer, val game: Game,
         if (retry == null) saveOptions(markAsLast = true)
         phase = Phase.Loading
         // Новая игра — новые примеры; повтор ошибок — те же задания.
-        if (retry == null) { clozes.clear(); tenses.clear(); tenseOptions.clear(); puzzles.clear(); shuffledTokens.clear(); sentenceTranslations.clear(); pairTasks.clear() }
+        if (retry == null) { clozes.clear(); tenses.clear(); tenseOptions.clear(); puzzles.clear(); shuffledTokens.clear(); sentenceTranslations.clear(); pairTasks.clear(); pairCards.clear() }
         translating?.cancel()
         // Фоновый перевод доделывает текущее предложение (обрыв посреди генерации терял работу) и останавливается.
         stopUpcoming = true
@@ -135,7 +135,8 @@ class GameViewModel(private val c: AppContainer, val game: Game,
 
     fun retryMistakes() = start(missed.toList())
 
-    private var pairs: List<com.marat.albion.data.games.MinimalPair>? = null
+    /** Пары словаря (id словаря → пары): поиск по транскрипциям тяжёлый, считаем один раз. */
+    private var pairs: Pair<String, List<com.marat.albion.data.games.MinimalPair>>? = null
     private val pairCards = HashMap<String, CardEntity>()
     private val pairTasks = HashMap<String, com.marat.albion.data.games.PairTask>()
 
@@ -151,9 +152,9 @@ class GameViewModel(private val c: AppContainer, val game: Game,
      */
     private suspend fun minimalPairs(): List<CardEntity> {
         val all = c.study.gamePool(deck, game.name, Int.MAX_VALUE, withAudio = true)
-        val found = pairs ?: kotlinx.coroutines.withContext(Dispatchers.Default) {
+        val found = pairs?.takeIf { it.first == deck.id }?.second ?: kotlinx.coroutines.withContext(Dispatchers.Default) {
             com.marat.albion.data.games.MinimalPairs.find(all.map { com.marat.albion.data.games.PairWord(it.id, it.term, it.ipa) })
-        }.also { pairs = it }
+        }.also { pairs = deck.id to it }
         all.forEach { pairCards[it.id] = it }
         val order = if (onlyMistakes) c.study.gamePool(deck, game.name, Int.MAX_VALUE, withAudio = true, onlyMistakes = true).map { it.id }
             else all.map { it.id }

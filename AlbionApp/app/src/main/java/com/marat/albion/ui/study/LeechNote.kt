@@ -83,14 +83,15 @@ private fun LeechHintBlock(card: CardEntity) {
         scope.launch {
             try { block() }
             catch (e: CancellationException) { throw e }
-            catch (e: Exception) { error = e.message ?: "Не удалось придумать подсказку. Попробуйте ещё раз." }
+            // Сообщения модели и движка бывают английскими — показываем только свои, русские.
+            catch (e: Exception) { error = e.message?.takeIf { m -> m.any { it in 'А'..'я' } } ?: "Не удалось придумать подсказку. Попробуйте ещё раз." }
             finally { busy = false }
         }
     }
 
     val current = hint
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        if (current != null && !busy) HintPanel(current)
+        if (current != null) HintPanel(current)
         if (busy) {
             Text("Модель придумывает подсказку — это займёт до минуты…", style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
