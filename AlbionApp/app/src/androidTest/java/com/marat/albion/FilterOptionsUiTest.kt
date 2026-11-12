@@ -112,7 +112,10 @@ class FilterOptionsUiTest {
     private fun choose(label: String, option: String, screenshot: String? = null) {
         activate(scrollTo { it.contentDescription?.toString() == label })
         val item = scrollTo { it.text?.toString() == option }
-        val bounds = Rect().also(target(item)::getBoundsInScreen)
+        // A long menu can leave the option half-visible at its edge; measure it once it is fully on screen.
+        target(item).performAction(AccessibilityNodeInfo.AccessibilityAction.ACTION_SHOW_ON_SCREEN.id)
+        instrumentation.waitForIdleSync(); SystemClock.sleep(250)
+        val bounds = Rect().also(target(scrollTo { it.text?.toString() == option })::getBoundsInScreen)
         val density = instrumentation.targetContext.resources.displayMetrics.density
         assertTrue("Menu option has a short touch target: $option", bounds.height() / density >= 48)
         screenshot?.let(::capture)
@@ -130,10 +133,11 @@ class FilterOptionsUiTest {
         instrumentation.waitForIdleSync(); SystemClock.sleep(350)
     }
     private fun scrollTo(predicate: (AccessibilityNodeInfo) -> Boolean): AccessibilityNodeInfo {
-        repeat(20) {
+        // A page-sized scroll can jump past a control at large text; look back as well as forward.
+        for (direction in listOf(AccessibilityNodeInfo.ACTION_SCROLL_FORWARD, AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD)) repeat(20) {
             val root = root()
             find(root, predicate)?.let { return it }
-            find(root) { it.isScrollable && !it.isEditable }?.performAction(AccessibilityNodeInfo.ACTION_SCROLL_FORWARD)
+            find(root) { it.isScrollable && !it.isEditable }?.performAction(direction)
             instrumentation.waitForIdleSync(); SystemClock.sleep(250)
         }
         error("Filter control not found: ${visibleText(root())}")

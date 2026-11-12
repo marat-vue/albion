@@ -26,9 +26,13 @@ import com.marat.albion.ui.library.TranslationSheet
 import com.marat.albion.ui.nav.AlbionNavigation
 import com.marat.albion.ui.theme.AlbionTheme
 import androidx.compose.material3.MaterialTheme
+import com.marat.albion.data.library.BookTranslationPhase
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
+import org.junit.After
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.io.File
@@ -38,10 +42,12 @@ import java.io.File
 class CompactUiTest {
     private val instrumentation get() = InstrumentationRegistry.getInstrumentation()
     private val container get() = (instrumentation.targetContext.applicationContext as AlbionApp).container
+    private var testCollection: Long? = null
+    @After fun removeTestCollection(): Unit = runBlocking { container.removeTestCollection(testCollection) }
     private val labels = listOf("Сегодня", "Учебник", "Чтение", "Практика", "Прогресс")
 
     @Test fun compactHomeKeepsStartVisibleAndTabsKeepTheirTargets(): Unit = runBlocking {
-        container.importer.importIfNeeded()
+        testCollection = container.ensureStudyToday()
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
             for (width in listOf(320, 360)) for (scale in listOf(1f, 1.5f, 2f)) {
                 val name = "home-$width-$scale"
@@ -58,7 +64,7 @@ class CompactUiTest {
                     awaitText("Разделы")
                     capture("$name-navigation")
                 }
-                val before = labels.associateWith { clickableBounds(awaitTab(it)) }
+                val before = settledTabs(labels)
                 val density = instrumentation.targetContext.resources.displayMetrics.density
                 before.values.forEach { assertTrue("Цель вкладки меньше 48 dp ($name): $it", it.width() / density >= 48f) }
 
@@ -68,9 +74,12 @@ class CompactUiTest {
                     activate(awaitText("Ещё"))
                     awaitText("Разделы")
                 }
-                val after = labels.associateWith { clickableBounds(awaitTab(it)) }
+                val after = settledTabs(labels)
                 labels.forEach { label ->
-                    assertEquals("Сдвинулась вкладка $label ($name)", before.getValue(label), after.getValue(label))
+                    val (was, now) = before.getValue(label) to after.getValue(label)
+                    // Лист «Разделы» ставится с точностью до пикселя округления.
+                    assertTrue("Сдвинулась вкладка $label ($name): $was → $now", listOf(was.left - now.left, was.top - now.top,
+                        was.right - now.right, was.bottom - now.bottom).all { kotlin.math.abs(it) <= 2 * density })
                 }
             }
         }
@@ -78,7 +87,7 @@ class CompactUiTest {
 
     @Test fun translationIsVisibleBeforeSavingAndWordEditorStillOpens(): Unit = runBlocking {
         container.importer.importIfNeeded()
-        val expected = container.dictionary.lookup("lighthouse").first().senses.first()
+        val expected = shownMeaning("lighthouse")
         // BottomSheet создаёт отдельное окно: его шрифт берётся из конфигурации Android.
         val scale = instrumentation.targetContext.resources.configuration.fontScale
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
@@ -121,7 +130,7 @@ class CompactUiTest {
                 TranslationSheet("book", isWord = true, onDismiss = {}, onHighlight = {},
                     bookSource = BookWordSource("ui-layout", "Test book", "Chapter one"))
             }
-            awaitText(entries.first().senses.first())
+            awaitText(shownMeaning("book"))
             activate(scrollToText("Словарь, автоперевод и ваши карточки"))
             scrollToText(additional)
             capture("translation-details")
@@ -149,6 +158,28 @@ class CompactUiTest {
         SystemClock.sleep(750)
     }
 
+    /** The «Разделы» sheet slides in; read the targets once they stop moving. */
+    private fun settledTabs(labels: List<String>): Map<String, Rect> {
+        // Окно листа получает отступ навигационной панели не сразу — даём ему осесть.
+        SystemClock.sleep(1_000)
+        var last = labels.associateWith { clickableBounds(awaitTab(it)) }
+        var stable = 0
+        repeat(40) {
+            SystemClock.sleep(150)
+            val now = labels.associateWith { clickableBounds(awaitTab(it)) }
+            stable = if (now == last) stable + 1 else 0
+            if (stable == 3) return now
+            last = now
+        }
+        error("Вкладки не перестали двигаться: $last")
+    }
+    /** With the ML Kit model installed the sheet leads with the automatic translation, otherwise with the dictionary. */
+    private suspend fun shownMeaning(word: String): String {
+        val translator = container.bookTranslator
+        translator.refresh()
+        val status = withTimeout(10_000) { translator.state.first { it.phase != BookTranslationPhase.Checking } }
+        return if (status.ready) translator.translate(word) else container.dictionary.lookup(word).first().senses.first()
+    }
     private fun awaitText(text: String) = awaitNode { it.text?.toString() == text }
 
     private fun awaitTab(label: String): AccessibilityNodeInfo {

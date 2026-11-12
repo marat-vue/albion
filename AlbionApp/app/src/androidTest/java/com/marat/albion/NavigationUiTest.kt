@@ -19,6 +19,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
+import org.junit.After
 import org.junit.Test
 import org.junit.runner.RunWith
 
@@ -26,6 +27,9 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class NavigationUiTest {
     private val instrumentation get() = InstrumentationRegistry.getInstrumentation()
+    private val container get() = (instrumentation.targetContext.applicationContext as AlbionApp).container
+    private var testCollection: Long? = null
+    @After fun removeTestCollection(): Unit = runBlocking { container.removeTestCollection(testCollection) }
 
     @Test fun irregularGiveUpRevealsBothFormsAndKeepsEqualActionButtons(): Unit = runBlocking {
         val c = (instrumentation.targetContext.applicationContext as AlbionApp).container
@@ -99,6 +103,7 @@ class NavigationUiTest {
     }
 
     @Test fun lessonSurvivesSwitchAndReselectReturnsToSectionRoot() {
+        testCollection = runBlocking { container.ensureStudyToday() }
         ActivityScenario.launch(MainActivity::class.java).use {
             clickText("Учебник")
             click(awaitNode { it.text?.toString() in setOf("Читать урок", "Сначала открыть правило") })

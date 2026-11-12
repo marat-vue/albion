@@ -63,6 +63,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalDensity
@@ -213,7 +215,7 @@ fun BrowseScreen(deck: Deck, navigator: Navigator, collectionId: Long? = null) {
                 modifier = Modifier.padding(horizontal = gutter).padding(bottom = 8.dp))
             SearchField(query, { query = it }, "Слово или перевод", Modifier.padding(horizontal = gutter))
             if (compactFilters) {
-                Row(Modifier.fillMaxWidth().padding(horizontal = gutter).padding(top = 4.dp, bottom = 4.dp),
+                Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min).padding(horizontal = gutter).padding(top = 4.dp, bottom = 4.dp),
                     verticalAlignment = Alignment.CenterVertically) {
                     BrowseFilterButton(activeFilters, openFilters, Modifier.weight(1f))
                     FieldIconButton(if (detailed) AlbionIcons.List else AlbionIcons.Menu,
@@ -292,8 +294,9 @@ private fun BrowseFilterFields(
 private fun FieldIconButton(icon: androidx.compose.ui.graphics.vector.ImageVector, description: String, onClick: () -> Unit) {
     val feedback = com.marat.albion.ui.theme.LocalFeedback.current
     Box(Modifier.fillMaxHeight().aspectRatio(1f, matchHeightConstraintsFirst = true).heightIn(min = 48.dp)
-        .background(MaterialTheme.colorScheme.surfaceContainerLow)
-        .border(1.dp, MaterialTheme.colorScheme.controlBorder)
+        .clip(MaterialTheme.shapes.medium)
+        .background(MaterialTheme.colorScheme.surfaceContainerLow, MaterialTheme.shapes.medium)
+        .border(1.dp, MaterialTheme.colorScheme.controlBorder, MaterialTheme.shapes.medium)
         .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = description) { feedback.selection(); onClick() }
         .semantics { contentDescription = description },
         contentAlignment = Alignment.Center) {
@@ -358,13 +361,14 @@ private fun CardRow(card: CardEntity, showRussian: Boolean, detailed: Boolean, q
                             modifier = Modifier.weight(1f, fill = false),
                         )
                         Spacer(Modifier.width(10.dp))
-                        LevelBadge(card.level)
+                        LevelBadge(card.level, color = if (highlighted) MaterialTheme.colorScheme.selectedContent else Color.Unspecified)
                     }
                     Spacer(Modifier.height(2.dp))
                     if (card.ipa.isNotBlank()) Text(card.ipa, style = IpaStyle.copy(fontSize = MaterialTheme.typography.bodySmall.fontSize, lineHeight = MaterialTheme.typography.bodySmall.lineHeight), color = if (highlighted) MaterialTheme.colorScheme.selectedContent else MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 Spacer(Modifier.width(12.dp))
-                AudioButton(playing = playing, onClick = onPlay, size = 48.dp, primary = false)
+                AudioButton(playing = playing, onClick = onPlay, size = 48.dp, primary = false,
+                    tint = if (highlighted) MaterialTheme.colorScheme.selectedContent else Color.Unspecified)
                 if (picked != null) Box(Modifier.padding(start = 8.dp).size(48.dp), contentAlignment = Alignment.Center) {
                     val mark = if (picked) MaterialTheme.colorScheme.selectedContent else MaterialTheme.colorScheme.controlBorder
                     Box(Modifier.size(22.dp).border(1.5.dp, mark, MaterialTheme.shapes.extraSmall), contentAlignment = Alignment.Center) {
@@ -384,7 +388,8 @@ private fun CardRow(card: CardEntity, showRussian: Boolean, detailed: Boolean, q
                 Text(com.marat.albion.ui.components.highlightedQuery("В переводе: ${matched.meaningRu}", query), style = MaterialTheme.typography.bodySmall, color = if (highlighted) MaterialTheme.colorScheme.selectedContent else MaterialTheme.colorScheme.onSurfaceVariant)
             }
             if (senses.size > 1 && !detailed) TextButton(onClick = { expanded = !expanded }) {
-                Text(if (expanded) "Свернуть значения" else "Все значения · ${senses.size}", color = MaterialTheme.colorScheme.primary)
+                Text(if (expanded) "Свернуть значения" else "Все значения · ${senses.size}",
+                    color = if (highlighted) MaterialTheme.colorScheme.selectedContent else MaterialTheme.colorScheme.primary)
             }
         }
         Hairline(Modifier.padding(horizontal = gutter))

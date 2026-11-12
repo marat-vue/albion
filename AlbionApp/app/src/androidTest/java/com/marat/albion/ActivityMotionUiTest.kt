@@ -275,11 +275,13 @@ class ActivityMotionUiTest {
     }
     private fun drag(rect: android.graphics.Rect, from: Float, to: Float) {
         val start = SystemClock.uptimeMillis()
-        for (i in 0..12) {
-            val action = when (i) { 0 -> MotionEvent.ACTION_DOWN; 12 -> MotionEvent.ACTION_UP; else -> MotionEvent.ACTION_MOVE }
-            val x = rect.left + rect.width() * (from + (to - from) * i / 12)
+        // Like a real finger, lift at the last reported position: Compose ignores movement carried by ACTION_UP.
+        for (i in 0..13) {
+            val action = when (i) { 0 -> MotionEvent.ACTION_DOWN; 13 -> MotionEvent.ACTION_UP; else -> MotionEvent.ACTION_MOVE }
+            val x = rect.left + rect.width() * (from + (to - from) * minOf(i, 12) / 12)
             val event = MotionEvent.obtain(start, SystemClock.uptimeMillis(), action, x, rect.exactCenterY(), 0)
-            instrumentation.sendPointerSync(event); event.recycle(); SystemClock.sleep(16)
+            instrumentation.sendPointerSync(event); event.recycle()
+            SystemClock.sleep(if (i == 12) 100 else 16)
         }
     }
     private fun semantics(): List<SemanticsNode> {

@@ -97,6 +97,7 @@ class GrammarRoadmapTest {
                 SystemClock.sleep(400)
                 capture("$name-atlas")
                 levels.forEach { level ->
+                    reveal(level)
                     val node = await { it.text?.toString() == level }
                     var target = node
                     // Android exposes the active Tab as selected, without a redundant click action.
@@ -106,6 +107,7 @@ class GrammarRoadmapTest {
                     assertTrue("Stage $level has a narrow target ($name)", bounds.width() / density >= 48)
                     assertTrue("Stage $level has a short target ($name)", bounds.height() / density >= 48)
                 }
+                reveal("B2")
                 activate(await { it.text?.toString() == "B2" })
                 await { node -> node.isSelected && find(node) { it.text?.toString() == "B2" } != null }
                 capture("$name-selected")
@@ -148,6 +150,24 @@ class GrammarRoadmapTest {
             SystemClock.sleep(100)
         }
         error("Expected grammar content did not appear")
+    }
+    /** Levels share a horizontally scrolling row; with large text the last ones start off screen. */
+    private fun reveal(text: String) {
+        repeat(6) {
+            val root = freshRoot()
+            if (find(root) { it.text?.toString() == text } != null) return
+            // Off-screen tiles leave the tree, so scroll the row that holds any of the levels.
+            var row = findAny(root) { it.text?.toString() in levels } ?: return
+            while (!row.isScrollable) row = row.parent ?: return
+            row.performAction(AccessibilityNodeInfo.ACTION_SCROLL_FORWARD)
+            instrumentation.waitForIdleSync(); SystemClock.sleep(200)
+        }
+    }
+    private fun findAny(node: AccessibilityNodeInfo?, predicate: (AccessibilityNodeInfo) -> Boolean): AccessibilityNodeInfo? {
+        if (node == null) return null
+        if (predicate(node)) return node
+        for (i in 0 until node.childCount) findAny(node.getChild(i), predicate)?.let { return it }
+        return null
     }
     private fun find(node: AccessibilityNodeInfo?, predicate: (AccessibilityNodeInfo) -> Boolean): AccessibilityNodeInfo? {
         if (node == null) return null

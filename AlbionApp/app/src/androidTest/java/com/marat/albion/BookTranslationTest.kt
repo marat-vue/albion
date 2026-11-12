@@ -10,6 +10,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import com.marat.albion.data.library.BookTranslationPhase
 import com.marat.albion.data.library.BookTranslator
 import com.marat.albion.data.library.BookWordSource
 import com.marat.albion.data.library.SavedBookWord
@@ -17,6 +18,7 @@ import com.marat.albion.ui.library.TranslationSheet
 import com.marat.albion.ui.theme.AlbionTheme
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import org.junit.Assert.*
@@ -31,16 +33,16 @@ class BookTranslationTest {
     private val c get() = (instrumentation.targetContext.applicationContext as AlbionApp).container
 
     @Test fun downloadedModelWorksWithAFreshClientOffline(): Unit = runBlocking {
-        withTimeout(180_000) { c.bookTranslator.prepare() }
+        installModel()
         assertRussian(withTimeout(15_000) { c.bookTranslator.translate("lighthouse") })
-        val airplane = shell("settings get global airplane_mode_on").trim() == "1"
         val wifi = shell("settings get global wifi_on").trim() == "1"
         val mobile = shell("settings get global mobile_data").trim() == "1"
+        val connectivity = instrumentation.targetContext.getSystemService(ConnectivityManager::class.java)
+        val online = connectivity.activeNetwork != null
         try {
-            shell("cmd connectivity airplane-mode enable")
+            // Wi-Fi and mobile data only: toggling airplane mode crashes radio services on API 37 emulators.
             shell("svc wifi disable")
             shell("svc data disable")
-            val connectivity = instrumentation.targetContext.getSystemService(ConnectivityManager::class.java)
             withTimeout(15_000) { while (connectivity.activeNetwork != null) delay(100) }
             val fresh = BookTranslator(c.appScope)
             val phrase = withTimeout(15_000) { fresh.translate("The book is on the table.") }
@@ -50,15 +52,15 @@ class BookTranslationTest {
             assertRussian(withTimeout(15_000) { fresh.translate("a little every day") })
             assertTrue(fresh.state.value.ready)
         } finally {
-            shell("cmd connectivity airplane-mode ${if (airplane) "enable" else "disable"}")
             shell("svc wifi ${if (wifi) "enable" else "disable"}")
             shell("svc data ${if (mobile) "enable" else "disable"}")
+            if (online) withTimeout(30_000) { while (connectivity.activeNetwork == null) delay(200) }
         }
     }
 
     @Test fun readerSavesBothAutomaticAndExplicitDictionaryMeanings(): Unit = runBlocking {
         c.importer.importIfNeeded()
-        withTimeout(180_000) { c.bookTranslator.prepare() }
+        installModel()
         for (text in listOf("a little every day", "bank")) {
             val automatic = withTimeout(15_000) { c.bookTranslator.translate(text) }
             val dictionary = if (text == "bank") c.dictionary.lookup(text).flatMap { it.senses }
@@ -97,6 +99,13 @@ class BookTranslationTest {
                 addition?.takeIf { it.added }?.let { assertTrue(c.bookWords.undoAdd(it)) }
             }
         }
+    }
+
+    /** Downloads the ML Kit model explicitly, the way the reader's install button does. */
+    private suspend fun installModel() = withTimeout(180_000) {
+        c.bookTranslator.install(allowMobile = true)
+        c.bookTranslator.state.first { it.ready || it.phase == BookTranslationPhase.Failed }
+        assertTrue(c.bookTranslator.state.value.message ?: "Model not ready", c.bookTranslator.state.value.ready)
     }
 
     private fun assertRussian(text: String) = assertTrue("Not a Russian translation: $text", text.any { it in 'А'..'я' })

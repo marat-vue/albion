@@ -61,10 +61,12 @@ class SelectionAndConfirmationUiTest {
             var content = Color.Unspecified
             var container = Color.Unspecified
             var border = Color.Unspecified
+            var background = Color.Unspecified
             show(scenario, "selection") {
                 content = MaterialTheme.colorScheme.selectedContent
                 container = MaterialTheme.colorScheme.selectedContainer
                 border = MaterialTheme.colorScheme.selectedBorder
+                background = MaterialTheme.colorScheme.background
                 Column(Modifier.fillMaxSize().safeDrawingPadding().verticalScroll(rememberScrollState()).padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     OptionPicker("Режим", listOf("Первый", "Второй"), selected, { selected = it })
@@ -74,7 +76,8 @@ class SelectionAndConfirmationUiTest {
                 }
             }
             assertTrue("Selected text contrast", contrast(content, container) >= 4.5)
-            assertTrue("Selected border contrast", contrast(border, container) >= 3.0)
+            assertTrue("Selected plate contrast", contrast(container, background) >= 3.0)
+            assertTrue("Selected boundary contrast", contrast(border, background) >= 3.0)
             assertEquals(content, text("Первый выбор").layout.layoutInput.style.color)
             click(await { it.contentDescription?.toString() == "Режим" })
             val first = target(await { it.text?.toString() == "Первый" })

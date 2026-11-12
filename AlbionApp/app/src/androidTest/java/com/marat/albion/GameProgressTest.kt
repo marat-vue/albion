@@ -65,14 +65,16 @@ class GameProgressTest {
         repo.recordGrammar(task("choice").id, false, "choice", 2_000, now)
         repo.recordGrammar(task("input").id, true, "input", 3_000, now)
         val s = withTimeout(5_000) { repo.observeStats().first() }
-        assertEquals(8, s.totalGameAnswers)
-        assertEquals(8, s.answersToday)
-        assertEquals(8, s.gameAnswersToday)
-        assertEquals(8, s.daily.single().count)
+        val games = Game.entries.count { !it.isGrammar }
+        val answers = games + 2
+        assertEquals(answers, s.totalGameAnswers)
+        assertEquals(answers, s.answersToday)
+        assertEquals(answers, s.gameAnswersToday)
+        assertEquals(answers, s.daily.single().count)
         assertEquals(1, s.streak)
-        assertEquals(11_000L, s.timeTodayMs)
-        assertEquals(7f / 8, s.gameAccuracy!!, 0.001f)
-        assertEquals(8, s.games.size)
+        assertEquals(games * 1_000L + 5_000L, s.timeTodayMs)
+        assertEquals((answers - 1f) / answers, s.gameAccuracy!!, 0.001f)
+        assertEquals(answers, s.games.size)
         assertEquals(0, s.reviewsToday)
         assertEquals(0, s.totalReviews)
         assertNull(s.retention)

@@ -12,6 +12,7 @@ import com.marat.albion.data.settings.ThemeMode
 import android.graphics.Color
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertTrue
+import org.junit.After
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.io.File
@@ -21,9 +22,11 @@ import java.io.File
 class EditorialDesignTest {
     private val instrumentation get() = InstrumentationRegistry.getInstrumentation()
     private val c get() = (instrumentation.targetContext.applicationContext as AlbionApp).container
+    private var testCollection: Long? = null
+    @After fun removeTestCollection(): Unit = runBlocking { c.removeTestCollection(testCollection) }
 
     @Test fun primaryScreensAndSensoryPreferencesWorkInBothThemes(): Unit = runBlocking {
-        c.importer.importIfNeeded()
+        testCollection = c.ensureStudyToday()
         val original = c.settings.current()
         val manager = instrumentation.targetContext.getSystemService(Context.UI_MODE_SERVICE) as UiModeManager
         val originalNight = manager.nightMode

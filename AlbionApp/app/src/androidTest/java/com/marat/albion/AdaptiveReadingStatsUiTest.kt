@@ -71,7 +71,7 @@ class AdaptiveReadingStatsUiTest {
             }
             val title = layout("Библиотека")
             assertUnclipped("Библиотека", title)
-            assertEquals("The heading must not cancel the system text scale", 28.sp, title.layoutInput.style.fontSize)
+            assertEquals("The heading must not cancel the system text scale", com.marat.albion.ui.theme.Typography.displaySmall.fontSize, title.layoutInput.style.fontSize)
             for (label in listOf("Добавить книгу", "Настройки")) {
                 val button = await { it.contentDescription?.toString() == label }
                 var target = button
