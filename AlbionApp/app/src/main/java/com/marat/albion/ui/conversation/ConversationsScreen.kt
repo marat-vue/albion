@@ -58,7 +58,7 @@ fun ConversationsScreen(navigator: Navigator) {
         LazyVerticalGrid(
             columns = GridCells.Adaptive(156.dp),
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(start = gutter, end = gutter, bottom = 32.dp),
+            contentPadding = PaddingValues(start = gutter, end = gutter, bottom = 32.dp + com.marat.albion.ui.components.bottomChrome),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
@@ -86,7 +86,7 @@ fun ConversationsScreen(navigator: Navigator) {
                     }
                 }
             }
-            item(span = { GridItemSpan(maxLineSpan) }) { ModuleHeading("01", "Ситуации", (Scenario.entries.size - 1).toString().padStart(2, '0')) }
+            item(span = { GridItemSpan(maxLineSpan) }) { ModuleHeading("01", "Ситуации", (Scenario.entries.size - 1).toString()) }
             items(Scenario.entries.filter { it != Scenario.FREE }, key = { it.id }, span = { GridItemSpan(maxLineSpan) }) { scenario ->
                 // Строка как в «Практике»: иконка слева, справа название и пояснение.
                 Panel(quietItem(Modifier.fillMaxWidth()), onClick = if (model.ready) ({ start(scenario) }) else null,
@@ -109,7 +109,7 @@ fun ConversationsScreen(navigator: Navigator) {
                 }
             }
             item(span = { GridItemSpan(maxLineSpan) }) {
-                ModuleHeading("02", "История", history?.size?.takeIf { it > 0 }?.toString()?.padStart(2, '0'))
+                ModuleHeading("02", "История", history?.size?.takeIf { it > 0 }?.toString())
             }
             val conversations = history
             when {

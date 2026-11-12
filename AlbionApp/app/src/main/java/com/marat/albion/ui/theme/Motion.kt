@@ -181,3 +181,27 @@ fun <S> QuietAnimatedContent(
         else transitionSpec()
     }, contentAlignment = contentAlignment, label = label, contentKey = contentKey, content = content)
 }
+
+/** Общая сцена для shared element; null — переходы выключены («Меньше движения», складной экран). */
+@OptIn(androidx.compose.animation.ExperimentalSharedTransitionApi::class)
+val LocalSharedTransitionScope = androidx.compose.runtime.compositionLocalOf<androidx.compose.animation.SharedTransitionScope?> { null }
+
+/**
+ * Общий элемент между экранами (обложка → читалка, плитка урока → урок, слово → карточка).
+ * Работает внутри NavDisplay: сцену анимации даёт LocalNavAnimatedContentScope.
+ * Без сцены или при «Меньше движения» модификатор ничего не делает.
+ */
+@OptIn(androidx.compose.animation.ExperimentalSharedTransitionApi::class)
+fun Modifier.sharedElement(key: Any): Modifier = composed {
+    // Сцену даёт только AlbionNavigation, поэтому вне NavDisplay (тесты, диалоги) локаль навигации не читаем.
+    val scope = LocalSharedTransitionScope.current
+    if (scope == null || LocalReducedMotion.current) return@composed this
+    val animated = androidx.navigation3.ui.LocalNavAnimatedContentScope.current
+    with(scope) {
+        this@composed.sharedBounds(
+            rememberSharedContentState(key), animated,
+            boundsTransform = { _, _ -> Springs.card() },
+            resizeMode = androidx.compose.animation.SharedTransitionScope.ResizeMode.RemeasureToBounds,
+        )
+    }
+}

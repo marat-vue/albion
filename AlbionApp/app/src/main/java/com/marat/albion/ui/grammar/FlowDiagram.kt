@@ -81,7 +81,7 @@ private fun TreeView(t: TreeNode, depth: Int = 0) {
                         Column(Modifier.weight(1f)) {
                             if (b.label != null) {
                                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(vertical = 4.dp)) {
-                                    Text(b.label.uppercase(), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurface)
+                                    Text(b.label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurface)
                                     Icon(AlbionIcons.KeyboardArrowDown, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(16.dp))
                                 }
                             } else Arrow()

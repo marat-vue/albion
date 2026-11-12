@@ -106,7 +106,7 @@ fun LaunchScreen(
                 fontSize = 40.sp, color = Heritage.Cream, letterSpacing = (-.01).em,
             ))
             Spacer(Modifier.height(10.dp))
-            Text("АНГЛИЙСКИЙ КАЖДЫЙ ДЕНЬ",
+            Text("Английский каждый день",
                 style = Typography.labelMedium.copy(color = Heritage.Champagne, letterSpacing = .08.em))
         }
 
@@ -115,7 +115,7 @@ fun LaunchScreen(
                 .padding(horizontal = 32.dp).padding(bottom = 40.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Text(status ?: "ЗАГРУЗКА", style = Typography.labelMedium.copy(color = Heritage.Cream.copy(alpha = .75f)))
+            Text(status ?: "Загрузка", style = Typography.labelMedium.copy(color = Heritage.Cream.copy(alpha = .75f)))
             Spacer(Modifier.height(12.dp))
             Canvas(Modifier.size(132.dp, 2.dp)) {
                 val y = size.height / 2

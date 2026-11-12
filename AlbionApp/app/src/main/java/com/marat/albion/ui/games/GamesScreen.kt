@@ -76,12 +76,12 @@ fun GamesScreen(navigator: Navigator) {
         LazyVerticalGrid(
             columns = GridCells.Adaptive(156.dp),
             modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
-            contentPadding = PaddingValues(start = gutter, end = gutter, bottom = 32.dp),
+            contentPadding = PaddingValues(start = gutter, end = gutter, bottom = 32.dp + com.marat.albion.ui.components.bottomChrome),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             item(span = { GridItemSpan(maxLineSpan) }) {
-                ScreenHeader("Практика", eyebrow = if (short) null else "04 / НАВЫКИ", compact = true, trailing = {
+                ScreenHeader("Практика", compact = true, trailing = {
                     Row {
                         FeatureHelp("practice", "Как заниматься",
                             "Выберите навык, затем словарь или уровень и длину занятия. Параметры каждого упражнения сохраняются.\n\nОшибки сохраняются: сложные слова и задания будут встречаться чаще.\n\nПрактика учитывается в дневной цели и статистике; расписание повторения карточек остаётся прежним.", showOnFirstUse = false)

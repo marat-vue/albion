@@ -100,7 +100,7 @@ fun TenseRound(vm: GameViewModel, card: CardEntity) {
 
     Column(Modifier.fillMaxSize().padding(horizontal = gutter)) {
         Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(top = 16.dp, bottom = 4.dp)) {
-            TaskCard(Modifier.shakeOn(shake), label = "НАЙДИТЕ НУЖНУЮ ФОРМУ") {
+            TaskCard(Modifier.shakeOn(shake), label = "Найдите нужную форму") {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Eyebrow("Какая форма нужна?", Modifier.weight(1f), color = MaterialTheme.colorScheme.primary)
                     LevelBadge(card.level)

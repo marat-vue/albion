@@ -110,7 +110,7 @@ fun CardFront(card: CardEntity, irregular: IrregularData?, audio: CardAudio, sho
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        com.marat.albion.ui.components.SignalLabel("ВСПОМНИТЕ ЗНАЧЕНИЕ")
+        com.marat.albion.ui.components.SignalLabel("Вспомните значение")
         Spacer(Modifier.width(72.dp).height(28.dp).folioRule(MaterialTheme.colorScheme.secondary.copy(alpha = .65f)))
         TermHeader(card, audio, showIpa = showIpa)
         if (card.senses.size > 1) {

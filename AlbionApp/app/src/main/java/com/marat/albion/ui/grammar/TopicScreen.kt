@@ -196,7 +196,7 @@ fun TopicScreen(topicId: String, navigator: Navigator, fromQuiz: Boolean = false
                     LazyColumn(
                         state = listState,
                         modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(start = gutter, end = gutter, top = 12.dp, bottom = 40.dp),
+                        contentPadding = PaddingValues(start = gutter, end = gutter, top = 12.dp, bottom = 40.dp + com.marat.albion.ui.components.bottomChrome),
                         verticalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
                         item(key = "header") { TopicHeader(topic, doc!!, Modifier,

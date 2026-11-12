@@ -25,7 +25,7 @@ internal fun GrammarOverview(navigator: Navigator) {
     val state by vm.state.collectAsStateWithLifecycle()
     val now = grammarReviewTime()
     val next = GrammarNextStep.recommend(state.book, state.progress, state.quizTopics, now, lastId = state.lastTopic)
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = gutter, vertical = 24.dp),
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = gutter).padding(top = 24.dp, bottom = 24.dp + com.marat.albion.ui.components.bottomChrome),
         verticalArrangement = Arrangement.spacedBy(14.dp)) {
         ModuleHeading("02", "Обзор учебника", compact = true)
         if (state.loading) LoadingState("Подбираем следующий урок")

@@ -1,5 +1,9 @@
 package com.marat.albion.ui.home
 
+import androidx.compose.ui.draw.drawBehind
+import com.marat.albion.ui.components.drawRingProgress
+
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -43,8 +47,8 @@ internal fun PlanRow(
     val scheme = MaterialTheme.colorScheme
     Panel(modifier.fillMaxWidth(), onClick = onClick, contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(44.dp).background(if (done) scheme.tertiary else scheme.background, MaterialTheme.shapes.small)
-                .border(.75.dp, scheme.outlineVariant, MaterialTheme.shapes.small), contentAlignment = Alignment.Center) {
+            Box(Modifier.size(44.dp).background(if (done) scheme.tertiary else scheme.surfaceContainerHigh, CircleShape),
+                contentAlignment = Alignment.Center) {
                 Icon(if (done) AlbionIcons.Check else icon, null, Modifier.size(22.dp), tint = if (done) scheme.onTertiary else scheme.onSurface)
             }
             Spacer(Modifier.width(14.dp))
@@ -78,9 +82,12 @@ internal fun StudyRow(
     val toStudy = due + newAvailable
     Panel(modifier.fillMaxWidth(), onClick = onClick, contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            // Число карточек на сегодня; расшифровка — в строке под названием («5 повторить · 15 новых»).
-            Column(Modifier.size(56.dp).background(scheme.background, MaterialTheme.shapes.small)
-                .border(.75.dp, scheme.outlineVariant, MaterialTheme.shapes.small)
+            // Число карточек на сегодня внутри кольца освоенности; расшифровка — строкой под названием.
+            val learned = if (total > 0) started.toFloat() / total else 0f
+            val track = scheme.surfaceContainerHighest
+            val arc = scheme.primary
+            Column(Modifier.size(56.dp)
+                .drawBehind { drawRingProgress(track, arc, learned, 3.dp.toPx()) }
                 .semantics { contentDescription = "На сегодня: $toStudy" },
                 horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
                 Text("$toStudy", style = MaterialTheme.typography.titleLarge,
@@ -97,10 +104,6 @@ internal fun StudyRow(
                         newAvailable.takeIf { it > 0 }?.let { "$it ${com.marat.albion.ui.library.pluralRu(it, "новая", "новые", "новых")}" },
                     ).joinToString(" · ")
                 }, style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                if (started > 0 && total > 0) {
-                    Spacer(Modifier.height(8.dp))
-                    ThinProgress(started.toFloat() / total, height = 4.dp)
-                }
             }
             Spacer(Modifier.width(10.dp))
             Icon(AlbionIcons.ArrowForward, null, Modifier.size(18.dp), tint = scheme.onSurfaceVariant)

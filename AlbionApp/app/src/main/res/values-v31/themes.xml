@@ -2,7 +2,7 @@
 <resources>
     <style name="Theme.Albion" parent="Theme.Albion.Base">
         <item name="android:windowLightNavigationBar">false</item>
-        <item name="android:windowSplashScreenBackground">#111111</item>
+        <item name="android:windowSplashScreenBackground">#1C1B19</item>
         <item name="android:windowSplashScreenAnimatedIcon">@drawable/splash_mark</item>
     </style>
 </resources>

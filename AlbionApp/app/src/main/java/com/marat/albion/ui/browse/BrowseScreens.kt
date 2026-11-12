@@ -1,5 +1,6 @@
 package com.marat.albion.ui.browse
 
+import com.marat.albion.ui.theme.sharedElement
 import com.marat.albion.ui.components.DestructiveConfirmationDialog
 import com.marat.albion.ui.theme.selectedContent
 import com.marat.albion.ui.theme.quietItem
@@ -159,7 +160,7 @@ fun BrowseScreen(deck: Deck, navigator: Navigator, collectionId: Long? = null) {
             }
         } else {
             val shownCard = (navigator.shownDetail as? CardRoute)?.cardId
-            LazyColumn(modifier.fillMaxWidth(), contentPadding = PaddingValues(bottom = 24.dp)) {
+            LazyColumn(modifier.fillMaxWidth(), contentPadding = PaddingValues(bottom = 24.dp + com.marat.albion.ui.components.bottomChrome)) {
                 if (showCount) item {
                     Eyebrow(if (level.isEmpty()) "${shownCards.size} карточ." else "${shownCards.size} карточ. · $level",
                         Modifier.padding(horizontal = 24.dp, vertical = 8.dp))
@@ -181,7 +182,7 @@ fun BrowseScreen(deck: Deck, navigator: Navigator, collectionId: Long? = null) {
                         onPlay = { audio.play(deck, card.audio, card.term, "term:${card.id}") },
                         onClick = { if (collectionId != null) toggle(card) else navigator.openDetail(CardRoute(card.id)) },
                         picked = if (collectionId != null) isPicked(card) else null,
-                        modifier = quietItem(),
+                        modifier = quietItem().sharedElement("card:${card.id}"),
                     )
                 }
             }
@@ -413,7 +414,7 @@ fun CardDetailScreen(cardId: String, navigator: Navigator) {
         }
         Column(
             Modifier.fillMaxSize().verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp).windowInsetsPadding(WindowInsets.navigationBars).padding(bottom = 24.dp),
+                .padding(horizontal = 20.dp).windowInsetsPadding(WindowInsets.navigationBars).padding(bottom = 24.dp + com.marat.albion.ui.components.bottomChrome),
         ) {
             Panel(
                 Modifier.padding(top = 20.dp),

@@ -82,7 +82,7 @@ val Typography = Typography(
     bodySmall = sans(13f, 19, FontWeight.Normal, 0.005),
     labelLarge = sans(15f, 20, FontWeight.SemiBold, 0.005, Numerals),
     // Подписи — тот же Onest со строчными буквами и табличными цифрами.
-    labelMedium = sans(13f, 17, FontWeight.Medium, 0.01, Numerals),
+    labelMedium = sans(12.5f, 17, FontWeight.Medium, 0.01, Numerals),
     labelSmall = sans(11.5f, 15, FontWeight.Medium, 0.02, Numerals),
 )
 

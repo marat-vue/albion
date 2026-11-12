@@ -123,7 +123,7 @@ private fun Heading(h: MdHeading, modifier: Modifier) {
             Spacer(Modifier.height(14.dp))
             InlineText(h.text, style = TextStyle(fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold, fontSize = 22.sp * scale, lineHeight = 28.sp * scale, color = MaterialTheme.colorScheme.onSurface, letterSpacing = (-0.3).sp))
         }
-        3 -> InlineText(h.text.uppercase(), modifier.padding(top = 10.dp), style = MaterialTheme.typography.labelMedium.copy(color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp * scale))
+        3 -> InlineText(h.text, modifier.padding(top = 10.dp), style = MaterialTheme.typography.titleSmall.copy(color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp * scale))
         else -> InlineText(h.text, modifier.padding(top = 4.dp), style = MaterialTheme.typography.titleSmall.copy(fontSize = 15.sp * scale, color = MaterialTheme.colorScheme.onSurface))
     }
 }
@@ -412,7 +412,7 @@ private fun CalloutView(c: MdCallout, modifier: Modifier) {
             ) {
                 Icon(l.icon, null, tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(17.dp))
                 Spacer(Modifier.width(10.dp))
-                InlineText(c.title.uppercase(), Modifier.weight(1f), style = MaterialTheme.typography.labelMedium.copy(color = MaterialTheme.colorScheme.onSurface, fontSize = 13.sp * scale))
+                InlineText(c.title, Modifier.weight(1f), style = MaterialTheme.typography.titleSmall.copy(color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp * scale))
                 if (c.foldable) DisclosureIndicator(open, Modifier.padding(start = 12.dp))
             }
             AnimatedVisibility(

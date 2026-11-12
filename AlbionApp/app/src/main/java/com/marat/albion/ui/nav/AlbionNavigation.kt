@@ -35,10 +35,21 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.windowInsetsTopHeight
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.only
-import androidx.compose.material3.Scaffold
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionLayout
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.unit.dp
+import com.marat.albion.ui.components.LocalBottomChrome
+import com.marat.albion.ui.theme.LocalSharedTransitionScope
+import com.marat.albion.ui.theme.sharedElement
+import dev.chrisbanes.haze.hazeSource
+import dev.chrisbanes.haze.rememberHazeState
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
@@ -103,7 +114,12 @@ private fun backward(reduced: Boolean): ContentTransform = if (reduced) none els
     (slideInHorizontally(Springs.smooth()) { -it / 12 } + fadeIn(tween(220)) + scaleIn(Springs.smooth(), initialScale = 0.97f)) togetherWith
         (slideOutHorizontally(Springs.smooth()) { it / 5 } + fadeOut(tween(160)))
 
-@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+/** Predictive back: прежний экран проступает из глубины, текущий уходит вправо вслед за жестом. */
+private fun predictiveBack(reduced: Boolean): ContentTransform = if (reduced) none else
+    (fadeIn(tween(200)) + scaleIn(Springs.card(), initialScale = 0.92f)) togetherWith
+        (slideOutHorizontally(Springs.card()) { it / 3 } + scaleOut(Springs.card(), targetScale = 0.94f) + fadeOut(tween(200)))
+
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class, ExperimentalSharedTransitionApi::class)
 @Composable
 fun AlbionNavigation() {
     val reduced = LocalReducedMotion.current
@@ -148,7 +164,10 @@ fun AlbionNavigation() {
                 entryProvider = { route ->
                     val original = provider(route)
                     NavEntry(route, contentKey = "$tab:$route", metadata = original.metadata + paneMetadata(route)) {
-                        CenteredColumn(maxWidthFor(route)) { original.Content() }
+                        val shared = sharedKeyFor(route)
+                        Box(Modifier.fillMaxSize().then(if (shared != null) Modifier.sharedElement(shared) else Modifier)) {
+                            CenteredColumn(maxWidthFor(route)) { original.Content() }
+                        }
                     }
                 },
             )
@@ -163,21 +182,16 @@ fun AlbionNavigation() {
             // На планшете вкладки — боковой панелью слева, на телефоне — снизу.
             val railMetrics = navigationRailMetrics(maxWidth, navigationHeight)
             val wide = railMetrics.enabled
-            Scaffold(
-                contentWindowInsets = WindowInsets(0),
-                bottomBar = {
-                    AnimatedVisibility(
-                        visible = chromeVisible && !wide,
-                        enter = fadeIn(tween(180)) + slideInVertically(tween(220, easing = Easing.Standard)) { if (reduced) 0 else it / 3 },
-                        exit = fadeOut(tween(120)) + slideOutVertically(tween(180)) { if (reduced) 0 else it / 3 },
-                    ) {
-                        BottomBar(navigator.selectedTab) { feedback.selection(); navigator.selectTab(it) }
-                    }
-                },
-            ) { padding ->
-                val bottom = PaddingValues(bottom = padding.calculateBottomPadding())
+            // Стеклянная панель вкладок лежит поверх контента: экраны прокручиваются под ней
+            // и добавляют её высоту к нижнему отступу (LocalBottomChrome).
+            val haze = rememberHazeState()
+            val barVisible = chromeVisible && !wide
+            var barHeight by remember { mutableStateOf(0.dp) }
+            val density = LocalDensity.current
+            val chrome = if (barVisible) barHeight else 0.dp
+            Box(Modifier.fillMaxSize()) {
                 val rail = chromeVisible && wide
-                Row(Modifier.fillMaxSize()) {
+                Row(Modifier.fillMaxSize().hazeSource(haze)) {
                     AnimatedVisibility(
                         visible = rail,
                         enter = fadeIn(tween(180)) + slideInHorizontally(tween(220, easing = Easing.Standard)) { if (reduced) 0 else -it / 3 },
@@ -193,26 +207,53 @@ fun AlbionNavigation() {
                         val spatialMotion = reduced || LocalWindowFolds.current.orEmpty().isNotEmpty()
                         val sceneBounds = if (LocalLayoutDirection.current == LayoutDirection.Rtl) bounds.copy(right = bounds.right - railWidth)
                             else bounds.copy(left = bounds.left + railWidth)
-                        CompositionLocalProvider(LocalSceneBounds provides sceneBounds) {
-                            NavDisplay(
-                                entries = entries.getValue(navigator.selectedTab),
-                                onBack = { navigator.back() },
-                                sceneStrategies = remember(listDetail, navigator) { listOf(ListDetailSceneStrategy(listDetail) { com.marat.albion.ui.grammar.GrammarOverview(navigator) }) },
-                                modifier = Modifier.padding(bottom).consumeWindowInsets(bottom)
-                                    // Без нижней панели вкладок разделы сами отступают от системной навигации.
-                                    .then(if (rail) Modifier.windowInsetsPadding(WindowInsets.navigationBars.only(WindowInsetsSides.Bottom)) else Modifier),
-                                transitionSpec = { forward(spatialMotion) },
-                                popTransitionSpec = { backward(spatialMotion) },
-                                predictivePopTransitionSpec = { backward(spatialMotion) },
-                            )
+                        CompositionLocalProvider(LocalSceneBounds provides sceneBounds, LocalBottomChrome provides chrome) {
+                            SharedTransitionLayout {
+                                // В режиме «список + деталь» строка и страница видны одновременно — общий элемент там не нужен.
+                                val sharedScope = if (spatialMotion || listDetail) null else this
+                                CompositionLocalProvider(LocalSharedTransitionScope provides sharedScope) {
+                                    NavDisplay(
+                                        entries = entries.getValue(navigator.selectedTab),
+                                        onBack = { navigator.back() },
+                                        sceneStrategies = remember(listDetail, navigator) { listOf(ListDetailSceneStrategy(listDetail) { com.marat.albion.ui.grammar.GrammarOverview(navigator) }) },
+                                        sharedTransitionScope = sharedScope,
+                                        modifier = Modifier
+                                            // Под панелью вкладок системная навигация уже учтена в её высоте.
+                                            .then(if (barVisible) Modifier.consumeWindowInsets(WindowInsets.navigationBars) else Modifier)
+                                            // Без нижней панели вкладок разделы сами отступают от системной навигации.
+                                            .then(if (rail) Modifier.windowInsetsPadding(WindowInsets.navigationBars.only(WindowInsetsSides.Bottom)) else Modifier),
+                                        transitionSpec = { forward(spatialMotion) },
+                                        popTransitionSpec = { backward(spatialMotion) },
+                                        predictivePopTransitionSpec = { predictiveBack(spatialMotion) },
+                                    )
+                                }
+                            }
                         }
                         // Прокручиваемый контент не должен просвечивать под статус-баром.
                         Box(Modifier.fillMaxWidth().windowInsetsTopHeight(WindowInsets.statusBars).background(MaterialTheme.colorScheme.background))
                     }
                 }
+                AnimatedVisibility(
+                    visible = barVisible,
+                    modifier = Modifier.align(Alignment.BottomCenter),
+                    enter = fadeIn(tween(180)) + slideInVertically(tween(220, easing = Easing.Standard)) { if (reduced) 0 else it / 3 },
+                    exit = fadeOut(tween(120)) + slideOutVertically(tween(180)) { if (reduced) 0 else it / 3 },
+                ) {
+                    BottomBar(navigator.selectedTab, haze, Modifier.onSizeChanged { barHeight = with(density) { it.height.toDp() } }) {
+                        feedback.selection(); navigator.selectTab(it)
+                    }
+                }
             }
         }
     }
+}
+
+/** Ключ общего элемента: экран «вырастает» из обложки, плитки урока или строки слова. */
+private fun sharedKeyFor(route: NavKey): String? = when (route) {
+    is ReaderRoute -> "book:${route.bookId}"
+    is TopicRoute -> "topic:${route.topicId}"
+    is CardRoute -> "card:${route.cardId}"
+    else -> null
 }
 
 /** Ширина колонки экрана: книга — на всю ширину, задания — уже, списки и текст — колонкой для чтения. */

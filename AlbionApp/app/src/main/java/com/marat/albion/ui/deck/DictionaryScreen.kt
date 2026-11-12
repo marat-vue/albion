@@ -72,7 +72,7 @@ fun DictionaryScreen(deck: Deck, navigator: Navigator) {
         }
         Column(
             Modifier.fillMaxSize().verticalScroll(rememberScrollState())
-                .padding(horizontal = gutter).windowInsetsPadding(WindowInsets.navigationBars).padding(bottom = 24.dp),
+                .padding(horizontal = gutter).windowInsetsPadding(WindowInsets.navigationBars).padding(bottom = 24.dp + com.marat.albion.ui.components.bottomChrome),
         ) deckContent@{
             Column(Modifier) {
                 Eyebrow("Словарь · %02d".format(deck.ordinal + 1))

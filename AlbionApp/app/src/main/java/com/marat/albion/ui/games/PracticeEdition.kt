@@ -24,14 +24,14 @@ import com.marat.albion.ui.components.SignalLabel
 import com.marat.albion.ui.theme.*
 
 internal val Game.editionTitle: String get() = when (this) {
-    Game.TYPE_ANSWER -> "СЛОВА"
-    Game.IRREGULAR -> "ФОРМЫ ГЛАГОЛА"
-    Game.GRAMMAR_CHOICE -> "ГРАММАТИКА"
-    Game.GRAMMAR_GAP -> "ПИСЬМО"
-    Game.SENTENCE -> "ПОРЯДОК СЛОВ"
-    Game.TENSES -> "ВРЕМЕНА"
-    Game.PRONUNCIATION -> "РЕЧЬ"
-    Game.SHADOWING -> "РЕЧЬ И РИТМ"
+    Game.TYPE_ANSWER -> "Слова"
+    Game.IRREGULAR -> "Формы глагола"
+    Game.GRAMMAR_CHOICE -> "Грамматика"
+    Game.GRAMMAR_GAP -> "Письмо"
+    Game.SENTENCE -> "Порядок слов"
+    Game.TENSES -> "Времена"
+    Game.PRONUNCIATION -> "Речь"
+    Game.SHADOWING -> "Речь и ритм"
 }
 
 /** Код формата совпадает с нумерацией каталога практики: «02.1» — первое упражнение раздела 02. */

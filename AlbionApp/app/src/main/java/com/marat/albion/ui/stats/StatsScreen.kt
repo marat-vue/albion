@@ -83,9 +83,9 @@ fun StatsScreen(navigator: Navigator) {
 
     Column(
         Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).verticalScroll(rememberScrollState())
-            .padding(horizontal = gutter).padding(bottom = 32.dp),
+            .padding(horizontal = gutter).padding(bottom = 32.dp + com.marat.albion.ui.components.bottomChrome),
     ) {
-        Box(Modifier) { ScreenHeader("Прогресс", eyebrow = "05 / ДИНАМИКА", compact = true, trailing = { SettingsShortcut(navigator::openSettings) }) }
+        Box(Modifier) { ScreenHeader("Прогресс", compact = true, trailing = { SettingsShortcut(navigator::openSettings) }) }
         val s = stats ?: run { com.marat.albion.ui.components.LoadingState("Собираем прогресс"); return@Column }
 
         // в день рекорда — стоит на карточке достижения.
@@ -93,7 +93,7 @@ fun StatsScreen(navigator: Navigator) {
 
         val month = days(s.daily, s.today - 29, s.today)
         Panel(Modifier.fillMaxWidth().padding(top = 8.dp).appear(2)) {
-            com.marat.albion.ui.components.SignalLabel("РЕГУЛЯРНОСТЬ")
+            com.marat.albion.ui.components.SignalLabel("Регулярность")
             Spacer(Modifier.height(20.dp))
             Row(verticalAlignment = Alignment.Bottom) {
                 com.marat.albion.ui.theme.AnimatedNumber(s.streak, MaterialTheme.typography.displayLarge)

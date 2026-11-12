@@ -1,5 +1,6 @@
 package com.marat.albion.ui.collections
 
+import com.marat.albion.ui.theme.sharedElement
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -105,7 +106,7 @@ fun CollectionScreen(id: Long, navigator: Navigator) {
         val list = words.orEmpty()
         val shownCard = (navigator.shownDetail as? CardRoute)?.cardId
         LazyColumn(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.navigationBars),
-            contentPadding = PaddingValues(bottom = 24.dp)) {
+            contentPadding = PaddingValues(bottom = 24.dp + com.marat.albion.ui.components.bottomChrome)) {
             item { CollectionHeader(collection, list.size, Modifier.padding(horizontal = gutter)) }
             item {
                 Column(Modifier.padding(horizontal = gutter)) {
@@ -204,7 +205,7 @@ private fun EmptyCollection() {
 private fun CollectionWordRow(card: CardEntity, selected: Boolean, onOpen: () -> Unit, onRemove: () -> Unit) {
     val content = if (selected) MaterialTheme.colorScheme.selectedContent else MaterialTheme.colorScheme.onSurface
     val secondary = if (selected) MaterialTheme.colorScheme.selectedContent else MaterialTheme.colorScheme.onSurfaceVariant
-    Column(Modifier.fillMaxWidth().selectedRow(selected).clickable(onClick = onOpen)) {
+    Column(Modifier.fillMaxWidth().sharedElement("card:${card.id}").selectedRow(selected).clickable(onClick = onOpen)) {
         Row(Modifier.fillMaxWidth().padding(start = 24.dp, end = 12.dp, top = 14.dp, bottom = 14.dp),
             verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {

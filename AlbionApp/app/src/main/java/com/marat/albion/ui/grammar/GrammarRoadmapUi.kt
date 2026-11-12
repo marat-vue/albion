@@ -145,6 +145,7 @@ internal fun GrammarStageHeading(stage: GrammarStage, index: Int, done: Int, rea
 internal fun GrammarRouteLesson(
     topic: Topic, progress: GrammarProgressEntity?, current: Boolean, selected: Boolean,
     first: Boolean, last: Boolean, chapter: String?, now: Long, onClick: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val mastered = progress?.masteredAt != null
     val read = progress?.readAt != null
@@ -172,7 +173,7 @@ internal fun GrammarRouteLesson(
         topic.title.split(Regex("\\s+")).maxOf { measurer.measure(it, MaterialTheme.typography.titleMedium).size.width },
         status.split(Regex("\\s+")).maxOf { measurer.measure(it, MaterialTheme.typography.labelSmall).size.width },
     ) + with(density) { 24.dp.roundToPx() }
-    Layout(modifier = Modifier.fillMaxWidth().heightIn(min = 92.dp).drawBehind {
+    Layout(modifier = modifier.fillMaxWidth().heightIn(min = 92.dp).drawBehind {
         val x = columnWidth.toPx() / 2; val y = 10.dp.toPx() + markerHeight.toPx() / 2
         if (!first) drawLine(line, Offset(x, 0f), Offset(x, y), .75.dp.toPx())
         if (!last) drawLine(line, Offset(x, y), Offset(x, size.height), .75.dp.toPx(),

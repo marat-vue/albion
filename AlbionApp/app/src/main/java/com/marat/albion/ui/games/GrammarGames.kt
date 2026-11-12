@@ -437,7 +437,7 @@ private fun ChoiceRound(vm: GrammarGameViewModel, task: GrammarTaskEntity, openR
 
     Column(Modifier.fillMaxSize().padding(horizontal = gutter)) {
         Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(top = 16.dp, bottom = 4.dp)) {
-            TaskCard(Modifier.shakeOn(shake), label = "ВЫБЕРИТЕ ВЕРНЫЙ ВАРИАНТ") {
+            TaskCard(Modifier.shakeOn(shake), label = "Выберите верный вариант") {
                 TaskHeader(task, showTopic = answered || vm.topic != null)
                 Spacer(Modifier.height(14.dp))
                 Text(
@@ -603,7 +603,7 @@ private fun GapRound(vm: GrammarGameViewModel, task: GrammarTaskEntity, openRule
 
     Column(Modifier.fillMaxSize().padding(horizontal = gutter)) {
         Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(top = 16.dp, bottom = 4.dp)) {
-            TaskCard(label = if (parsed.gapCount > 0) "ЗАПОЛНИТЕ ПРОПУСК" else "НАПИШИТЕ ОТВЕТ") {
+            TaskCard(label = if (parsed.gapCount > 0) "Заполните пропуск" else "Напишите ответ") {
                 TaskHeader(task, showTopic = verdict != null || vm.topic != null)
                 Spacer(Modifier.height(14.dp))
                 Text(

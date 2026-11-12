@@ -265,7 +265,7 @@ fun GameTopRow(game: Game?, index: Int, total: Int, onClose: () -> Unit, title: 
             com.marat.albion.ui.components.RoundIconButton(AlbionIcons.Close, "Закрыть", onClose, filled = true)
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
-                SignalLabel(game?.let { "${it.editionCode} / ${it.editionTitle}" } ?: "УЧЕБНИК / ПРОВЕРКА")
+                SignalLabel(game?.editionTitle ?: "Проверка по учебнику")
                 if (title.isNotBlank() && !typing) {
                     Spacer(Modifier.height(4.dp))
                     Text(title, style = MaterialTheme.typography.titleSmall, maxLines = 2)
@@ -375,7 +375,7 @@ data class Mistake(val prompt: String, val answer: String, val correct: String, 
 internal fun GameSetupHeader(game: Game, modifier: Modifier = Modifier, options: @Composable ColumnScope.() -> Unit) {
     Column(modifier.fillMaxWidth().padding(top = 8.dp)) {
         Panel(Modifier.fillMaxWidth().appear(0), contentPadding = PaddingValues(20.dp)) {
-            SignalLabel("${game.editionCode} / ${game.editionTitle}")
+            SignalLabel(game.editionTitle)
             Spacer(Modifier.height(16.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(game.title, Modifier.weight(1f), style = MaterialTheme.typography.headlineMedium)
@@ -406,7 +406,7 @@ fun GameSummary(
             horizontalAlignment = Alignment.CenterHorizontally) {
             if (total == 0) com.marat.albion.ui.components.EmptyState("Нет заданий для этих параметров", "Измените словарь, уровень или режим упражнения.")
             else {
-                SignalLabel("СЕССИЯ ЗАВЕРШЕНА", Modifier.appear(0))
+                SignalLabel("Сессия завершена", Modifier.appear(0))
                 Spacer(Modifier.height(8.dp))
                 Text(when { correct == total -> "Безупречно."; correct * 10 >= total * 7 -> "Отличная работа."; else -> "Продолжайте." },
                     Modifier.appear(1), style = MaterialTheme.typography.displaySmall, textAlign = TextAlign.Center)
@@ -419,12 +419,12 @@ fun GameSummary(
                 Spacer(Modifier.height(12.dp))
                 if (LocalDensity.current.fontScale > 1.3f) {
                     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        SummaryMetric("БЕЗ ОШИБОК", correct, Modifier.fillMaxWidth())
-                        SummaryMetric("К ПОВТОРЕНИЮ", (total - correct).coerceAtLeast(0), Modifier.fillMaxWidth())
+                        SummaryMetric("Без ошибок", correct, Modifier.fillMaxWidth())
+                        SummaryMetric("К повторению", (total - correct).coerceAtLeast(0), Modifier.fillMaxWidth())
                     }
                 } else Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    SummaryMetric("БЕЗ ОШИБОК", correct, Modifier.weight(1f))
-                    SummaryMetric("К ПОВТОРЕНИЮ", (total - correct).coerceAtLeast(0), Modifier.weight(1f))
+                    SummaryMetric("Без ошибок", correct, Modifier.weight(1f))
+                    SummaryMetric("К повторению", (total - correct).coerceAtLeast(0), Modifier.weight(1f))
                 }
                 if (mistakes.isNotEmpty()) {
                     Row(Modifier.fillMaxWidth().padding(top = 32.dp, bottom = 12.dp), verticalAlignment = Alignment.Bottom) {
@@ -524,7 +524,7 @@ fun Modifier.shakeOn(trigger: Int): Modifier = composed {
 internal fun TaskCard(
     modifier: Modifier = Modifier,
     centered: Boolean = false,
-    label: String = "ЗАДАНИЕ",
+    label: String = "Задание",
     content: @Composable ColumnScope.() -> Unit,
 ) {
     PracticeStage(label, modifier.appear(), centered = centered, compact = imeOpen(), content = content)
@@ -587,7 +587,7 @@ internal fun NextDock(ok: Boolean?, title: String? = null, label: String = "Да
             }
             Spacer(Modifier.width(10.dp))
             Text(heading, Modifier.weight(1f), style = MaterialTheme.typography.titleMedium, color = fg)
-            if (ok == false) SignalLabel("РАЗБОР")
+            if (ok == false) SignalLabel("Разбор")
         }
         PrimaryButton(label, onClick = onNext, trailingIcon = AlbionIcons.ArrowForward)
     }

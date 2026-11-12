@@ -92,13 +92,14 @@ class EntryNavigationUiTest {
             c.settings.setShortSessionAnswers(20)
             ActivityScenario.launch(MainActivity::class.java).use { scenario ->
                 show(scenario, "home") { AlbionNavigation() }
-                await { it.text?.toString() == "ALBION" }
-                assertWholeText(text("ALBION"))
+                val greeting = com.marat.albion.ui.home.homeGreeting(java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY))
+                await { it.text?.toString() == greeting }
+                assertWholeText(text(greeting))
                 assertFalse(fresh().any { it.text?.toString()?.contains("Ваш ритм") == true })
                 capture("home-hero")
                 val bar = navigationTop()
                 val goal = bounds(await { it.text?.toString() == "цель дня" })
-                assertTrue("Daily progress must follow the brand", goal.top >= text("ALBION").bounds.top)
+                assertTrue("Daily progress must follow the greeting", goal.top >= text(greeting).bounds.top)
                 assertTrue("Daily progress requires scrolling", goal.height() > 0 && goal.bottom <= bar)
                 val start = actionable(scrollTo {
                     it.text?.toString() == "Начать" && actionOrNull(it)?.let { action ->

@@ -90,9 +90,9 @@ class NavigationUiTest {
             clickText("Учебник")
             setSearch("present")
             clickText("Прогресс")
-            awaitNode { it.text?.toString() == "05 / ДИНАМИКА" }
+            awaitNode { it.text?.toString() == "Прогресс" && it.isHeading }
             scenario.recreate()
-            awaitNode { it.text?.toString() == "05 / ДИНАМИКА" }
+            awaitNode { it.text?.toString() == "Прогресс" && it.isHeading }
             clickText("Учебник")
             awaitNode { it.isEditable && it.text?.toString() == "present" }
         }

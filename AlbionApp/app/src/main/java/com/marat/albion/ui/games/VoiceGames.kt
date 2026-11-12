@@ -71,7 +71,7 @@ import kotlinx.coroutines.flow.first
 
 /** Термин крупно на карточке задания — общий заголовок голосовых игр. */
 @Composable
-internal fun TermBlock(card: CardEntity, label: String = "СЛУШАЙТЕ И ПОВТОРЯЙТЕ", trailing: (@Composable () -> Unit)? = null) {
+internal fun TermBlock(card: CardEntity, label: String = "Слушайте и повторяйте", trailing: (@Composable () -> Unit)? = null) {
     TaskCard(centered = true, label = label) {
         Text(card.term, style = termStyle(card.term), color = MaterialTheme.colorScheme.onSurface)
         if (card.ipa.isNotBlank() || trailing != null) {
@@ -224,7 +224,7 @@ fun PronunciationRound(vm: GameViewModel, card: CardEntity) {
             Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(top = 16.dp, bottom = 4.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            TermBlock(card, label = "ПРОИЗНЕСИТЕ ВСЛУХ") {
+            TermBlock(card, label = "Произнесите вслух") {
                 PracticeAudioButton(
                     playing = playing == "term:${card.id}",
                     onClick = { c.audio.play(deck, card.audio, card.term, "term:${card.id}") },
@@ -232,7 +232,7 @@ fun PronunciationRound(vm: GameViewModel, card: CardEntity) {
                 )
             }
             Spacer(Modifier.height(20.dp))
-            SignalLabel(if (listening) "МИКРОФОН АКТИВЕН" else "СЛУШАЙТЕ → ПРОИЗНЕСИТЕ")
+            SignalLabel(if (listening) "Микрофон активен" else "Слушайте → произнесите")
             Spacer(Modifier.height(20.dp))
             MicButton(active = listening, level = level, onClick = { if (listening) checker.stopListening() else listen() }, size = 104.dp)
             Spacer(Modifier.height(20.dp))

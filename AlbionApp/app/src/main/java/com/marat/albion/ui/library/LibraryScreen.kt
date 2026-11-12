@@ -1,5 +1,6 @@
 package com.marat.albion.ui.library
 
+import com.marat.albion.ui.theme.sharedElement
 import com.marat.albion.ui.components.DestructiveConfirmationDialog
 import com.marat.albion.ui.theme.quietItem
 import androidx.compose.ui.semantics.semantics
@@ -131,12 +132,12 @@ fun LibraryScreen(navigator: Navigator) {
         columns = GridCells.Fixed(1),
         state = shelfState,
         modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
-        contentPadding = PaddingValues(start = gutter, end = gutter, bottom = 32.dp),
+        contentPadding = PaddingValues(start = gutter, end = gutter, bottom = 32.dp + com.marat.albion.ui.components.bottomChrome),
         horizontalArrangement = Arrangement.spacedBy(14.dp),
         verticalArrangement = Arrangement.spacedBy(18.dp),
     ) {
         item(span = { GridItemSpan(maxLineSpan) }) {
-            ScreenHeader("Библиотека", eyebrow = "03 / КНИГИ", compact = true, trailing = {
+            ScreenHeader("Библиотека", compact = true, trailing = {
                 SettingsShortcut(navigator::openSettings)
             })
         }
@@ -150,7 +151,7 @@ fun LibraryScreen(navigator: Navigator) {
             }
         }
         if (continueBook != null && query.isBlank() && filter == "Все") item(span = { GridItemSpan(maxLineSpan) }) {
-            ContinueReading(continueBook, Modifier.appear(2),
+            ContinueReading(continueBook, Modifier.appear(2).sharedElement("book:${continueBook.book.id}"),
                 onDelete = if (continueBook.book.source == "user") ({ toDelete = continueBook }) else null,
                 onOpen = { navigator.open(ReaderRoute(continueBook.book.id)) })
         }
@@ -173,7 +174,7 @@ fun LibraryScreen(navigator: Navigator) {
         }
         items(rows, key = { it.book.id }) { b ->
             val onDelete: (() -> Unit)? = if (b.book.source == "user") ({ toDelete = b }) else null
-            BookRow(b, quietItem(), { navigator.open(ReaderRoute(b.book.id)) }, onDelete)
+            BookRow(b, quietItem().sharedElement("book:${b.book.id}"), { navigator.open(ReaderRoute(b.book.id)) }, onDelete)
         }
         if (query.isNotBlank()) controls()
         item(span = { GridItemSpan(maxLineSpan) }) {

@@ -299,7 +299,7 @@ fun TypeAnswerRound(vm: GameViewModel, card: CardEntity) {
             Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(top = 16.dp, bottom = 4.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            TaskCard(centered = true, label = "ПЕРЕВЕДИТЕ НА АНГЛИЙСКИЙ") {
+            TaskCard(centered = true, label = "Переведите на английский") {
                 if (!imeOpen()) {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                         if (card.pos.isNotBlank()) Chip(card.pos)
@@ -477,7 +477,7 @@ fun IrregularRound(vm: GameViewModel, card: CardEntity) {
             Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(top = 16.dp, bottom = 4.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            TaskCard(centered = true, label = "ВОССТАНОВИТЕ ФОРМЫ ГЛАГОЛА") {
+            TaskCard(centered = true, label = "Восстановите формы глагола") {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                     Eyebrow("V1 · Infinitive", color = MaterialTheme.colorScheme.primary)
                     LevelBadge(card.level)
