@@ -62,7 +62,7 @@ android {
 
     androidResources {
         // mp3/xlsx уже сжаты — не тратим время на повторное сжатие.
-        noCompress += listOf("mp3", "m4a", "aac", "ogg", "opus", "flac", "xlsx", "epub", "pdf")
+        noCompress += listOf("mp3", "xlsx", "epub", "pdf")
     }
 }
 
@@ -71,8 +71,7 @@ ksp {
 }
 
 // ---------------------------------------------------------------------------
-// Материалы: collections/*.xlsx, audio/<колода>/*.mp3, grammar/*.md,
-// listening/<трек>/{track.json, transcript.json, audio.mp3} (scripts/listening)
+// Материалы: collections/*.xlsx, audio/<колода>/*.mp3, grammar/*.md
 // копируются в assets/content при albion.bundleContent=true.
 // ---------------------------------------------------------------------------
 abstract class SyncAlbionContent @Inject constructor(
@@ -82,7 +81,7 @@ abstract class SyncAlbionContent @Inject constructor(
     @get:Internal
     abstract val sourceDir: DirectoryProperty
 
-    /** Только нужные файлы из collections/, audio/, grammar/, listening/ — от них зависит пересборка. */
+    /** Только нужные файлы из collections/, audio/, grammar/ — от них зависит пересборка. */
     @get:InputFiles
     @get:PathSensitive(PathSensitivity.RELATIVE)
     abstract val sources: ConfigurableFileCollection
@@ -116,10 +115,6 @@ abstract class SyncAlbionContent @Inject constructor(
                     include("*.txt", "*.md", "*.epub", "*.pdf")
                     into("library")
                 }
-                from(File(src, "listening")) {
-                    include("*/track.json", "*/transcript.json", "*/audio.*")
-                    into("listening")
-                }
             }
         }
     }
@@ -132,7 +127,7 @@ val contentDir = rootProject.layout.projectDirectory.dir(
 
 val syncAlbionContent = tasks.register<SyncAlbionContent>("syncAlbionContent") {
     group = "albion"
-    description = "Копирует xlsx, озвучку, грамматику и треки с текстом в assets/content."
+    description = "Копирует xlsx, озвучку и грамматику в assets/content."
     if (bundleContent) {
         sourceDir.set(contentDir)
         sources.from(
@@ -140,7 +135,6 @@ val syncAlbionContent = tasks.register<SyncAlbionContent>("syncAlbionContent") {
             contentDir.dir("audio").asFileTree.matching { include("**/*.mp3") },
             contentDir.dir("grammar").asFileTree.matching { include("*.md") },
             contentDir.dir("library").asFileTree.matching { include("*.txt", "*.md", "*.epub", "*.pdf") },
-            contentDir.dir("listening").asFileTree.matching { include("*/track.json", "*/transcript.json", "*/audio.*") },
         )
     }
     outputDir.set(layout.buildDirectory.dir("generated/albionContent"))
@@ -174,8 +168,6 @@ dependencies {
 
     implementation(libs.datastore.preferences)
     implementation(libs.media3.exoplayer)
-    // Фоновое воспроизведение «Аудио с текстом»: уведомление и кнопки на экране блокировки.
-    implementation(libs.media3.session)
     // Текст из PDF для библиотеки (Apache 2.0).
     implementation(libs.pdfbox.android)
     implementation(libs.kotlinx.serialization.json)

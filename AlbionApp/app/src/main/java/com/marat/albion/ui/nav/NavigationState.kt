@@ -30,15 +30,6 @@ sealed interface TopLevel : NavKey
 /** Разговорная практика: история бесед и выбор ситуации. */
 @Serializable data object ConversationsRoute : NavKey
 @Serializable data class ChatRoute(val conversationId: Long) : NavKey
-/** «Аудио с текстом» — вход из «Чтения». */
-@Serializable data object ListeningRoute : NavKey
-@Serializable data class ListeningPlayerRoute(val trackId: String) : NavKey
-/** Практика по треку, начиная с фразы [fromSegment]. */
-@Serializable data class ListeningPracticeRoute(
-    val trackId: String,
-    val mode: com.marat.albion.data.listening.ListeningPracticeMode,
-    val fromSegment: Int = 0,
-) : NavKey
 
 internal val primaryRoutes = listOf(HomeRoute, GrammarRoute, LibraryRoute, GamesRoute, StatsRoute)
 

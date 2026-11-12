@@ -130,8 +130,7 @@ fun AlbionNavigation() {
     val backStack = navigator.backStack
     val current = backStack.lastOrNull()
     val showBar = current !is StudyRoute && current !is ReaderRoute && current !is GameRoute &&
-        current !is TopicQuizRoute && current != SettingsRoute && current !is ChatRoute &&
-        current !is ListeningPlayerRoute && current !is ListeningPracticeRoute
+        current !is TopicQuizRoute && current != SettingsRoute && current !is ChatRoute
     BackHandler(enabled = backStack.size == 1 && navigator.selectedTab != HomeRoute) { navigator.back() }
 
     val provider = entryProvider<NavKey> {
@@ -152,11 +151,6 @@ fun AlbionNavigation() {
         entry<TopicQuizRoute> { TopicQuizHost(it.topic, it.topicId, it.title, navigator) }
         entry<ConversationsRoute> { com.marat.albion.ui.conversation.ConversationsScreen(navigator) }
         entry<ChatRoute> { com.marat.albion.ui.conversation.ChatScreen(it.conversationId, navigator) }
-        entry<ListeningRoute> { com.marat.albion.ui.listening.ListeningScreen(navigator) }
-        entry<ListeningPlayerRoute> { com.marat.albion.ui.listening.ListeningPlayerScreen(it.trackId, navigator) }
-        entry<ListeningPracticeRoute> {
-            com.marat.albion.ui.listening.ListeningPracticeScreen(it.trackId, it.mode, it.fromSegment, navigator::back)
-        }
     }
     // Декораторы всех стеков остаются в композиции, даже когда отображается другой раздел.
     val entries = stacks.mapValues { (tab, stack) ->
@@ -268,6 +262,6 @@ private fun maxWidthFor(route: NavKey): Dp = when (route) {
     is ReaderRoute -> Dp.Infinity
     // Главная на планшете делится на две колонки: сегодня и слова.
     HomeRoute -> DashboardWidth
-    is StudyRoute, is GameRoute, is TopicQuizRoute, is ChatRoute, is ListeningPracticeRoute -> FocusWidth
+    is StudyRoute, is GameRoute, is TopicQuizRoute, is ChatRoute -> FocusWidth
     else -> ReadableWidth
 }

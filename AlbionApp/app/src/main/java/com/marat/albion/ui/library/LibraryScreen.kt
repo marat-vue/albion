@@ -155,9 +155,6 @@ fun LibraryScreen(navigator: Navigator) {
                 onDelete = if (continueBook.book.source == "user") ({ toDelete = continueBook }) else null,
                 onOpen = { navigator.open(ReaderRoute(continueBook.book.id)) })
         }
-        if (query.isBlank()) item(key = "listening", span = { GridItemSpan(maxLineSpan) }) {
-            com.marat.albion.ui.listening.ListeningEntry(Modifier.appear(3)) { navigator.open(com.marat.albion.ui.nav.ListeningRoute) }
-        }
         if (query.isBlank()) controls()
         if (books == null) item(span = { GridItemSpan(maxLineSpan) }) { LoadingState("Загружаю библиотеку") }
         val rows = if (query.isBlank() && filter == "Все") shown.filter { it.book.id != continueBook?.book?.id } else shown
