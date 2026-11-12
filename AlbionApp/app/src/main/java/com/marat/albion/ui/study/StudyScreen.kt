@@ -1,6 +1,5 @@
 package com.marat.albion.ui.study
 
-import androidx.compose.ui.graphics.RectangleShape
 import com.marat.albion.ui.theme.AlbionFonts
 import androidx.compose.ui.text.font.FontStyle
 
@@ -137,7 +136,8 @@ fun StudyScreen(source: StudySource, navigator: Navigator, answerLimit: Int? = n
     }
 
     val rate: (Rating) -> Unit = { rating ->
-        feedback.selection()
+        // «Снова» — отказ, остальные оценки — подтверждение.
+        if (rating == Rating.Again) feedback.wrong() else feedback.correct()
         c.audio.stop()
         vm.answer(rating)
     }
@@ -354,11 +354,11 @@ private fun FlipCard(
     val reduced = LocalReducedMotion.current
     val rotation by animateFloatAsState(
         targetValue = if (revealed) 180f else 0f,
-        animationSpec = if (reduced) androidx.compose.animation.core.snap() else tween(480, easing = Easing.Standard),
+        animationSpec = if (reduced) androidx.compose.animation.core.snap() else com.marat.albion.ui.theme.Springs.card(),
         label = "flip",
     )
-    val dip = if (reduced) 1f else 1f - 0.06f * sin((rotation / 180f) * PI).toFloat()
-    val shape = MaterialTheme.shapes.extraLarge
+    val dip = if (reduced) 1f else 1f - 0.06f * sin((rotation.coerceIn(0f, 180f) / 180f) * PI).toFloat()
+    val shape = MaterialTheme.shapes.medium
 
     Surface(
         modifier = Modifier.fillMaxSize()
@@ -371,7 +371,7 @@ private fun FlipCard(
             .clickable(enabled = !revealed, interactionSource = remember { MutableInteractionSource() }, indication = androidx.compose.foundation.LocalIndication.current, onClick = onReveal),
         shape = shape,
         color = MaterialTheme.colorScheme.surfaceContainerLow,
-        border = androidx.compose.foundation.BorderStroke(.75.dp, MaterialTheme.colorScheme.outlineVariant),
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
     ) {
         Box(Modifier.fillMaxSize()
             ) {
@@ -441,9 +441,9 @@ private fun RatingButton(r: Rating, index: Int, interval: String, onRate: (Ratin
     Column(
         modifier.fillMaxHeight().heightIn(min = 64.dp)
             .graphicsLayer { alpha = if (reduced) 1f else appear.value; translationY = if (reduced) 0f else (1f - appear.value) * 12f }
-            .clip(RectangleShape)
+            .clip(MaterialTheme.shapes.medium)
             .background(bg)
-            .border(1.dp, border, RectangleShape)
+            .border(1.dp, border, MaterialTheme.shapes.medium)
             .clickable(interactionSource = interaction, indication = androidx.compose.foundation.LocalIndication.current, role = Role.Button) { onRate(r) }
             .padding(horizontal = 4.dp, vertical = 10.dp),
         horizontalAlignment = Alignment.CenterHorizontally,

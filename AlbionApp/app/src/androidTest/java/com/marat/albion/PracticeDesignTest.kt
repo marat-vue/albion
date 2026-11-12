@@ -54,7 +54,7 @@ class PracticeDesignTest {
             }
             ActivityScenario.launch(MainActivity::class.java).use {
                 activate(await { it.text?.toString() == "Практика" })
-                await { it.text?.toString() == "04 / НАВЫКИ" }
+                await { it.text?.toString() == "Практика" && it.isHeading }
                 capture("practice-home")
                 for (game in catalogue) {
                     capture("${game.name}-catalogue")

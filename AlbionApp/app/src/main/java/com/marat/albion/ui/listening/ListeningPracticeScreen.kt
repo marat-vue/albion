@@ -165,7 +165,7 @@ private class SegmentShadowReference(private val track: ListeningTrack, private 
 @Composable
 private fun PhraseHeader(text: String) {
     Column(Modifier.fillMaxWidth()) {
-        Eyebrow("СЛУШАЙТЕ И ПОВТОРЯЙТЕ")
+        Eyebrow("Слушайте и повторяйте")
         Spacer(Modifier.height(8.dp))
         Text(text, style = MaterialTheme.typography.titleLarge.copy(fontFamily = AlbionFonts.Reading))
     }

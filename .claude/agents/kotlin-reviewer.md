@@ -1,6 +1,6 @@
 ---
 name: kotlin-reviewer
-description: Ревьюер Kotlin/Compose-кода Albion. Использовать после изменений в AlbionApp — проверяет корутины, Compose, Room-миграции, дизайн «Mono» и правила обучения. Только отчёт, без правок.
+description: Ревьюер Kotlin/Compose-кода Albion. Использовать после изменений в AlbionApp — проверяет корутины, Compose, Room-миграции, дизайн «тёплый редакционный» и правила обучения. Только отчёт, без правок.
 tools: Read, Grep, Glob, Bash
 model: sonnet
 ---
@@ -33,10 +33,14 @@ model: sonnet
 - Побочные эффекты в теле composable; отсутствие `key` в ленивых списках; `remember` без нужных ключей.
 - Нестабильные параметры, из-за которых часто перекомпонуется тяжёлый экран.
 
-### Дизайн «Mono» (HIGH)
-- `RoundedCornerShape` с ненулевым радиусом, `CircleShape`, захардкоженные `Color(0x…)` вне `ui/theme`.
+### Дизайн «тёплый редакционный» (HIGH)
+- Формы не из темы: `RectangleShape` у поверхностей, произвольные `RoundedCornerShape(n.dp)` вместо `MaterialTheme.shapes.*` / `Capsule` / `CircleShape`; тени (`shadow`, `elevation` > 0).
+- Захардкоженные `Color(0x…)` вне `ui/theme`; шрифты не из `AlbionFonts`/`Typography` (Geist и Source Serif удалены).
 - Material `TextButton`/`IconButton` вместо обёрток из `ui/components/Buttons.kt`.
 - Контент на выбранной (инвертированной) плашке окрашен `primary`, а не `selectedContent`.
+- Капсовые и «технические» подписи («04 / НАВЫКИ», «СЕССИЯ ЗАВЕРШЕНА») вместо обычного регистра.
+- Анимация в обход `LocalReducedMotion` (`animate*AsState`/`AnimatedVisibility` без `quiet*`-обёрток или проверки), общий элемент без `Modifier.sharedElement`.
+- Прокручиваемый экран с панелью вкладок без `bottomChrome` в нижнем отступе — последние элементы уходят под стекло.
 
 ### Предметная логика (HIGH)
 - Слово «колода» в пользовательском тексте; новые слова в «Сегодня» не из коллекций.
@@ -53,10 +57,10 @@ model: sonnet
 ## Формат
 
 ```
-[HIGH] Скругление в компоненте
+[HIGH] Форма не из темы
 Файл: AlbionApp/app/src/main/java/com/marat/albion/ui/home/HomeScreen.kt:120
-Проблема: RoundedCornerShape(12.dp) — в «Mono» все углы 0 dp.
-Исправление: убрать shape или RectangleShape.
+Проблема: RoundedCornerShape(10.dp) — радиусы берутся из темы.
+Исправление: MaterialTheme.shapes.medium (карточка) или Capsule (чип).
 ```
 
 В конце:

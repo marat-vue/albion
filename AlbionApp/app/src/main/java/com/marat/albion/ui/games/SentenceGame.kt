@@ -110,7 +110,7 @@ fun SentenceRound(vm: GameViewModel, card: CardEntity) {
 
     Column(Modifier.fillMaxSize().padding(horizontal = gutter)) {
         Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(top = 16.dp, bottom = 4.dp)) {
-            TaskCard(label = "СОБЕРИТЕ ПРЕДЛОЖЕНИЕ") {
+            TaskCard(label = "Соберите предложение") {
             val shownTranslation = translation?.takeIf { it.isNotBlank() }
             if (shownTranslation != null) {
                 Row(verticalAlignment = Alignment.Top) {
@@ -134,7 +134,7 @@ fun SentenceRound(vm: GameViewModel, card: CardEntity) {
             }
             Spacer(Modifier.height(18.dp))
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                com.marat.albion.ui.components.SignalLabel("ВАША ФРАЗА", Modifier.weight(1f))
+                com.marat.albion.ui.components.SignalLabel("Ваша фраза", Modifier.weight(1f))
                 com.marat.albion.ui.components.SignalLabel("${placed.size} / ${puzzle.tokens.size}")
             }
             Spacer(Modifier.height(12.dp))
@@ -182,7 +182,7 @@ fun SentenceRound(vm: GameViewModel, card: CardEntity) {
             ) { answered ->
                 if (!answered) {
                     Column {
-                    com.marat.albion.ui.components.SignalLabel("ДОСТУПНЫЕ СЛОВА", Modifier.padding(top = 22.dp))
+                    com.marat.albion.ui.components.SignalLabel("Доступные слова", Modifier.padding(top = 22.dp))
                     // Запас слов: поставленные остаются пустыми местами, чтобы плашки не прыгали.
                     FlowRow(
                         Modifier.fillMaxWidth().padding(top = 12.dp),

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <style name="Theme.Albion.Base" parent="android:Theme.Material.Light.NoActionBar">
-        <item name="android:windowBackground">#111111</item>
+        <item name="android:windowBackground">#1C1B19</item>
         <item name="android:windowLightStatusBar">false</item>
     </style>
     <style name="Theme.Albion" parent="Theme.Albion.Base" />

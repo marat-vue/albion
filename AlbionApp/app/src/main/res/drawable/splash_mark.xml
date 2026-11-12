@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Generated from bundled Geist (wght 560) by scripts/mark.py; all ink inside the 66 dp safe zone. -->
+<!-- Generated from bundled Literata (wght 520, opsz 72) by scripts/mark.py; all ink inside the 66 dp safe zone. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108">
-    <path android:pathData="M33.0,33.0h42.0v42.0h-42.0z" android:strokeColor="#FFFAFAFA" android:strokeWidth="1.4" android:fillColor="#00000000" />
-    <path android:pathData="M42.341 66.5 51.355 41.5H56.645L65.659 66.5H61.155L59.004 60.345H48.985L46.834 66.5ZM50.265 56.621H57.735L54.006 45.73Z" android:fillColor="#FFFAFAFA" />
+    <path android:pathData="M32.0,54.0a22.0,22.0 0 1,0 44.0,0a22.0,22.0 0 1,0 -44.0,0z" android:strokeColor="#FFF6F2EA" android:strokeWidth="1.2" android:fillColor="#00000000" />
+    <path android:pathData="M42.705 66V65.605L43.917 65.394Q44.488 65.269 44.831 64.939Q45.175 64.609 45.522 63.573L52.658 42H55.469L62.622 63.629Q62.91 64.506 63.172 64.851Q63.434 65.197 64.149 65.334L65.295 65.552V66H55.952V65.605L57.604 65.394Q58.239 65.322 58.377 64.957Q58.514 64.592 58.266 63.748L56.529 57.847H48.257L46.416 63.581Q46.167 64.393 46.336 64.868Q46.504 65.342 47.246 65.414L49.114 65.632V66ZM48.493 57.255H56.305L52.494 44.921H52.422Z" android:fillColor="#FFF6F2EA" />
 </vector>

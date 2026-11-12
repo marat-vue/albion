@@ -63,7 +63,7 @@ fun CoachMark(key: String, text: String, modifier: Modifier = Modifier, show: Bo
             Modifier.fillMaxWidth().padding(vertical = 6.dp).clip(MaterialTheme.shapes.large)
                 // Спокойная панель темы: в тёмной теме инверсная белая плашка слепила и спорила с карточкой.
                 .background(scheme.surfaceContainerHigh)
-                .border(.75.dp, scheme.outlineVariant, MaterialTheme.shapes.large)
+                .border(1.dp, scheme.outlineVariant, MaterialTheme.shapes.large)
                 .clickable(role = Role.Button, onClickLabel = "Понятно") { c.appScope.launch { c.settings.markHelpViewed("coach.$key") } }
                 .padding(horizontal = 16.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -72,9 +72,8 @@ fun CoachMark(key: String, text: String, modifier: Modifier = Modifier, show: Bo
                 val dot = scheme.primary
                 Canvas(Modifier.size(22.dp)) {
                     val halo = size.minDimension * (0.4f + 0.6f * pulse)
-                    drawRect(dot.copy(alpha = 0.35f * (1f - pulse)), Offset((size.width - halo) / 2, (size.height - halo) / 2), Size(halo, halo))
-                    val core = size.minDimension * 0.36f
-                    drawRect(dot, Offset((size.width - core) / 2, (size.height - core) / 2), Size(core, core))
+                    drawCircle(dot.copy(alpha = 0.35f * (1f - pulse)), halo / 2)
+                    drawCircle(dot, size.minDimension * 0.18f)
                 }
             }
             Spacer(Modifier.width(12.dp))

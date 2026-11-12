@@ -1,6 +1,5 @@
 package com.marat.albion.ui.grammar
 
-import androidx.compose.ui.graphics.RectangleShape
 import com.marat.albion.ui.components.DisclosureIndicator
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
@@ -124,7 +123,7 @@ private fun Heading(h: MdHeading, modifier: Modifier) {
             Spacer(Modifier.height(14.dp))
             InlineText(h.text, style = TextStyle(fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold, fontSize = 22.sp * scale, lineHeight = 28.sp * scale, color = MaterialTheme.colorScheme.onSurface, letterSpacing = (-0.3).sp))
         }
-        3 -> InlineText(h.text.uppercase(), modifier.padding(top = 10.dp), style = MaterialTheme.typography.labelMedium.copy(color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp * scale))
+        3 -> InlineText(h.text, modifier.padding(top = 10.dp), style = MaterialTheme.typography.titleSmall.copy(color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp * scale))
         else -> InlineText(h.text, modifier.padding(top = 4.dp), style = MaterialTheme.typography.titleSmall.copy(fontSize = 15.sp * scale, color = MaterialTheme.colorScheme.onSurface))
     }
 }
@@ -245,7 +244,7 @@ private fun ListView(list: MdList, modifier: Modifier) {
                             null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp),
                         )
                         list.ordered -> Text("${list.start + index}", style = MaterialTheme.typography.titleMedium.copy(color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 16.sp * LocalMdEnv.current.scale))
-                        else -> Box(Modifier.size(4.dp).background(MaterialTheme.colorScheme.onSurface))
+                        else -> Box(Modifier.size(5.dp).background(MaterialTheme.colorScheme.onSurface, androidx.compose.foundation.shape.CircleShape))
                     }
                 }
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -314,7 +313,7 @@ private fun TableView(table: MdTable, modifier: Modifier) {
             TableAsCards(table, headStyle, cellStyle)
         } else {
             val widths = layout.map { with(density) { it.toDp() } }
-            Column(Modifier.border(1.dp, MaterialTheme.colorScheme.outlineVariant, RectangleShape)) {
+            Column(Modifier.border(1.dp, MaterialTheme.colorScheme.outlineVariant, MaterialTheme.shapes.medium)) {
                 TableRow(table.header, widths, headStyle, MaterialTheme.colorScheme.surfaceContainerHigh, cellPadding)
                 table.rows.forEachIndexed { r, row ->
                     Hairline()
@@ -346,7 +345,7 @@ private fun TableAsCards(table: MdTable, headStyle: TextStyle, cellStyle: TextSt
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         table.rows.forEach { row ->
             Column(
-                Modifier.fillMaxWidth().border(1.dp, MaterialTheme.colorScheme.outlineVariant, RectangleShape)
+                Modifier.fillMaxWidth().border(1.dp, MaterialTheme.colorScheme.outlineVariant, MaterialTheme.shapes.medium)
                     .padding(horizontal = 16.dp, vertical = 14.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
@@ -393,7 +392,7 @@ private fun CalloutView(c: MdCallout, modifier: Modifier) {
     val l = look(c.kind)
     var open by rememberSaveable(c.title, c.kind) { mutableStateOf(c.initiallyExpanded) }
     val scale = LocalMdEnv.current.scale
-    val shape = RectangleShape
+    val shape = MaterialTheme.shapes.small
     val container = when (l.frame) {
         Frame.Box -> modifier.fillMaxWidth().clip(shape).background(MaterialTheme.colorScheme.surface).border(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f), shape)
         Frame.Filled -> modifier.fillMaxWidth().clip(shape).background(MaterialTheme.colorScheme.surfaceContainerHigh)
@@ -413,7 +412,7 @@ private fun CalloutView(c: MdCallout, modifier: Modifier) {
             ) {
                 Icon(l.icon, null, tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(17.dp))
                 Spacer(Modifier.width(10.dp))
-                InlineText(c.title.uppercase(), Modifier.weight(1f), style = MaterialTheme.typography.labelMedium.copy(color = MaterialTheme.colorScheme.onSurface, fontSize = 13.sp * scale))
+                InlineText(c.title, Modifier.weight(1f), style = MaterialTheme.typography.titleSmall.copy(color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp * scale))
                 if (c.foldable) DisclosureIndicator(open, Modifier.padding(start = 12.dp))
             }
             AnimatedVisibility(
@@ -439,7 +438,7 @@ private fun QuoteView(q: MdQuote, modifier: Modifier) {
 @Composable
 private fun CodeView(code: MdCode, modifier: Modifier) {
     val scale = LocalMdEnv.current.scale
-    Box(modifier.fillMaxWidth().clip(RectangleShape).background(MaterialTheme.colorScheme.surfaceContainer).padding(14.dp)) {
+    Box(modifier.fillMaxWidth().clip(MaterialTheme.shapes.medium).background(MaterialTheme.colorScheme.surfaceContainer).padding(14.dp)) {
         Text(code.code, Modifier.horizontalScroll(rememberScrollState()), softWrap = false,
             style = TextStyle(fontWeight = FontWeight.Medium, fontFamily = FontFamily.Monospace,
                 fontSize = 13.sp * scale, lineHeight = 20.sp * scale, color = MaterialTheme.colorScheme.onSurface))

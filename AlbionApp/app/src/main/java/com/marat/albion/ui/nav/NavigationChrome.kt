@@ -1,7 +1,15 @@
 package com.marat.albion.ui.nav
 
 import com.marat.albion.ui.components.IconButton
-import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.text.font.FontWeight
+import com.marat.albion.ui.theme.Capsule
+import dev.chrisbanes.haze.HazeInput
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.blur.HazeBlurStyle
+import dev.chrisbanes.haze.blur.HazeColorEffect
+import dev.chrisbanes.haze.blur.hazeBlur
 import com.marat.albion.ui.components.PaneBottomSheet as ModalBottomSheet
 import com.marat.albion.ui.theme.selectedContent
 import com.marat.albion.ui.components.selectionSurface
@@ -71,10 +79,10 @@ internal fun SideRail(selected: TopLevel, metrics: RailMetrics, onSelect: (TopLe
             if (!metrics.compact) AlbionMark(Modifier.align(Alignment.CenterHorizontally).padding(vertical = 24.dp))
             tabs.forEach { tab ->
                 val active = tab.route == selected
-                val tint = if (active) scheme.selectedContent else scheme.onSurfaceVariant
+                val tint = if (active) scheme.onSurface else scheme.onSurfaceVariant
                 val target = Modifier.fillMaxWidth().heightIn(min = metrics.itemHeight)
-                    .padding(horizontal = 6.dp).clip(MaterialTheme.shapes.medium)
-                    .background(scheme.background).selectionSurface(active)
+                    .padding(horizontal = 8.dp, vertical = 2.dp).clip(MaterialTheme.shapes.medium)
+                    .background(if (active) scheme.surfaceContainerHighest else scheme.background)
                     .selectable(active, role = Role.Tab, onClick = { onSelect(tab.route) })
                 if (metrics.compact) Row(target.padding(horizontal = 12.dp, vertical = 6.dp),
                     verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -91,19 +99,55 @@ internal fun SideRail(selected: TopLevel, metrics: RailMetrics, onSelect: (TopLe
     }
 }
 
-/** Full tabs when they fit; two direct destinations and a stable More button otherwise. */
+/** Вкладка: иконка в тональной капсуле-индикаторе, подпись под ней. */
 @Composable
-internal fun BottomBar(selected: TopLevel, onSelect: (TopLevel) -> Unit) {
+private fun BarItem(icon: @Composable (Color) -> Unit, label: String, active: Boolean, style: androidx.compose.ui.text.TextStyle,
+    modifier: Modifier) {
+    val scheme = MaterialTheme.colorScheme
+    val tint = if (active) scheme.onSurface else scheme.onSurfaceVariant
+    val indicator by quietFloatAsState(if (active) 1f else 0f, Springs.bouncy(), "tabIndicator")
+    Column(modifier, horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+        Box(Modifier.size(width = 56.dp, height = 30.dp), contentAlignment = Alignment.Center) {
+            Box(Modifier.matchParentSize().graphicsLayer { alpha = indicator; scaleX = .6f + .4f * indicator }
+                .background(scheme.surfaceContainerHighest, Capsule))
+            icon(tint)
+        }
+        Spacer(Modifier.height(4.dp))
+        Text(label, Modifier.padding(horizontal = 2.dp), style = if (active) style.copy(fontWeight = FontWeight.SemiBold) else style,
+            color = tint, softWrap = false)
+    }
+}
+
+/**
+ * Полные вкладки, если помещаются; иначе две прямые и стабильная «Ещё».
+ * Панель — матовое стекло ([haze]): контент прокручивается под ней; при «Меньше движения» — непрозрачная.
+ */
+@Composable
+internal fun BottomBar(selected: TopLevel, haze: HazeState, modifier: Modifier = Modifier, onSelect: (TopLevel) -> Unit) {
     val style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp, letterSpacing = 0.sp)
     val measurer = rememberTextMeasurer()
     val density = LocalDensity.current
     val scheme = MaterialTheme.colorScheme
+    // Стекло — тоже «живой» эффект (контент плывёт под панелью), поэтому «Меньше движения» делает её непрозрачной.
+    val glass = !LocalReducedMotion.current
     var open by rememberSaveable { mutableStateOf(false) }
-    BoxWithConstraints(Modifier.fillMaxWidth().background(scheme.background).windowInsetsPadding(WindowInsets.navigationBars)) {
-        val outer = if (maxWidth < 360.dp) 8.dp else 16.dp
-        val available = maxWidth - outer * 2 - 10.dp
-        fun labelWidth(label: String) = maxOf(48.dp,
-            with(density) { measurer.measure(label, style, softWrap = false).size.width.toDp() } + 4.dp)
+    val tint = scheme.background
+    val blur = remember(tint) {
+        HazeBlurStyle {
+            blurRadius(24.dp)
+            backgroundColor(tint)
+            colorEffects(listOf(HazeColorEffect.tint(tint.copy(alpha = .72f))))
+            noiseFactor(0f)
+        }
+    }
+    BoxWithConstraints(modifier.fillMaxWidth()
+        .then(if (glass) Modifier.hazeBlur(HazeInput.Sources(haze), blur) else Modifier.background(scheme.background))
+        .drawBehind { drawLine(scheme.outlineVariant, Offset(0f, 0f), Offset(size.width, 0f), 1.dp.toPx()) }
+        .windowInsetsPadding(WindowInsets.navigationBars)) {
+        val outer = if (maxWidth < 360.dp) 4.dp else 8.dp
+        val available = maxWidth - outer * 2
+        fun labelWidth(label: String) = maxOf(56.dp,
+            with(density) { measurer.measure(label, style.copy(fontWeight = FontWeight.SemiBold), softWrap = false).size.width.toDp() } + 4.dp)
         fun equalSlotsFit(labels: List<String>) = labels.maxOf(::labelWidth) <= available / labels.size
         val full = equalSlotsFit(tabs.map { it.label })
         val fast = tabs.filter { it.route == HomeRoute || it.route == GamesRoute }
@@ -111,36 +155,22 @@ internal fun BottomBar(selected: TopLevel, onSelect: (TopLevel) -> Unit) {
         val direct = if (full) tabs else if (fastFits) fast else tabs.take(1)
         val labels = direct.map { it.label } + if (full) emptyList() else listOf("Ещё")
         val labelHeight = with(density) { labels.maxOf { measurer.measure(it, style, softWrap = false).size.height }.toDp() }
-        val barHeight = maxOf(58.dp, labelHeight + 41.dp)
-        Row(Modifier.fillMaxWidth().padding(horizontal = outer, vertical = 8.dp)
-            .clip(RectangleShape).background(scheme.surfaceContainerLow)
-            .border(.75.dp, scheme.outlineVariant, RectangleShape)
-            .padding(5.dp).height(barHeight).selectableGroup()) {
+        val barHeight = maxOf(64.dp, labelHeight + 46.dp)
+        Row(Modifier.fillMaxWidth().padding(horizontal = outer).padding(top = 6.dp, bottom = 4.dp)
+            .height(barHeight).selectableGroup()) {
             direct.forEach { tab ->
                 val active = tab.route == selected
-                val tint = if (active) scheme.selectedContent else scheme.onSurfaceVariant
-                Column(Modifier.weight(1f).fillMaxHeight().clip(RectangleShape)
-                    .selectionSurface(active, RectangleShape)
-                    .selectable(active, role = Role.Tab, onClick = { onSelect(tab.route) }),
-                    horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-                    TabIcon(tab, active, tint)
-                    Spacer(Modifier.height(3.dp))
-                    Text(tab.label, Modifier.padding(horizontal = 2.dp), style = style, color = tint, softWrap = false)
-                }
+                BarItem({ TabIcon(tab, active, it) }, tab.label, active, style,
+                    Modifier.weight(1f).fillMaxHeight().clip(MaterialTheme.shapes.small)
+                        .selectable(active, role = Role.Tab, onClick = { onSelect(tab.route) }))
             }
             if (!full) {
                 val active = direct.none { it.route == selected }
                 val current = tabs.first { it.route == selected }
-                val tint = if (active) scheme.selectedContent else scheme.onSurfaceVariant
-                Column(Modifier.weight(1f).fillMaxHeight().clip(RectangleShape)
-                    .selectionSurface(active, RectangleShape)
-                    .clickable(role = Role.Button, onClickLabel = "Все разделы") { open = true }
-                    .semantics { if (active) stateDescription = "Открыт раздел: ${current.label}" },
-                    horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-                    Icon(AlbionIcons.Menu, null, Modifier.size(22.dp), tint = tint)
-                    Spacer(Modifier.height(3.dp))
-                    Text("Ещё", style = style, color = tint, softWrap = false)
-                }
+                BarItem({ Icon(AlbionIcons.Menu, null, Modifier.size(22.dp), tint = it) }, "Ещё", active, style,
+                    Modifier.weight(1f).fillMaxHeight().clip(MaterialTheme.shapes.small)
+                        .clickable(role = Role.Button, onClickLabel = "Все разделы") { open = true }
+                        .semantics { if (active) stateDescription = "Открыт раздел: ${current.label}" })
             }
         }
     }
@@ -163,7 +193,7 @@ private fun NavigationMenu(selected: TopLevel, onDismiss: () -> Unit, onSelect: 
                     tabs.forEach { tab ->
                         val active = tab.route == selected
                         Row(Modifier.fillMaxWidth().heightIn(min = 56.dp)
-                            .clip(RectangleShape).selectionSurface(active, RectangleShape)
+                            .clip(MaterialTheme.shapes.small).selectionSurface(active, MaterialTheme.shapes.small)
                             .selectable(active, role = Role.Tab, onClick = { onDismiss(); onSelect(tab.route) })
                             .padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(12.dp)) {

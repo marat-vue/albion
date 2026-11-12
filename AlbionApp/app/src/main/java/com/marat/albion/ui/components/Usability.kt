@@ -53,7 +53,7 @@ fun Disclosure(
             val inset = ((maxWidth - wordWidth) / 2).coerceIn(8.dp, 18.dp)
             val inline = maxWidth - inset * 2 >= wordWidth + 32.dp + if (icon == null) 0.dp else 54.dp
             val emblem: @Composable () -> Unit = {
-                if (icon != null) Box(Modifier.size(40.dp).background(MaterialTheme.colorScheme.background, MaterialTheme.shapes.small),
+                if (icon != null) Box(Modifier.size(40.dp).background(MaterialTheme.colorScheme.surfaceContainerHigh, androidx.compose.foundation.shape.CircleShape),
                     contentAlignment = Alignment.Center) { Icon(icon, null, Modifier.size(20.dp)) }
             }
             val labels: @Composable (Modifier) -> Unit = { labelModifier ->

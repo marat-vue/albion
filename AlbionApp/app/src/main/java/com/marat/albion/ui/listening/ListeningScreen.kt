@@ -91,7 +91,7 @@ fun ListeningScreen(navigator: Navigator) {
         TopBar(navigator::back, "Аудио с текстом")
         LazyColumn(
             Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(start = gutter, end = gutter, bottom = 32.dp),
+            contentPadding = PaddingValues(start = gutter, end = gutter, bottom = 32.dp + com.marat.albion.ui.components.bottomChrome),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             item(key = "intro") {

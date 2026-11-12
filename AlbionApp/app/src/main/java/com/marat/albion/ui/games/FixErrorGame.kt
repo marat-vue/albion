@@ -223,7 +223,7 @@ private fun FixErrorRound(vm: FixErrorViewModel, task: FixTask) {
             Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(top = 16.dp, bottom = 4.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            TaskCard(centered = true, label = if (found) "КАК ПРАВИЛЬНО?" else "КОСНИТЕСЬ СЛОВА С ОШИБКОЙ") {
+            TaskCard(centered = true, label = if (found) "Как правильно?" else "Коснитесь слова с ошибкой") {
                 FlowRow(
                     Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),

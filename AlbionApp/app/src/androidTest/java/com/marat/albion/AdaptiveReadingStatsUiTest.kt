@@ -61,7 +61,7 @@ class AdaptiveReadingStatsUiTest {
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
             show(scenario, "header") {
                 Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = gutter)) {
-                    ScreenHeader("Библиотека", eyebrow = "03 / КНИГИ", compact = true, trailing = {
+                    ScreenHeader("Библиотека", compact = true, trailing = {
                         Row {
                             RoundIconButton(AlbionIcons.Add, "Добавить книгу", {})
                             SettingsShortcut({})

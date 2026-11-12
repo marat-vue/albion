@@ -152,13 +152,13 @@ class AdaptiveTypographyUiTest {
             show(scenario, "labels-ipa") {
                 Column(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.statusBars)
                     .verticalScroll(rememberScrollState()).padding(horizontal = gutter)) {
-                    SignalLabel("МИКРОФОН АКТИВЕН")
-                    SignalLabel("СЛУШАЙТЕ → ПРОИЗНЕСИТЕ", Modifier.padding(top = 12.dp))
+                    SignalLabel("Микрофон активен")
+                    SignalLabel("Слушайте → произнесите", Modifier.padding(top = 12.dp))
                     Text("/ˈθɜːti ʃɪp ɑː ʊ ð ʒ ŋ ə æ ɒ ʌ ɡ t͡ʃ/", style = IpaStyle, modifier = Modifier.padding(top = 12.dp))
                     CardFront(card, null, audio, true)
                 }
             }
-            for (label in listOf("МИКРОФОН АКТИВЕН", "СЛУШАЙТЕ → ПРОИЗНЕСИТЕ")) {
+            for (label in listOf("Микрофон активен", "Слушайте → произнесите")) {
                 val sample = text(label)
                 assertWholeText(sample)
                 assertEquals(12.5.sp, sample.layout.layoutInput.style.fontSize)

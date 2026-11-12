@@ -101,12 +101,12 @@ fun LaunchScreen(
                 .clearAndSetSemantics {},
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Text("albion", style = TextStyle(
+            Text("Albion", style = TextStyle(
                 fontFamily = AlbionFonts.Display, fontWeight = FontWeight.Medium,
                 fontSize = 40.sp, color = Heritage.Cream, letterSpacing = (-.01).em,
             ))
             Spacer(Modifier.height(10.dp))
-            Text("АНГЛИЙСКИЙ КАЖДЫЙ ДЕНЬ",
+            Text("Английский каждый день",
                 style = Typography.labelMedium.copy(color = Heritage.Champagne, letterSpacing = .08.em))
         }
 
@@ -115,15 +115,15 @@ fun LaunchScreen(
                 .padding(horizontal = 32.dp).padding(bottom = 40.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Text(status ?: "ЗАГРУЗКА", style = Typography.labelMedium.copy(color = Heritage.Cream.copy(alpha = .75f)))
+            Text(status ?: "Загрузка", style = Typography.labelMedium.copy(color = Heritage.Cream.copy(alpha = .75f)))
             Spacer(Modifier.height(12.dp))
             Canvas(Modifier.size(132.dp, 2.dp)) {
                 val y = size.height / 2
-                drawLine(Heritage.Champagne.copy(alpha = .2f), Offset(0f, y), Offset(size.width, y), size.height, StrokeCap.Butt)
+                drawLine(Heritage.Champagne.copy(alpha = .2f), Offset(0f, y), Offset(size.width, y), size.height, StrokeCap.Round)
                 val head = barLoop * 1.3f
                 val start = (head - .3f).coerceIn(0f, 1f) * size.width
                 val end = head.coerceIn(0f, 1f) * size.width
-                if (end > start) drawLine(Heritage.Champagne, Offset(start, y), Offset(end, y), size.height, StrokeCap.Butt)
+                if (end > start) drawLine(Heritage.Champagne, Offset(start, y), Offset(end, y), size.height, StrokeCap.Round)
             }
         }
     }

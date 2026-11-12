@@ -1,6 +1,7 @@
 package com.marat.albion.ui.games
 
-import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.foundation.shape.CircleShape
+
 import com.marat.albion.ui.components.AlbionIcons
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -254,7 +255,7 @@ fun ShadowingPanel(
             AnimatedVisibility(recording || (!hasTake && report == null)) {
                 Column(Modifier.fillMaxWidth().border(.75.dp, MaterialTheme.colorScheme.outlineVariant, MaterialTheme.shapes.medium)
                     .padding(horizontal = 14.dp, vertical = 12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                    SignalLabel(if (recording) "УРОВЕНЬ ЗАПИСИ" else "ГОТОВО К ЗАПИСИ", Modifier.fillMaxWidth())
+                    SignalLabel(if (recording) "Уровень записи" else "Готово к записи", Modifier.fillMaxWidth())
                     Spacer(Modifier.height(10.dp))
                     Row(
                         Modifier.fillMaxWidth().height(44.dp).padding(horizontal = 8.dp),
@@ -393,7 +394,7 @@ internal fun ReportCard(r: ShadowReport, words: List<ChartWord> = emptyList(), s
             .background(MaterialTheme.colorScheme.surfaceContainerLow, shape).border(.75.dp, MaterialTheme.colorScheme.outlineVariant, shape)
             .padding(if (LocalNarrow.current) 16.dp else 18.dp),
     ) {
-        SignalLabel("РАЗБОР ГОЛОСА")
+        SignalLabel("Разбор голоса")
         Spacer(Modifier.height(20.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
             // Result label uses the same square corners as the exercise sheet.
@@ -440,7 +441,7 @@ internal fun ReportCard(r: ShadowReport, words: List<ChartWord> = emptyList(), s
                 Spacer(Modifier.height(4.dp))
                 tips.forEach { tip ->
                     Row(Modifier.padding(vertical = 4.dp)) {
-                        Box(Modifier.padding(top = 9.dp, end = 10.dp).size(6.dp).background(MaterialTheme.colorScheme.primary, RectangleShape))
+                        Box(Modifier.padding(top = 9.dp, end = 10.dp).size(6.dp).background(MaterialTheme.colorScheme.primary, CircleShape))
                         Text(tip, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
                     }
                 }

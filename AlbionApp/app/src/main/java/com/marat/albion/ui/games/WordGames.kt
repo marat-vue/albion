@@ -206,7 +206,7 @@ fun ClozeRound(vm: GameViewModel, card: CardEntity) {
             Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(top = 16.dp, bottom = 4.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            TaskCard(centered = true, label = "ВСТАВЬТЕ СЛОВО В ПРИМЕР") {
+            TaskCard(centered = true, label = "Вставьте слово в пример") {
                 Text(
                     if (verdict == null) AnnotatedString(task.masked) else highlightTerms(task.sentence, listOf(task.answer)),
                     style = MaterialTheme.typography.titleLarge.copy(fontFamily = AlbionFonts.Reading),

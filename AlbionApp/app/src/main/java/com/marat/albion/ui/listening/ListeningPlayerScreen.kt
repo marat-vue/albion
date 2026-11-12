@@ -284,7 +284,7 @@ private const val HEADER_ITEMS = 1
 private fun TrackHeader(track: ListeningTrack, transcript: Transcript) {
     val meta = track.meta
     Column(Modifier.fillMaxWidth().padding(bottom = 16.dp)) {
-        Eyebrow(listOfNotNull(meta.level.takeIf(String::isNotBlank), if (transcript.wordLevel) "ПОСЛОВНО" else "ПО ФРАЗАМ").joinToString(" · "))
+        Eyebrow(listOfNotNull(meta.level.takeIf(String::isNotBlank), if (transcript.wordLevel) "Пословно" else "По фразам").joinToString(" · "))
         if (meta.author.isNotBlank()) Text(meta.author, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 6.dp))
         val voice = listOfNotNull(meta.reader.takeIf(String::isNotBlank)?.let { "Читает $it" }, meta.accent.takeIf(String::isNotBlank)?.let(::accentLabel))
         if (voice.isNotEmpty()) Text(voice.joinToString(" · "),

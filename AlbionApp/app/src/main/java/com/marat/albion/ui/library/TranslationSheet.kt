@@ -1,6 +1,5 @@
 package com.marat.albion.ui.library
 
-import androidx.compose.ui.graphics.RectangleShape
 import com.marat.albion.ui.components.QuietLinearProgressIndicator as LinearProgressIndicator
 import com.marat.albion.ui.theme.IpaStyle
 import androidx.compose.ui.draw.clip
@@ -339,7 +338,7 @@ private fun DictionaryArticle(entry: DictEntry, showHeadword: Boolean) {
 
 @Composable
 private fun DictionaryEntry(card: CardEntity) {
-    Column(Modifier.fillMaxWidth().border(1.dp, MaterialTheme.colorScheme.outlineVariant, RectangleShape).padding(14.dp)) {
+    Column(Modifier.fillMaxWidth().border(1.dp, MaterialTheme.colorScheme.outlineVariant, MaterialTheme.shapes.medium).padding(14.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(card.term, style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSurface)
             Spacer(Modifier.width(10.dp))
@@ -378,7 +377,7 @@ private fun HighlightSection(
 
     Column(Modifier.fillMaxWidth().padding(top = 14.dp)) {
         if (highlight != null) {
-            Column(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f), RectangleShape).padding(14.dp)) {
+            Column(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f), MaterialTheme.shapes.medium).padding(14.dp)) {
                 Eyebrow("Выделено")
                 Spacer(Modifier.height(6.dp))
                 Text(highlight.text, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface, maxLines = 4)
@@ -430,7 +429,7 @@ private fun HighlightSection(
 @Composable
 private fun RowScope.SmallAction(label: String, icon: androidx.compose.ui.graphics.vector.ImageVector, onClick: () -> Unit) {
     Row(
-        Modifier.weight(1f).clip(RectangleShape).border(1.dp, MaterialTheme.colorScheme.outline, RectangleShape)
+        Modifier.weight(1f).clip(MaterialTheme.shapes.medium).border(1.dp, MaterialTheme.colorScheme.outline, MaterialTheme.shapes.medium)
             .clickable(onClick = onClick).heightIn(min = 48.dp).padding(horizontal = 12.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center,
     ) {

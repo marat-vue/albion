@@ -1,7 +1,9 @@
 package com.marat.albion.ui.conversation
 
+import androidx.compose.foundation.shape.CircleShape
+import com.marat.albion.ui.theme.Capsule
+
 import com.marat.albion.ui.components.TextButton
-import androidx.compose.ui.graphics.RectangleShape
 import com.marat.albion.ui.components.PaneDropdownMenu as DropdownMenu
 import com.marat.albion.ui.components.PaneAlertDialog as AlertDialog
 import com.marat.albion.ui.components.DestructiveConfirmationDialog
@@ -210,9 +212,9 @@ internal fun ChatContext(scenario: String, level: String, status: String? = null
 @Composable
 internal fun PartnerBubble(text: String, modifier: Modifier = Modifier, footer: @Composable ColumnScope.() -> Unit = {}) {
     Column(modifier.fillMaxWidth(0.88f).quietContentSize()) {
-        Column(Modifier.clip(RectangleShape)
+        Column(Modifier.clip(MaterialTheme.shapes.large)
             .background(MaterialTheme.colorScheme.surfaceContainerLow)
-            .border(.75.dp, MaterialTheme.colorScheme.outlineVariant, RectangleShape)
+            .border(.75.dp, MaterialTheme.colorScheme.outlineVariant, MaterialTheme.shapes.large)
             .padding(horizontal = 16.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             if (text.isNotEmpty()) Text(text, style = MaterialTheme.typography.bodyLarge)
             footer()
@@ -226,8 +228,8 @@ internal fun PartnerBubble(text: String, modifier: Modifier = Modifier, footer: 
 private fun UserBubble(message: ConversationMessageEntity, checking: Boolean, modifier: Modifier = Modifier, onCheck: () -> Unit) {
     Column(modifier.fillMaxWidth(), horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Row(Modifier.fillMaxWidth(0.88f), horizontalArrangement = Arrangement.End) {
-            Row(Modifier.clip(RectangleShape).background(MaterialTheme.colorScheme.primary)
-                .border(.75.dp, MaterialTheme.colorScheme.onPrimary.copy(alpha = .35f), RectangleShape)
+            Row(Modifier.clip(MaterialTheme.shapes.large).background(MaterialTheme.colorScheme.primary)
+                .border(.75.dp, MaterialTheme.colorScheme.onPrimary.copy(alpha = .35f), MaterialTheme.shapes.large)
                 .padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.Top) {
                 if (message.voice) {
                     Icon(AlbionIcons.Mic, "Голосом", Modifier.padding(top = 3.dp, end = 8.dp).size(14.dp),
@@ -295,7 +297,7 @@ private fun TypingDots() {
                 transition.animateFloat(0.25f, 1f, infiniteRepeatable(
                     keyframes { durationMillis = 1200; 0.25f at 0; 1f at 200 + i * 150; 0.25f at 700 + i * 150 }), label = "dot$i").value
             }
-            Box(Modifier.size(7.dp).alpha(if (reduced) 0.6f else alpha).background(MaterialTheme.colorScheme.onSurface, RectangleShape))
+            Box(Modifier.size(7.dp).alpha(if (reduced) 0.6f else alpha).background(MaterialTheme.colorScheme.onSurface, CircleShape))
         }
     }
 }
@@ -349,8 +351,8 @@ internal fun ChatComposer(
                         leadingIcon = { Icon(AlbionIcons.Mic, null) })
                 }
             }
-            Box(Modifier.weight(1f).heightIn(min = maxOf(52.dp, minInputHeight), max = maxOf(maxInputHeight, minInputHeight, 52.dp)).clip(RectangleShape).background(scheme.surfaceContainerLow)
-                .border(if (focused) 2.dp else 1.dp, if (focused) scheme.primary else scheme.controlBorder, RectangleShape)
+            Box(Modifier.weight(1f).heightIn(min = maxOf(52.dp, minInputHeight), max = maxOf(maxInputHeight, minInputHeight, 52.dp)).clip(MaterialTheme.shapes.medium).background(scheme.surfaceContainerLow)
+                .border(if (focused) 2.dp else 1.dp, if (focused) scheme.primary else scheme.controlBorder, MaterialTheme.shapes.medium)
                 .padding(horizontal = 12.dp, vertical = 12.dp),
                 contentAlignment = Alignment.CenterStart) {
                 when {
@@ -389,7 +391,7 @@ private fun ActionButton(icon: androidx.compose.ui.graphics.vector.ImageVector, 
         val transition = rememberInfiniteTransition(label = "pulse")
         transition.animateFloat(1f, 1.08f, infiniteRepeatable(tween(700, easing = FastOutSlowInEasing), RepeatMode.Reverse), label = "scale").value
     } else 1f
-    Box(Modifier.size(52.dp).graphicsLayer { scaleX = scale; scaleY = scale }.clip(RectangleShape)
+    Box(Modifier.size(52.dp).graphicsLayer { scaleX = scale; scaleY = scale }.clip(CircleShape)
         .background(if (enabled) scheme.primary else scheme.surfaceContainerHigh)
         .clickable(enabled = enabled, role = androidx.compose.ui.semantics.Role.Button, onClickLabel = description) { feedback.selection(); onClick() }
         .semantics { contentDescription = description }, contentAlignment = Alignment.Center) {
@@ -410,7 +412,7 @@ private fun RecordingLevel(level: Float) {
     Row(Modifier.fillMaxWidth().height(24.dp).semantics { contentDescription = "Идёт запись. Пауза завершит её" },
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
         history.forEach { value ->
-            Box(Modifier.weight(1f).fillMaxHeight(0.15f + 0.85f * value).background(MaterialTheme.colorScheme.onSurface, RectangleShape))
+            Box(Modifier.weight(1f).fillMaxHeight(0.15f + 0.85f * value).background(MaterialTheme.colorScheme.onSurface, Capsule))
         }
     }
 }

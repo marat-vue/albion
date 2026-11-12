@@ -16,13 +16,13 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import java.io.File
 
-/** Full user journey in both monochrome themes, including study and reduced motion. */
+/** Full user journey in both editorial themes (milk and charcoal), including study and reduced motion. */
 @RunWith(AndroidJUnit4::class)
 class EditorialDesignTest {
     private val instrumentation get() = InstrumentationRegistry.getInstrumentation()
     private val c get() = (instrumentation.targetContext.applicationContext as AlbionApp).container
 
-    @Test fun primaryScreensAndSensoryPreferencesWorkInMonochrome(): Unit = runBlocking {
+    @Test fun primaryScreensAndSensoryPreferencesWorkInBothThemes(): Unit = runBlocking {
         c.importer.importIfNeeded()
         val original = c.settings.current()
         val manager = instrumentation.targetContext.getSystemService(Context.UI_MODE_SERVICE) as UiModeManager
@@ -31,7 +31,7 @@ class EditorialDesignTest {
             for (night in listOf(false, true)) {
                 c.settings.setThemeMode(if (night) ThemeMode.DARK else ThemeMode.LIGHT)
                 shell("cmd uimode night ${if (night) "yes" else "no"}")
-                val edition = if (night) "monochrome-dark" else "monochrome-light"
+                val edition = if (night) "editorial-dark" else "editorial-light"
                 ActivityScenario.launch(MainActivity::class.java).use { scenario ->
                     await { it.text?.toString() == "Начать" || it.text?.toString() == "Открыть библиотеку" }
                     assertThemeBackground(night)
@@ -65,13 +65,13 @@ class EditorialDesignTest {
                     scrollTo { it.text?.toString() == "Словарный запас" }
                     capture("practice-$edition")
                     click { it.text?.toString() == "Прогресс" }
-                    await { it.text?.toString() == "05 / ДИНАМИКА" }
+                    await { it.text?.toString() == "Прогресс" && it.isHeading }
                     capture("progress-$edition")
                     click { it.contentDescription?.toString() == "Настройки" }
                     await { it.text?.toString() == "Звук и доступность" }
                     capture("settings-$edition")
                     click { it.contentDescription?.toString() == "Назад" }
-                    await { it.text?.toString() == "05 / ДИНАМИКА" }
+                    await { it.text?.toString() == "Прогресс" && it.isHeading }
                     click { it.text?.toString() == "Сегодня" }
                     click { it.text?.toString() == "Начать" }
                     await { it.text?.toString() == "Показать ответ" }

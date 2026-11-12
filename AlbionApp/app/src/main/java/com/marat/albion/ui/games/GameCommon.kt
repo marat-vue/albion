@@ -1,7 +1,8 @@
 package com.marat.albion.ui.games
 
-import com.marat.albion.ui.components.drawSquareProgress
-import androidx.compose.ui.graphics.RectangleShape
+import com.marat.albion.ui.theme.Capsule
+
+import com.marat.albion.ui.components.drawRingProgress
 import androidx.compose.foundation.layout.isImeVisible
 import com.marat.albion.ui.theme.appear
 import com.marat.albion.ui.components.SegmentedPicker
@@ -294,7 +295,7 @@ fun GameTopRow(game: Game?, index: Int, total: Int, onClose: () -> Unit, title: 
             com.marat.albion.ui.components.RoundIconButton(AlbionIcons.Close, "Закрыть", onClose, filled = true)
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
-                SignalLabel(game?.let { "${it.editionCode} / ${it.editionTitle}" } ?: "УЧЕБНИК / ПРОВЕРКА")
+                SignalLabel(game?.editionTitle ?: "Проверка по учебнику")
                 if (title.isNotBlank() && !typing) {
                     Spacer(Modifier.height(4.dp))
                     Text(title, style = MaterialTheme.typography.titleSmall, maxLines = 2)
@@ -345,7 +346,7 @@ internal fun SegmentedProgress(index: Int, total: Int, modifier: Modifier = Modi
                 else if (i == index) MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)
                 else MaterialTheme.colorScheme.surfaceContainerHighest,
                 if (reduced) snap() else com.marat.albion.ui.theme.Springs.smooth(), label = "segment$i")
-            Box(Modifier.weight(1f).fillMaxHeight().background(fill, RectangleShape))
+            Box(Modifier.weight(1f).fillMaxHeight().background(fill, Capsule))
         }
     }
 }
@@ -404,7 +405,7 @@ data class Mistake(val prompt: String, val answer: String, val correct: String, 
 internal fun GameSetupHeader(game: Game, modifier: Modifier = Modifier, options: @Composable ColumnScope.() -> Unit) {
     Column(modifier.fillMaxWidth().padding(top = 8.dp)) {
         Panel(Modifier.fillMaxWidth().appear(0), contentPadding = PaddingValues(20.dp)) {
-            SignalLabel("${game.editionCode} / ${game.editionTitle}")
+            SignalLabel(game.editionTitle)
             Spacer(Modifier.height(16.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(game.title, Modifier.weight(1f), style = MaterialTheme.typography.headlineMedium)
@@ -437,7 +438,7 @@ fun GameSummary(
             horizontalAlignment = Alignment.CenterHorizontally) {
             if (total == 0) com.marat.albion.ui.components.EmptyState("Нет заданий для этих параметров", "Измените словарь, уровень или режим упражнения.")
             else {
-                SignalLabel("СЕССИЯ ЗАВЕРШЕНА", Modifier.appear(0))
+                SignalLabel("Сессия завершена", Modifier.appear(0))
                 Spacer(Modifier.height(8.dp))
                 Text(when { correct == total -> "Безупречно."; correct * 10 >= total * 7 -> "Отличная работа."; else -> "Продолжайте." },
                     Modifier.appear(1), style = MaterialTheme.typography.displaySmall, textAlign = TextAlign.Center)
@@ -450,12 +451,12 @@ fun GameSummary(
                 Spacer(Modifier.height(12.dp))
                 if (LocalDensity.current.fontScale > 1.3f) {
                     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        SummaryMetric("БЕЗ ОШИБОК", correct, Modifier.fillMaxWidth())
-                        SummaryMetric("К ПОВТОРЕНИЮ", (total - correct).coerceAtLeast(0), Modifier.fillMaxWidth())
+                        SummaryMetric("Без ошибок", correct, Modifier.fillMaxWidth())
+                        SummaryMetric("К повторению", (total - correct).coerceAtLeast(0), Modifier.fillMaxWidth())
                     }
                 } else Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    SummaryMetric("БЕЗ ОШИБОК", correct, Modifier.weight(1f))
-                    SummaryMetric("К ПОВТОРЕНИЮ", (total - correct).coerceAtLeast(0), Modifier.weight(1f))
+                    SummaryMetric("Без ошибок", correct, Modifier.weight(1f))
+                    SummaryMetric("К повторению", (total - correct).coerceAtLeast(0), Modifier.weight(1f))
                 }
                 note?.let {
                     Text(it, Modifier.fillMaxWidth().padding(top = 12.dp), style = MaterialTheme.typography.bodySmall,
@@ -504,7 +505,7 @@ private fun ResultRing(correct: Int, total: Int, modifier: Modifier = Modifier) 
     val arc = MaterialTheme.colorScheme.primary
     Box(modifier.size(164.dp), contentAlignment = Alignment.Center) {
         androidx.compose.foundation.Canvas(Modifier.fillMaxSize()) {
-            drawSquareProgress(track, arc, if (reduced) target else sweep.value, 2.dp.toPx(), inset = 8.dp.toPx())
+            drawRingProgress(track, arc, if (reduced) target else sweep.value, 2.dp.toPx(), inset = 8.dp.toPx())
         }
         com.marat.albion.ui.theme.AnimatedNumber(if (total == 0) 0 else correct * 100 / total,
             if (LocalDensity.current.fontScale > 1.3f) MaterialTheme.typography.headlineMedium else MaterialTheme.typography.displayMedium, suffix = "%")
@@ -559,7 +560,7 @@ fun Modifier.shakeOn(trigger: Int): Modifier = composed {
 internal fun TaskCard(
     modifier: Modifier = Modifier,
     centered: Boolean = false,
-    label: String = "ЗАДАНИЕ",
+    label: String = "Задание",
     content: @Composable ColumnScope.() -> Unit,
 ) {
     PracticeStage(label, modifier.appear(), centered = centered, compact = imeOpen(), content = content)
@@ -617,12 +618,12 @@ internal fun NextDock(ok: Boolean?, title: String? = null, label: String = "Да
             .semantics { liveRegion = androidx.compose.ui.semantics.LiveRegionMode.Polite },
     ) {
         Row(Modifier.padding(start = 4.dp, bottom = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(24.dp).background(fg, MaterialTheme.shapes.extraSmall), contentAlignment = Alignment.Center) {
+            Box(Modifier.size(24.dp).background(fg, androidx.compose.foundation.shape.CircleShape), contentAlignment = Alignment.Center) {
                 Icon(if (ok == false) AlbionIcons.Close else AlbionIcons.Check, null, Modifier.size(16.dp), tint = bg)
             }
             Spacer(Modifier.width(10.dp))
             Text(heading, Modifier.weight(1f), style = MaterialTheme.typography.titleMedium, color = fg)
-            if (ok == false) SignalLabel("РАЗБОР")
+            if (ok == false) SignalLabel("Разбор")
         }
         PrimaryButton(label, onClick = onNext, trailingIcon = AlbionIcons.ArrowForward)
     }

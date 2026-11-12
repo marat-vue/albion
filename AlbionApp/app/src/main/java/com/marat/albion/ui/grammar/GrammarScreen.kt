@@ -134,7 +134,6 @@ fun GrammarScreen(navigator: Navigator) {
     }
     Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).imePadding()) {
         Column(Modifier.fillMaxWidth().windowInsetsPadding(WindowInsets.statusBars).padding(horizontal = gutter)) {
-            if (!shortScreen && !largeText) SignalLabel("02 / ГРАММАТИКА", Modifier.padding(top = 18.dp, bottom = 8.dp))
             AdaptiveScreenTitle("Учебник", Modifier.heightIn(min = 56.dp)) {
                 if (!largeText) {
                     Row {
@@ -159,7 +158,7 @@ fun GrammarScreen(navigator: Navigator) {
             if (!shortScreen && (!largeText || searchOpen || query.isNotBlank())) search()
         }
         LazyColumn(Modifier.weight(1f).fillMaxWidth(), state = listState,
-            contentPadding = PaddingValues(start = gutter, end = gutter, bottom = 24.dp)) {
+            contentPadding = PaddingValues(start = gutter, end = gutter, bottom = 24.dp + com.marat.albion.ui.components.bottomChrome)) {
             if (shortScreen) item(key = "search-controls") { search() }
             item(key = "view-picker") { viewPicker() }
             if (state.loading) { item { com.marat.albion.ui.components.LoadingState("Открываем учебник") }; return@LazyColumn }
@@ -197,7 +196,8 @@ fun GrammarScreen(navigator: Navigator) {
                         stage.topics.count { state.progress[it.id]?.masteredAt != null }, stage.topics.count { state.progress[it.id]?.readAt != null }) }
                     itemsIndexed(route, key = { _, topic -> "route-${topic.id}" }) { index, topic ->
                         GrammarRouteLesson(topic, state.progress[topic.id], topic.id == recommendation?.id, topic.id == shownTopic,
-                            index == 0, index == route.lastIndex, null, now) { open(topic) }
+                            index == 0, index == route.lastIndex, null, now, onClick = { open(topic) },
+                            modifier = Modifier.sharedElement("topic:${topic.id}"))
                     }
                     stages.getOrNull(stages.indexOf(stage) + 1)?.let { next -> item {
                         GhostButton("Следующий этап · ${next.level}", {

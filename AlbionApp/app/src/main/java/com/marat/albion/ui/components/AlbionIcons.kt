@@ -25,7 +25,7 @@ object AlbionIcons {
         if (stroke != null) b.addPath(
             pathData = PathParser().parsePathString(stroke).toNodes(),
             fill = null, stroke = SolidColor(Color.Black), strokeLineWidth = STROKE,
-            strokeLineCap = StrokeCap.Butt, strokeLineJoin = StrokeJoin.Miter,
+            strokeLineCap = StrokeCap.Round, strokeLineJoin = StrokeJoin.Round,
         )
         return b.build()
     }

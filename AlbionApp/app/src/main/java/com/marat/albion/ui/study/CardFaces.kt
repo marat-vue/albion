@@ -1,6 +1,5 @@
 package com.marat.albion.ui.study
 
-import androidx.compose.ui.graphics.RectangleShape
 import com.marat.albion.ui.theme.IpaStyle
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -111,7 +110,7 @@ fun CardFront(card: CardEntity, irregular: IrregularData?, audio: CardAudio, sho
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        com.marat.albion.ui.components.SignalLabel("ВСПОМНИТЕ ЗНАЧЕНИЕ")
+        com.marat.albion.ui.components.SignalLabel("Вспомните значение")
         Spacer(Modifier.width(72.dp).height(28.dp).folioRule(MaterialTheme.colorScheme.secondary.copy(alpha = .65f)))
         TermHeader(card, audio, showIpa = showIpa)
         if (card.senses.size > 1) {
@@ -123,7 +122,7 @@ fun CardFront(card: CardEntity, irregular: IrregularData?, audio: CardAudio, sho
             FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 irregular.forms.drop(1).forEachIndexed { i, form ->
                     Column(
-                        Modifier.border(1.dp, MaterialTheme.colorScheme.outlineVariant, RectangleShape)
+                        Modifier.border(1.dp, MaterialTheme.colorScheme.outlineVariant, MaterialTheme.shapes.medium)
                             .padding(horizontal = 18.dp, vertical = 12.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
@@ -191,7 +190,7 @@ fun CardBack(
                 Spacer(Modifier.height(22.dp))
                 Column(
                     Modifier.fillMaxWidth()
-                        .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RectangleShape).padding(14.dp),
+                        .border(1.dp, MaterialTheme.colorScheme.outlineVariant, MaterialTheme.shapes.medium).padding(14.dp),
                 ) {
                     Eyebrow("Примечание")
                     Spacer(Modifier.height(6.dp))
@@ -259,7 +258,7 @@ private fun SenseContent(
 @Composable
 private fun IrregularForms(card: CardEntity, data: IrregularData, audio: CardAudio, modifier: Modifier) {
     val deck = deckOf(card)
-    Column(modifier.fillMaxWidth().border(1.dp, MaterialTheme.colorScheme.outlineVariant, RectangleShape)) {
+    Column(modifier.fillMaxWidth().border(1.dp, MaterialTheme.colorScheme.outlineVariant, MaterialTheme.shapes.medium)) {
         data.forms.forEachIndexed { index, form ->
             if (index > 0) Hairline()
             Column(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp)) {

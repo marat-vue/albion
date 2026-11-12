@@ -161,7 +161,7 @@ fun HomeScreen(navigator: Navigator) {
                 DeckRow(summary, Modifier.padding(bottom = 8.dp).appear(8 + summary.deck.ordinal)) { navigator.open(DictionaryRoute(summary.deck)) }
             }
         }
-        val padding = PaddingValues(start = gutter, end = gutter, bottom = 28.dp)
+        val padding = PaddingValues(start = gutter, end = gutter, bottom = 28.dp + com.marat.albion.ui.components.bottomChrome)
         if (maxWidth >= 900.dp) Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(28.dp)) {
             LazyColumn(Modifier.weight(1f), contentPadding = padding) { overview() }
             LazyColumn(Modifier.weight(1f), contentPadding = padding) {

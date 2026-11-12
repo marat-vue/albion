@@ -24,17 +24,17 @@ import com.marat.albion.ui.components.SignalLabel
 import com.marat.albion.ui.theme.*
 
 internal val Game.editionTitle: String get() = when (this) {
-    Game.TYPE_ANSWER -> "СЛОВА"
-    Game.IRREGULAR -> "ФОРМЫ ГЛАГОЛА"
-    Game.GRAMMAR_CHOICE -> "ГРАММАТИКА"
-    Game.GRAMMAR_GAP -> "ПИСЬМО"
-    Game.SENTENCE -> "ПОРЯДОК СЛОВ"
-    Game.TENSES -> "ВРЕМЕНА"
-    Game.PRONUNCIATION -> "РЕЧЬ"
-    Game.SHADOWING -> "РЕЧЬ И РИТМ"
-    Game.DICTATION -> "СЛУХ"
-    Game.CLOZE -> "КОНТЕКСТ"
-    Game.FIX_ERROR -> "ОШИБКИ"
+    Game.TYPE_ANSWER -> "Слова"
+    Game.IRREGULAR -> "Формы глагола"
+    Game.GRAMMAR_CHOICE -> "Грамматика"
+    Game.GRAMMAR_GAP -> "Письмо"
+    Game.SENTENCE -> "Порядок слов"
+    Game.TENSES -> "Времена"
+    Game.PRONUNCIATION -> "Речь"
+    Game.SHADOWING -> "Речь и ритм"
+    Game.DICTATION -> "Слух"
+    Game.CLOZE -> "Контекст"
+    Game.FIX_ERROR -> "Ошибки"
 }
 
 /** Код формата совпадает с нумерацией каталога практики: «02.1» — первое упражнение раздела 02. */
@@ -71,10 +71,10 @@ internal fun PracticeStage(
 }
 
 @Composable
+@Suppress("UNUSED_PARAMETER") // Номер больше не печатается: подпись раздела — обычный заголовок.
 internal fun PracticeSectionLabel(number: String, text: String, modifier: Modifier = Modifier) {
     Row(modifier.fillMaxWidth()
         .padding(top = 22.dp, bottom = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-        SignalLabel(number, Modifier.padding(end = 10.dp))
         Text(text, style = MaterialTheme.typography.titleSmall)
     }
 }

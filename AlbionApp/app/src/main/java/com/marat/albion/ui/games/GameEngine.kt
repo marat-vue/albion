@@ -380,6 +380,7 @@ private fun GameFrame(
                 Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)
                     .windowInsetsPadding(WindowInsets.navigationBars.union(WindowInsets.ime)),
             ) {
+                com.marat.albion.ui.theme.AnswerHaptics(vm.correct, vm.mistakes.size)
                 val leave = rememberLeaveGuard(active = vm.index > 0) { vm.backToSetup() }
                 GameTopRow(vm.game, vm.index, vm.items.size, onClose = leave)
                 AnimatedContent(

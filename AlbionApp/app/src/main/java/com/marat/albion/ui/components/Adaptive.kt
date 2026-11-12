@@ -29,6 +29,15 @@ fun CenteredColumn(maxWidth: Dp, content: @Composable () -> Unit) {
     }
 }
 
+/**
+ * Высота стеклянной панели вкладок (вместе с системной навигацией), под которую уходит контент.
+ * Экраны с вкладками добавляют её к нижнему отступу прокрутки; без панели — 0.
+ */
+val LocalBottomChrome = androidx.compose.runtime.compositionLocalOf { 0.dp }
+
+val bottomChrome: Dp
+    @Composable get() = LocalBottomChrome.current
+
 /** Узкий экран (до 360 dp): поля и крупный текст ужимаются, чтобы содержимому хватило места. */
 val LocalNarrow = androidx.compose.runtime.compositionLocalOf { false }
 

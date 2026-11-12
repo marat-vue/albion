@@ -1,6 +1,5 @@
 package com.marat.albion.ui.games
 
-import androidx.compose.ui.graphics.RectangleShape
 import com.marat.albion.ui.components.QuietCircularProgressIndicator as CircularProgressIndicator
 import com.marat.albion.ui.theme.controlBorder
 import com.marat.albion.ui.theme.pressScale
@@ -250,6 +249,7 @@ fun GrammarGameHost(game: Game, navigator: Navigator) {
                 Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)
                     .windowInsetsPadding(WindowInsets.navigationBars.union(WindowInsets.ime)),
             ) {
+                com.marat.albion.ui.theme.AnswerHaptics(vm.correct, vm.mistakes.size)
                 val leave = rememberLeaveGuard(active = vm.index > 0) { vm.backToSetup() }
                 GameTopRow(vm.game, vm.index, vm.items.size, onClose = leave)
                 AnimatedContent(
@@ -309,6 +309,7 @@ fun TopicQuizHost(topic: Int, topicId: String, title: String, navigator: Navigat
                 Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)
                     .windowInsetsPadding(WindowInsets.navigationBars.union(WindowInsets.ime)),
             ) {
+                com.marat.albion.ui.theme.AnswerHaptics(vm.correct, vm.mistakes.size)
                 val leave = rememberLeaveGuard(active = vm.index > 0, onLeave = navigator::back)
                 GameTopRow(null, vm.index, vm.items.size, onClose = leave, title = quizTitle)
                 AnimatedContent(
@@ -407,11 +408,11 @@ private fun Explanation(task: GrammarTaskEntity, openRule: (Int) -> Unit) {
         task.topic?.let { n ->
 
             Row(
-                Modifier.padding(top = 10.dp).fillMaxWidth().heightIn(min = 48.dp).clip(RectangleShape)
+                Modifier.padding(top = 10.dp).fillMaxWidth().heightIn(min = 48.dp).clip(MaterialTheme.shapes.small)
                     // Без фокуса: после «Готово» на клавиатуре ссылка не должна подсвечиваться.
                     .clickable { openRule(n) }
-                    .background(MaterialTheme.colorScheme.surface, RectangleShape)
-                    .border(1.dp, MaterialTheme.colorScheme.secondary, RectangleShape)
+                    .background(MaterialTheme.colorScheme.surface, MaterialTheme.shapes.small)
+                    .border(1.dp, MaterialTheme.colorScheme.secondary, MaterialTheme.shapes.small)
                     .padding(horizontal = 16.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -436,7 +437,7 @@ private fun ChoiceRound(vm: GrammarGameViewModel, task: GrammarTaskEntity, openR
 
     Column(Modifier.fillMaxSize().padding(horizontal = gutter)) {
         Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(top = 16.dp, bottom = 4.dp)) {
-            TaskCard(Modifier.shakeOn(shake), label = "ВЫБЕРИТЕ ВЕРНЫЙ ВАРИАНТ") {
+            TaskCard(Modifier.shakeOn(shake), label = "Выберите верный вариант") {
                 TaskHeader(task, showTopic = answered || vm.topic != null)
                 Spacer(Modifier.height(14.dp))
                 Text(
@@ -538,7 +539,7 @@ internal fun OptionButton(text: String, state: OptionState, index: Int? = null, 
             .padding(horizontal = 18.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(Modifier.size(30.dp).border(.75.dp, fg.copy(alpha = .3f), MaterialTheme.shapes.extraSmall), contentAlignment = Alignment.Center) {
+        Box(Modifier.size(30.dp).border(1.dp, fg.copy(alpha = .3f), androidx.compose.foundation.shape.CircleShape), contentAlignment = Alignment.Center) {
             when (state) {
                 OptionState.Correct -> Icon(AlbionIcons.Check, null, tint = fg, modifier = Modifier.size(16.dp))
                 OptionState.Wrong -> Icon(AlbionIcons.Close, null, tint = fg, modifier = Modifier.size(16.dp))
@@ -602,7 +603,7 @@ private fun GapRound(vm: GrammarGameViewModel, task: GrammarTaskEntity, openRule
 
     Column(Modifier.fillMaxSize().padding(horizontal = gutter)) {
         Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(top = 16.dp, bottom = 4.dp)) {
-            TaskCard(label = if (parsed.gapCount > 0) "ЗАПОЛНИТЕ ПРОПУСК" else "НАПИШИТЕ ОТВЕТ") {
+            TaskCard(label = if (parsed.gapCount > 0) "Заполните пропуск" else "Напишите ответ") {
                 TaskHeader(task, showTopic = verdict != null || vm.topic != null)
                 Spacer(Modifier.height(14.dp))
                 Text(

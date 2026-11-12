@@ -27,7 +27,7 @@ import androidx.compose.foundation.border
 import androidx.compose.ui.unit.dp
 
 /**
- * Акцентная плита: чёрный монолит, одинаковый в обеих темах.
+ * Акцентная плита: графитовый монолит, одинаковый в обеих темах.
  * Внутри действует локальная схема — белый текст и «инверсные» кнопки. Одна на экран.
  */
 @Composable
@@ -44,12 +44,12 @@ fun BoundVolume(modifier: Modifier = Modifier, compact: Boolean = false,
         inverseSurface = Hero.Base, inverseOnSurface = onHero,
         surfaceContainerHigh = onHero.copy(alpha = .16f), outline = onHero, outlineVariant = onHero.copy(alpha = .22f),
     )
-    Surface(modifier, shape = MaterialTheme.shapes.extraLarge, color = Color.Transparent, contentColor = onHero,
+    Surface(modifier, shape = MaterialTheme.shapes.medium, color = Color.Transparent, contentColor = onHero,
         border = BorderStroke(1.dp, Hero.Edge)) {
         MaterialTheme(colorScheme = heroScheme) {
             CompositionLocalProvider(LocalContentColor provides onHero) {
                 Column(Modifier.background(Hero.Gradient).drawBehind {
-                    // Едва заметный холодный блик в углу монолита.
+                    // Едва заметный тёплый блик в углу монолита.
                     drawRect(Brush.radialGradient(listOf(Hero.Glow, Color.Transparent),
                         center = Offset(size.width * .95f, 0f), radius = size.maxDimension * .7f))
                 }

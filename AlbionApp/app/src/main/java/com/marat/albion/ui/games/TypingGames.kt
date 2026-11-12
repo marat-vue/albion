@@ -1,6 +1,7 @@
 package com.marat.albion.ui.games
 
-import androidx.compose.ui.graphics.RectangleShape
+import com.marat.albion.ui.theme.Capsule
+
 import com.marat.albion.ui.theme.controlBorder
 import com.marat.albion.ui.theme.IpaStyle
 import androidx.compose.ui.semantics.contentDescription
@@ -299,7 +300,7 @@ fun TypeAnswerRound(vm: GameViewModel, card: CardEntity) {
             Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(top = 16.dp, bottom = 4.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            TaskCard(centered = true, label = "ПЕРЕВЕДИТЕ НА АНГЛИЙСКИЙ") {
+            TaskCard(centered = true, label = "Переведите на английский") {
                 if (!imeOpen()) {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                         if (card.pos.isNotBlank()) Chip(card.pos)
@@ -332,7 +333,7 @@ fun TypeAnswerRound(vm: GameViewModel, card: CardEntity) {
                         style = MaterialTheme.typography.titleLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center,
-                        modifier = Modifier.background(MaterialTheme.colorScheme.surfaceContainer, RectangleShape).padding(horizontal = 14.dp, vertical = 6.dp),
+                        modifier = Modifier.background(MaterialTheme.colorScheme.surfaceContainer, Capsule).padding(horizontal = 14.dp, vertical = 6.dp),
                     )
                 }
             }
@@ -477,7 +478,7 @@ fun IrregularRound(vm: GameViewModel, card: CardEntity) {
             Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(top = 16.dp, bottom = 4.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            TaskCard(centered = true, label = "ВОССТАНОВИТЕ ФОРМЫ ГЛАГОЛА") {
+            TaskCard(centered = true, label = "Восстановите формы глагола") {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                     Eyebrow("V1 · Infinitive", color = MaterialTheme.colorScheme.primary)
                     LevelBadge(card.level)

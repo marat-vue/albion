@@ -15,55 +15,55 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import com.marat.albion.data.settings.ThemeMode
 
-/** Светлая: холодная бумага, белые панели, чёрные чернила и графитовые контуры. */
+/** Светлая: молочная бумага, слои тоном (#FBF8F2 → #EFEAE0 → #E4DED2), графитовые чернила. */
 private val LightScheme = lightColorScheme(
-    primary = EstateLight, onPrimary = Color.White,
-    primaryContainer = Color(0xFFE3E3E2), onPrimaryContainer = Ink,
+    primary = EstateLight, onPrimary = Paper,
+    primaryContainer = Color(0xFFE4DED2), onPrimaryContainer = Ink,
     inversePrimary = EstateDark,
-    secondary = Color(0xFF3D3D3D), onSecondary = Color.White,
-    secondaryContainer = Color(0xFFE8E8E7), onSecondaryContainer = Color(0xFF1F1F1F),
-    tertiary = SuccessLight, onTertiary = Color.White,
-    tertiaryContainer = Color(0xFFE2EFE5), onTertiaryContainer = Color(0xFF15402A),
-    error = ErrorLight, onError = Color.White,
-    errorContainer = Color(0xFFF8E3E2), onErrorContainer = Color(0xFF5E1715),
-    background = Paper, onBackground = Ink,
-    surface = Paper, onSurface = Ink,
-    surfaceVariant = Color(0xFFE8E8E7), onSurfaceVariant = Color(0xFF575757),
+    secondary = Color(0xFF4A4741), onSecondary = Paper,
+    secondaryContainer = Color(0xFFEFEAE0), onSecondaryContainer = Color(0xFF2A2825),
+    tertiary = SuccessLight, onTertiary = Paper,
+    tertiaryContainer = Color(0xFFE6EBDD), onTertiaryContainer = Color(0xFF2C3D20),
+    error = ErrorLight, onError = Paper,
+    errorContainer = Color(0xFFF3E1DC), onErrorContainer = Color(0xFF5C2219),
+    background = Paper, onBackground = Color(0xFF2A2825),
+    surface = Paper, onSurface = Color(0xFF2A2825),
+    surfaceVariant = Color(0xFFEFEAE0), onSurfaceVariant = Color(0xFF625E57),
     surfaceTint = Color.Transparent,
-    surfaceDim = Color(0xFFE0E0DF), surfaceBright = Color.White,
-    surfaceContainerLowest = Color.White,
-    surfaceContainerLow = Color.White,
-    surfaceContainer = Color(0xFFECECEB),
-    surfaceContainerHigh = Color(0xFFE5E5E4),
-    surfaceContainerHighest = Color(0xFFDADAD9),
-    inverseSurface = Ink, inverseOnSurface = Color.White,
-    outline = Color(0xFF767676), outlineVariant = Color(0xFFD9D9D8),
+    surfaceDim = Color(0xFFE4DED2), surfaceBright = Color(0xFFFBF8F2),
+    surfaceContainerLowest = Color(0xFFFDFBF7),
+    surfaceContainerLow = Color(0xFFFBF8F2),
+    surfaceContainer = Color(0xFFF3EEE5),
+    surfaceContainerHigh = Color(0xFFEFEAE0),
+    surfaceContainerHighest = Color(0xFFE4DED2),
+    inverseSurface = Ink, inverseOnSurface = Paper,
+    outline = Color(0xFF7E786D), outlineVariant = Color(0xFFDDD6C8),
     scrim = Ink,
 )
 
-/** Тёмная: чернильный фон, графитовые панели, белый текст и тонкие серые контуры. */
+/** Тёмная: тёплый уголь, слои #1D1C1A → #272523, молочный текст. */
 private val DarkScheme = darkColorScheme(
-    primary = EstateDark, onPrimary = Ink,
-    primaryContainer = Color(0xFF2B2B2B), onPrimaryContainer = Color(0xFFF2F2F2),
+    primary = EstateDark, onPrimary = Color(0xFF141312),
+    primaryContainer = Color(0xFF312F2C), onPrimaryContainer = EstateDark,
     inversePrimary = EstateLight,
-    secondary = Color(0xFFBDBDBD), onSecondary = Ink,
-    secondaryContainer = Color(0xFF262626), onSecondaryContainer = Color(0xFFEDEDED),
-    tertiary = SuccessDark, onTertiary = Color(0xFF0D2A17),
-    tertiaryContainer = Color(0xFF15281B), onTertiaryContainer = Color(0xFFCDEBD5),
-    error = ErrorDark, onError = Color(0xFF3D0D0C),
-    errorContainer = Color(0xFF331716), onErrorContainer = Color(0xFFFAD6D3),
-    background = Ink, onBackground = Color(0xFFEDEDED),
-    surface = Ink, onSurface = Color(0xFFEDEDED),
-    surfaceVariant = Color(0xFF1F1F1F), onSurfaceVariant = Color(0xFFA3A3A3),
+    secondary = Color(0xFFC9C2B6), onSecondary = Color(0xFF141312),
+    secondaryContainer = Color(0xFF272523), onSecondaryContainer = EstateDark,
+    tertiary = SuccessDark, onTertiary = Color(0xFF1B2513),
+    tertiaryContainer = Color(0xFF232A1D), onTertiaryContainer = Color(0xFFD5E2C6),
+    error = ErrorDark, onError = Color(0xFF3A140D),
+    errorContainer = Color(0xFF2F1F1B), onErrorContainer = Color(0xFFF6D6CF),
+    background = Color(0xFF141312), onBackground = EstateDark,
+    surface = Color(0xFF141312), onSurface = EstateDark,
+    surfaceVariant = Color(0xFF272523), onSurfaceVariant = Color(0xFFA39D92),
     surfaceTint = Color.Transparent,
-    surfaceDim = Ink, surfaceBright = Color(0xFF2E2E2E),
-    surfaceContainerLowest = Color(0xFF050505),
-    surfaceContainerLow = Color(0xFF121212),
-    surfaceContainer = Color(0xFF181818),
-    surfaceContainerHigh = Color(0xFF202020),
-    surfaceContainerHighest = Color(0xFF2A2A2A),
-    inverseSurface = Color(0xFFEDEDED), inverseOnSurface = Ink,
-    outline = Color(0xFF787878), outlineVariant = Color(0xFF2C2C2C),
+    surfaceDim = Color(0xFF141312), surfaceBright = Color(0xFF312F2C),
+    surfaceContainerLowest = Color(0xFF0F0E0D),
+    surfaceContainerLow = Color(0xFF1D1C1A),
+    surfaceContainer = Color(0xFF222120),
+    surfaceContainerHigh = Color(0xFF272523),
+    surfaceContainerHighest = Color(0xFF312F2C),
+    inverseSurface = EstateDark, inverseOnSurface = Color(0xFF141312),
+    outline = Color(0xFF857F74), outlineVariant = Color(0xFF3A3733),
     scrim = Color.Black,
 )
 
@@ -72,19 +72,22 @@ private fun scheme(dark: Boolean): ColorScheme = if (dark) DarkScheme else Light
 /** Functional boundaries share Material's outline; outlineVariant remains decorative. */
 val ColorScheme.controlBorder: Color get() = outline
 
-/** Выбор — полная инверсия: белая плашка на чернилах, чёрная на бумаге. */
+/** Выбор — полная инверсия: графитовая плашка на молоке, молочная на угле. */
 val ColorScheme.selectedContainer: Color get() = inverseSurface
 val ColorScheme.selectedBorder: Color get() = inverseSurface
 val ColorScheme.selectedContent: Color get() = inverseOnSurface
 
-/** Только прямые углы: строгая геометрия без скруглений. */
+/** Мягкая геометрия: 8 dp у полей и кнопок, 12 dp у карточек, 20 dp у шторок; чипы — капсулы ([Capsule]). */
 private val AlbionShapes = Shapes(
-    extraSmall = RoundedCornerShape(0.dp),
-    small = RoundedCornerShape(0.dp),
-    medium = RoundedCornerShape(0.dp),
-    large = RoundedCornerShape(0.dp),
-    extraLarge = RoundedCornerShape(0.dp),
+    extraSmall = RoundedCornerShape(6.dp),
+    small = RoundedCornerShape(8.dp),
+    medium = RoundedCornerShape(12.dp),
+    large = RoundedCornerShape(16.dp),
+    extraLarge = RoundedCornerShape(20.dp),
 )
+
+/** Капсула для чипов, бейджей и индикатора навигации. */
+val Capsule = RoundedCornerShape(percent = 50)
 
 /** Тёмная ли сейчас тема приложения (с учётом выбора в настройках). */
 val LocalDarkTheme = staticCompositionLocalOf { false }
