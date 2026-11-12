@@ -83,6 +83,9 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.marat.albion.LocalAppContainer
 import com.marat.albion.audio.AudioPlayer
 import com.marat.albion.data.content.Deck
+import com.marat.albion.data.repo.CardFormat
+import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.union
 import com.marat.albion.data.repo.StudySource
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
@@ -126,7 +129,9 @@ fun StudyScreen(source: StudySource, navigator: Navigator, answerLimit: Int? = n
     LaunchedEffect(current?.card?.id, state.revealed) {
         val card = current?.card ?: return@LaunchedEffect
         val d = Deck.byId(card.deck) ?: Deck.WORDS
-        if ((!state.revealed && settings.autoplayFront) || (state.revealed && settings.autoplayBack)) {
+        // На вводе по значению звук лицевой стороны выдал бы ответ.
+        val recall = current.format != CardFormat.Classic
+        if ((!state.revealed && settings.autoplayFront && !recall) || (state.revealed && settings.autoplayBack)) {
             c.audio.playDelayed(d, card.audio, card.term, "term:${card.id}", delayMs = 180)
         }
     }
@@ -151,7 +156,7 @@ fun StudyScreen(source: StudySource, navigator: Navigator, answerLimit: Int? = n
     BoxWithConstraints(
         Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)
             .windowInsetsPadding(WindowInsets.statusBars)
-            .windowInsetsPadding(WindowInsets.navigationBars),
+            .windowInsetsPadding(WindowInsets.navigationBars.union(WindowInsets.ime)),
     ) {
         val compact = maxHeight < 480.dp || LocalDensity.current.fontScale > 1.3f
         Column(Modifier.fillMaxSize()) {
@@ -164,6 +169,7 @@ fun StudyScreen(source: StudySource, navigator: Navigator, answerLimit: Int? = n
                 }
                 state.finished -> Finished(state, onDone = { navigator.back() }, onUndo = vm::undo)
                 current != null -> {
+                    val recall = rememberRecallState(current)
                     StudyWorkspace(Modifier.weight(1f), card = { modifier ->
                         Box(modifier.padding(horizontal = if (compact) 12.dp else 20.dp, vertical = if (compact) 8.dp else 18.dp)) {
                             CardStackShadow(remaining = state.remaining)
@@ -182,7 +188,10 @@ fun StudyScreen(source: StudySource, navigator: Navigator, answerLimit: Int? = n
                                 label = "card",
                             ) { sc ->
                                 val isCurrent = sc.card.id == current.card.id
-                                SwipeToRate(enabled = isCurrent && state.revealed, onRate = rate) {
+                                if (sc.format != CardFormat.Classic) {
+                                    if (isCurrent) RecallCard(sc, sc.irregular, recall, audio, settings.showRussian)
+                                    else RecallCard(sc, sc.irregular, rememberRecallState(sc), audio, settings.showRussian)
+                                } else SwipeToRate(enabled = isCurrent && state.revealed, onRate = rate) {
                                     FlipCard(
                                         revealed = if (isCurrent) state.revealed else true,
                                         onReveal = { feedback.reveal(); vm.reveal() },
@@ -200,7 +209,14 @@ fun StudyScreen(source: StudySource, navigator: Navigator, answerLimit: Int? = n
                         }
                     }, actions = { modifier ->
                         Box(modifier.padding(start = if (compact) 12.dp else 20.dp, end = if (compact) 12.dp else 20.dp, bottom = 14.dp, top = 4.dp)) {
-                            AnimatedContent(
+                            if (current.format != CardFormat.Classic) {
+                                RecallActions(
+                                    current, recall,
+                                    onChecked = { feedback.reveal(); vm.reveal() },
+                                    onNext = { rating -> feedback.selection(); c.audio.stop(); vm.answerChecked(rating) },
+                                    onOwnAnswer = { answer -> feedback.selection(); c.audio.stop(); vm.acceptOwnAnswer(answer) },
+                                )
+                            } else AnimatedContent(
                                 targetState = state.revealed,
                                 transitionSpec = {
                                     (fadeIn(tween(160, delayMillis = 30)) + slideInVertically(tween(200, easing = Easing.Emphasized)) { if (reduced) 0 else it / 12 }) togetherWith

@@ -236,6 +236,18 @@ class StudyRepository(
         }
     }
 
+    /** Формат показа слова сегодня: по зрелости памяти (см. [ReviewFormat]). */
+    suspend fun cardFormat(card: CardEntity, memory: Memory, now: Long = System.currentTimeMillis()): CardFormat =
+        ReviewFormat.choose(card, memory, studyDay(now, settings.current().dayStartHour))
+
+    /** Варианты, которые пользователь засчитал для слова кнопкой «Мой ответ тоже верен». */
+    suspend fun ownAnswers(card: CardEntity): List<String> {
+        val ids = WordCards.members(card).mapTo(HashSet()) { it.id } + card.id
+        return settings.wordOwnAnswers.first().filter { it.taskId in ids }.map { it.answer }
+    }
+
+    suspend fun addOwnAnswer(card: CardEntity, answer: String) = settings.addWordOwnAnswer(card.id, answer)
+
     /** Откладывает слово на [days] дней от начала учебного дня. Это не ответ: журнал не пишется. */
     suspend fun postpone(card: CardEntity, days: Int = Leech.POSTPONE_DAYS, now: Long = System.currentTimeMillis()) {
         val s = settings.current()
