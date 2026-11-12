@@ -378,6 +378,11 @@ class StudyRepository(
             durationMs = durationMs.coerceIn(0, MAX_GAME_DURATION)))
     }
 
+    /** Ответ в упражнении без карточек (например, «Исправьте ошибку»): только в журнал практики. */
+    suspend fun recordAnswer(game: String, itemId: String, ok: Boolean, durationMs: Long = 0, now: Long = System.currentTimeMillis()) =
+        games.insert(GameAnswerLogEntity(game = game, itemId = itemId, correct = ok, answeredAt = now,
+            durationMs = durationMs.coerceIn(0, MAX_GAME_DURATION)))
+
     /** Грамматические задания для игры; level = "" — все уровни. */
     suspend fun grammarPool(kind: String, level: String, count: Int) =
         db.grammarTasks().pool(kind, level, count)

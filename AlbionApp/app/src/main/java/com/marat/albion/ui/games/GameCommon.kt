@@ -144,6 +144,27 @@ enum class Game(
         "Предложения из таблицы неправильных глаголов с пропуском: выберите или впишите V1, V2 или V3. " +
             "После ответа — правило: почему после have нужна третья форма, а после did — первая.",
         listOf(Deck.IRREGULAR),
+    ),
+    DICTATION(
+        "Диктант",
+        "Запишите слово на слух",
+        "Диктор произносит слово или выражение — напечатайте, что услышали. Можно переслушать и замедлить. " +
+            "Ошибки подсвечиваются по буквам; значение слова — после ответа. Тренирует слух и написание.",
+        listOf(Deck.WORDS, Deck.PHRASAL, Deck.IDIOMS, Deck.COLLOCATIONS, Deck.IRREGULAR),
+    ),
+    CLOZE(
+        "Слово в контексте",
+        "Вставьте слово в пример",
+        "Пример из карточки с пропуском и русское значение — впишите слово в нужной форме (looked, studies). " +
+            "Верное слово в другой форме засчитывается как «почти». Подошедшие повторения засчитываются в «Сегодня».",
+        listOf(Deck.WORDS, Deck.PHRASAL, Deck.IDIOMS, Deck.COLLOCATIONS),
+    ),
+    FIX_ERROR(
+        "Исправьте ошибку",
+        "Найдите ошибку и исправьте её",
+        "В предложении одна ошибка — типичная для русскоязычных или из заданий учебника. Коснитесь неверного слова, " +
+            "затем впишите правильный вариант. После ответа — короткое объяснение.",
+        emptyList(),
     );
 
     val isGrammar get() = this == GRAMMAR_CHOICE || this == GRAMMAR_GAP
@@ -152,7 +173,7 @@ enum class Game(
      * Ответ проверяет вспоминание слова по значению — подошедшее повторение засчитывается в FSRS.
      * Формы глаголов, диктант, выбор, плашки и речь память слова не проверяют.
      */
-    val gradesMemory get() = this == TYPE_ANSWER
+    val gradesMemory get() = this == TYPE_ANSWER || this == CLOZE
 
     val icon: ImageVector
         get() = when (this) {
@@ -164,11 +185,14 @@ enum class Game(
             GRAMMAR_GAP -> AlbionIcons.EditNote
             SENTENCE -> AlbionIcons.ViewWeek
             TENSES -> AlbionIcons.History
+            DICTATION -> AlbionIcons.VolumeUp
+            CLOZE -> AlbionIcons.TextFields
+            FIX_ERROR -> AlbionIcons.BorderColor
         }
 
     /** Как называть единицу занятия: «10 слов», «10 фраз». */
     val unit: String get() = when (this) {
-        SENTENCE -> "предложений"
+        SENTENCE, FIX_ERROR -> "предложений"
         IRREGULAR -> "глаголов"
         TENSES, GRAMMAR_CHOICE, GRAMMAR_GAP -> "заданий"
         else -> "слов"
