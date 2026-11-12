@@ -36,8 +36,10 @@ data class TrackMeta(
     val title: String,
     val author: String = "",
     val reader: String = "",
-    /** «British» / «American» — у неосновного акцента в списке появляется пометка. */
+    /** «British», «American»… — пометка в списке; пусто — не указан. */
     val accent: String = "",
+    /** [TrackKind.STORY] или [TrackKind.SONG]: у песен текст разбит по строкам, чтеца нет. */
+    val kind: String = TrackKind.STORY,
     val level: String = "",
     val source: String = "",
     val sourceUrl: String = "",
@@ -49,9 +51,15 @@ data class TrackMeta(
     val transcript: String = "transcript.json",
 )
 
+object TrackKind {
+    const val STORY = "story"
+    const val SONG = "song"
+}
+
 /** Трек в списке: встроенный (assets) или добавленный пользователем (файлы приложения). */
 data class ListeningTrack(val meta: TrackMeta, val bundled: Boolean, private val dir: String) {
     val id: String get() = meta.id
+    val isSong: Boolean get() = meta.kind == TrackKind.SONG
 
     /** Адрес записи для ExoPlayer: `asset:///…` или `file://…`. */
     val audioUri: Uri get() = if (bundled) Uri.parse("asset:///$dir/${meta.audio}") else Uri.fromFile(File(dir, meta.audio))

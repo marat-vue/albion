@@ -1,1 +1,3 @@
 .env
+# Личные записи (песни и т. п.) из scripts/listening — только для своей сборки
+listening/personal-*/

@@ -62,7 +62,7 @@ android {
 
     androidResources {
         // mp3/xlsx уже сжаты — не тратим время на повторное сжатие.
-        noCompress += listOf("mp3", "xlsx", "epub", "pdf")
+        noCompress += listOf("mp3", "m4a", "aac", "ogg", "opus", "flac", "xlsx", "epub", "pdf")
     }
 }
 
@@ -117,7 +117,7 @@ abstract class SyncAlbionContent @Inject constructor(
                     into("library")
                 }
                 from(File(src, "listening")) {
-                    include("*/track.json", "*/transcript.json", "*/*.mp3")
+                    include("*/track.json", "*/transcript.json", "*/audio.*")
                     into("listening")
                 }
             }
@@ -140,7 +140,7 @@ val syncAlbionContent = tasks.register<SyncAlbionContent>("syncAlbionContent") {
             contentDir.dir("audio").asFileTree.matching { include("**/*.mp3") },
             contentDir.dir("grammar").asFileTree.matching { include("*.md") },
             contentDir.dir("library").asFileTree.matching { include("*.txt", "*.md", "*.epub", "*.pdf") },
-            contentDir.dir("listening").asFileTree.matching { include("*/track.json", "*/transcript.json", "*/*.mp3") },
+            contentDir.dir("listening").asFileTree.matching { include("*/track.json", "*/transcript.json", "*/audio.*") },
         )
     }
     outputDir.set(layout.buildDirectory.dir("generated/albionContent"))

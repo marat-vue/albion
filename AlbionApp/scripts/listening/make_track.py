@@ -8,6 +8,9 @@
     python make_track.py --all                       # все треки каталога
     python make_track.py --list                      # что есть в каталоге
 
+    # Своя песня или запись (для личного использования): аудио + текст, который вы добавили сами
+    python make_track.py --audio song.mp3 --lyrics song.txt --title "Song" --artist "Band" --vocals
+
 Нужно: pip install stable-ts imageio-ffmpeg requests (torch ставится вместе со stable-ts;
 для CPU: pip install torch --index-url https://download.pytorch.org/whl/cpu).
 
@@ -160,17 +163,22 @@ def load_audio(mp3: Path):
     return np.frombuffer(pcm, np.int16).astype(np.float32) / 32768.0
 
 
-def recognise(mp3: Path, model_name: str, device: str | None) -> list[tuple[str, int, int]]:
-    """Слова записи с метками времени (мс). Результат кэшируется рядом с mp3."""
-    cache = mp3.with_suffix(f".{model_name}.words.json")
+def recognise(mp3: Path, model_name: str, device: str | None, vocals: bool = False,
+              cache_dir: Path | None = None) -> list[tuple[str, int, int]]:
+    """Слова записи с метками времени (мс). Результат кэшируется (рядом с mp3 или в [cache_dir]).
+    [vocals] — сначала выделить голос из музыки (demucs, MIT): без этого whisper плохо слышит песни."""
+    suffix = f".{model_name}{'.vocals' if vocals else ''}.words.json"
+    cache = (cache_dir / (mp3.stem + suffix)) if cache_dir else mp3.with_suffix(suffix)
     if cache.exists():
         return [tuple(w) for w in json.loads(cache.read_text(encoding="utf-8"))]
     import stable_whisper
 
     print(f"  ⌛ распознаю {mp3.name} моделью {model_name} — на CPU это несколько минут")
     model = stable_whisper.load_model(model_name, device=device)
-    result = model.transcribe(load_audio(mp3), language="en", word_timestamps=True, vad=False, verbose=None)
+    options = {"denoiser": "demucs"} if vocals else {}
+    result = model.transcribe(load_audio(mp3), language="en", word_timestamps=True, vad=False, verbose=None, **options)
     words = [(w.word.strip(), int(w.start * 1000), int(w.end * 1000)) for seg in result.segments for w in seg.words]
+    cache.parent.mkdir(parents=True, exist_ok=True)
     cache.write_text(json.dumps(words), encoding="utf-8")
     return words
 
@@ -262,6 +270,55 @@ def make_track(entry: dict, content: Path, model: str, device: str | None) -> No
     print(f"  ✓ {len(aligned)} фраз → {target}")
 
 
+LRC_TIME = re.compile(r"\[\d{1,3}:\d{1,2}(?:[.:]\d{1,3})?\]|<\d{1,3}:\d{1,2}(?:[.:]\d{1,3})?>")
+SECTION = re.compile(r"^\s*[\[(][^\])]*[\])]\s*$")  # [Chorus], (Verse 2), [ti:…]
+
+
+def lyric_lines(text: str) -> list[str]:
+    """Строки текста песни — это и есть фразы. Метки LRC и заголовки куплетов убираются."""
+    out = []
+    for line in text.splitlines():
+        line = LRC_TIME.sub("", line).strip()
+        if not line or SECTION.match(line):
+            continue
+        out.extend(_split_long(line))
+    return out
+
+
+def slug(text: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")[:40] or "track"
+
+
+def make_personal(args) -> None:
+    """Своя запись: аудио и текст лежат у вас, в репозиторий они не попадают (listening/personal-*)."""
+    audio: Path = args.audio
+    lyrics = args.lyrics.read_text(encoding="utf-8-sig")
+    title = args.title or audio.stem
+    track_id = "personal-" + slug(f"{args.artist or ''} {title}")
+    kind = "song" if args.vocals or args.song else "story"
+    print(f"▶ {track_id}: {title}")
+    segments = lyric_lines(lyrics) if kind == "song" else split_segments(normalize_text(lyrics))
+    if not segments:
+        raise SystemExit("В файле с текстом нет строк")
+    heard = recognise(audio, args.model, args.device, vocals=args.vocals, cache_dir=CACHE)
+    # Повторы припева и вставки, которых нет в тексте, допускают меньшее совпадение.
+    aligned = align(segments, heard, partial=True)
+    target = args.content / "listening" / track_id
+    target.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(audio, target / ("audio" + audio.suffix.lower()))
+    (target / "transcript.json").write_text(json.dumps(aligned, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
+    meta = {
+        "id": track_id, "title": title, "author": args.artist or "", "kind": kind,
+        "accent": args.accent or "", "level": args.level or "",
+        "source": "Своя запись", "license": "Для личного использования",
+        "attribution": "Личная копия — не распространяйте APK с этой записью.",
+        "durationMs": int(len(load_audio(audio)) / SAMPLE_RATE * 1000),
+        "audio": "audio" + audio.suffix.lower(),
+    }
+    (target / "track.json").write_text(json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8")
+    print(f"  ✓ {len(aligned)} строк → {target}")
+
+
 def main() -> None:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("ids", nargs="*", help="id треков из tracks.json")
@@ -269,9 +326,25 @@ def main() -> None:
     p.add_argument("--list", action="store_true", help="показать каталог")
     p.add_argument("--catalog", type=Path, default=HERE / "tracks.json")
     p.add_argument("--content", type=Path, default=DEFAULT_CONTENT, help="корень материалов (albion.contentDir)")
-    p.add_argument("--model", default="base.en", help="модель whisper: tiny.en, base.en, small.en…")
+    p.add_argument("--model", default="base.en", help="модель whisper: tiny.en, base.en, small.en… (для песен лучше small.en или medium.en)")
     p.add_argument("--device", default=None, help="cpu / cuda (по умолчанию — что доступно)")
+    personal = p.add_argument_group("своя запись (песня, подкаст, аудиокнига) — для личного использования")
+    personal.add_argument("--audio", type=Path, help="аудиофайл (mp3, m4a, ogg…)")
+    personal.add_argument("--lyrics", type=Path, help="текст: строки песни (TXT или LRC) или проза")
+    personal.add_argument("--title")
+    personal.add_argument("--artist")
+    personal.add_argument("--accent", help="American, British… — пометка в списке")
+    personal.add_argument("--level", help="B1, B2…")
+    personal.add_argument("--song", action="store_true", help="разбивать текст по строкам (песня)")
+    personal.add_argument("--vocals", action="store_true",
+                          help="выделить голос из музыки (demucs: pip install demucs); подразумевает --song")
     args = p.parse_args()
+
+    if args.audio or args.lyrics:
+        if not (args.audio and args.lyrics):
+            p.error("для своей записи нужны и --audio, и --lyrics")
+        make_personal(args)
+        return
 
     catalog = json.loads(args.catalog.read_text(encoding="utf-8"))
     if args.list:

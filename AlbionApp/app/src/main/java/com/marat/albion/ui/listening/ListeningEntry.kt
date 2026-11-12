@@ -26,7 +26,7 @@ fun ListeningEntry(modifier: Modifier = Modifier, onOpen: () -> Unit) {
             Spacer(Modifier.width(14.dp))
             Column(Modifier.weight(1f)) {
                 Text("Аудио с текстом", style = MaterialTheme.typography.titleMedium)
-                Text("Рассказы с британскими чтецами: слушайте и следите по тексту", style = MaterialTheme.typography.bodySmall,
+                Text("Рассказы и песни: слушайте и следите по тексту", style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Icon(AlbionIcons.ArrowForward, null, Modifier.size(20.dp))

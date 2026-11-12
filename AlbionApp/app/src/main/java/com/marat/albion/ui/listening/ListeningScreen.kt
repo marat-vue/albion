@@ -42,6 +42,7 @@ import com.marat.albion.ui.components.GhostButton
 import com.marat.albion.ui.components.LoadingState
 import com.marat.albion.ui.components.Panel
 import com.marat.albion.ui.components.RoundIconButton
+import com.marat.albion.ui.components.SegmentedPicker
 import com.marat.albion.ui.components.ThinProgress
 import com.marat.albion.ui.components.TopBar
 import com.marat.albion.ui.components.gutter
@@ -50,7 +51,7 @@ import com.marat.albion.ui.nav.Navigator
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 
-/** Список треков «Аудио с текстом»: встроенные рассказы и свои записи с субтитрами. */
+/** Список треков «Аудио с текстом»: рассказы, песни и свои записи с субтитрами. */
 @Composable
 fun ListeningScreen(navigator: Navigator) {
     val c = LocalAppContainer.current
@@ -62,6 +63,7 @@ fun ListeningScreen(navigator: Navigator) {
     var toDelete by remember { mutableStateOf<ListeningTrack?>(null) }
     // Импорт в два шага: сначала запись, потом текст к ней. Uri записи переживает поворот экрана.
     var pendingAudio by rememberSaveable { mutableStateOf<String?>(null) }
+    var filter by rememberSaveable { mutableStateOf(TrackFilter.ALL) }
     LaunchedEffect(Unit) { c.listeningLibrary.refresh() }
 
     val subtitlesPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { subs ->
@@ -94,17 +96,24 @@ fun ListeningScreen(navigator: Navigator) {
         ) {
             item(key = "intro") {
                 Text(
-                    "Рассказы в исполнении британских чтецов. Текст подсвечивается вслед за голосом, " +
+                    "Рассказы и песни на английском. Текст подсвечивается вслед за голосом, " +
                         "касание слова открывает словарь, касание времени у фразы — переход к ней.",
                     style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 4.dp),
                 )
             }
-            val list = tracks
+            val all = tracks
+            // Фильтр нужен, только когда в списке есть записи разных видов.
+            val kinds = all.orEmpty().map(TrackFilter::of).toSet()
+            if (kinds.size > 1) item(key = "filter") {
+                val options = listOf(TrackFilter.ALL) + TrackFilter.entries.filter { it in kinds }
+                SegmentedPicker(options.map { it.title }, options.indexOf(filter).coerceAtLeast(0), { filter = options[it] })
+            }
+            val list = all?.filter { filter == TrackFilter.ALL || TrackFilter.of(it) == filter }
             when {
                 list == null -> item(key = "loading") { LoadingState("Загружаю записи") }
                 list.isEmpty() -> item(key = "empty") {
-                    EmptyState("Записей пока нет", "Встроенные рассказы появляются, если собрать приложение с материалами. Можно добавить свою запись с субтитрами SRT или LRC.")
+                    EmptyState("Записей пока нет", "Встроенные треки появляются, если собрать приложение с материалами. Можно добавить свою запись или песню с текстом в LRC или SRT.")
                 }
                 else -> items(list, key = { it.id }) { track ->
                     TrackRow(track, progress[track.id],
@@ -120,9 +129,10 @@ fun ListeningScreen(navigator: Navigator) {
                         audioPicker.launch(arrayOf("audio/*"))
                     }, icon = AlbionIcons.Add, enabled = !importing)
                     Spacer(Modifier.height(10.dp))
-                    Disclosure("Свои записи", "Аудиофайл и субтитры SRT или LRC", icon = AlbionIcons.HelpOutline) {
+                    Disclosure("Свои записи и песни", "Аудиофайл и текст в LRC или SRT", icon = AlbionIcons.HelpOutline) {
                         Text(
-                            "Сначала выберите аудиофайл, затем файл с текстом: SRT, LRC или JSON выравнивания Albion. " +
+                            "Сначала выберите аудиофайл, затем файл с текстом: LRC (синхронизированный текст песни), SRT или JSON выравнивания Albion. " +
+                                "Пословную подсветку для песни можно подготовить на компьютере скриптом scripts/listening/make_track.py. " +
                                 "В SRT и LRC время указано для фраз, поэтому подсвечивается фраза целиком. " +
                                 "Используйте записи, которые вам разрешено слушать: файлы остаются только на этом устройстве.",
                             style = MaterialTheme.typography.bodyMedium,
@@ -170,11 +180,12 @@ private fun TrackRow(track: ListeningTrack, progress: ListenProgress?, onOpen: (
         Spacer(Modifier.height(10.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
             if (meta.level.isNotBlank()) Chip(meta.level)
-            if (meta.accent.isNotBlank() && !meta.accent.equals("British", true)) Chip(accentLabel(meta.accent))
+            if (track.isSong) Chip("Песня")
+            if (meta.accent.isNotBlank()) Chip(accentLabel(meta.accent))
             if (meta.durationMs > 0) Text(formatTime(meta.durationMs), style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(Modifier.weight(1f))
-            Text(if (track.bundled) meta.source else "Своя запись", style = MaterialTheme.typography.labelMedium,
+            Text(if (track.bundled) meta.source.ifBlank { "Встроенная" } else "Своя запись", style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         val fraction = if (progress != null && meta.durationMs > 0) progress.positionMs.toFloat() / meta.durationMs else 0f
@@ -185,9 +196,26 @@ private fun TrackRow(track: ListeningTrack, progress: ListenProgress?, onOpen: (
     }
 }
 
-/** Неосновной акцент помечаем, чтобы не путать с британским произношением. */
+/** Акцент показываем пометкой: полезно сравнивать британское и американское произношение. */
 internal fun accentLabel(accent: String): String = when (accent.lowercase()) {
-    "american" -> "Американский акцент"
-    "british" -> "Британский акцент"
+    "american" -> "Американский"
+    "british" -> "Британский"
+    "australian" -> "Австралийский"
+    "irish" -> "Ирландский"
+    "scottish" -> "Шотландский"
+    "canadian" -> "Канадский"
     else -> accent
+}
+
+/** Фильтр списка; видов записей немного, поэтому — сегменты. */
+internal enum class TrackFilter(val title: String) {
+    ALL("Все"), STORIES("Рассказы"), SONGS("Песни"), OWN("Свои");
+
+    companion object {
+        fun of(track: ListeningTrack): TrackFilter = when {
+            track.isSong -> SONGS
+            !track.bundled -> OWN
+            else -> STORIES
+        }
+    }
 }
