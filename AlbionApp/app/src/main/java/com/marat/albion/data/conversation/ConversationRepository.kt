@@ -1,36 +1,27 @@
 package com.marat.albion.data.conversation
 
+import com.marat.albion.data.ai.GroqClient
 import com.marat.albion.data.db.AlbionDatabase
 import com.marat.albion.data.db.ConversationEntity
 import com.marat.albion.data.db.ConversationMessageEntity
 import com.marat.albion.data.library.Translator
-import com.marat.albion.data.translation.Generation
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.last
 
-/**
- * Разговорная практика: история бесед в Room, ответы, разбор ошибок и подсказки — Qwen3.5 на устройстве.
- * Беседа держится в слоте [Generation.CHAT], остальные задачи идут через [Generation.TASK] и её не сбрасывают.
- */
-class ConversationRepository(database: AlbionDatabase, private val translator: Translator) {
+/** Разговорная практика: история бесед в Room, ответы, разбор ошибок и подсказки — через Groq. */
+class ConversationRepository(database: AlbionDatabase, private val groq: GroqClient, private val translator: Translator) {
     private val dao = database.conversations()
-    private val engine get() = translator.engine
-    val model get() = translator.model
-    val loading get() = engine.loading
+    val status get() = groq.status
 
     fun summaries() = dao.observeSummaries()
     fun conversation(id: Long) = dao.observe(id)
     fun messages(id: Long) = dao.observeMessages(id)
 
-    private fun activeModel() = translator.models.activeModel()
-        ?: error("Установите модель Qwen3.5 — она ведёт беседу прямо на телефоне.")
-
     suspend fun create(scenario: Scenario, level: String): Long {
         val now = System.currentTimeMillis()
         val id = dao.insert(ConversationEntity(title = scenario.title, scenario = scenario.id, level = level,
             createdAt = now, updatedAt = now))
-        // Первая реплика заготовлена: беседа начинается сразу, без ожидания модели.
+        // Первая реплика заготовлена: беседа начинается сразу, без запроса к модели.
         dao.insert(ConversationMessageEntity(conversationId = id, role = ConversationMessageEntity.ASSISTANT,
             text = scenario.opener, createdAt = now))
         return id
@@ -59,10 +50,8 @@ class ConversationRepository(database: AlbionDatabase, private val translator: T
         // Пересказанные реплики заменяет их краткое содержание в системной подсказке.
         val history = all.filter { it.id > conversation.summaryUpTo }
         val prompt = ConversationProtocol.reply(Scenario.of(conversation.scenario), conversation.level, history, conversation.summary)
-        val (file, _) = activeModel()
         var text = ""
-        engine.generate(file, prompt, Generation(Generation.CHAT, ConversationProtocol.REPLY_TOKENS, temperature = 0.7f,
-            allowTruncate = true, keepAliveMs = 600_000)).collect { raw ->
+        groq.stream(prompt, ConversationProtocol.REPLY_TOKENS, temperature = 0.8f).collect { raw ->
             text = ConversationProtocol.cleanReply(raw)
             if (text.isNotBlank()) emit(text)
         }
@@ -83,9 +72,8 @@ class ConversationRepository(database: AlbionDatabase, private val translator: T
         val count = ConversationProtocol.compactionSize(history)
         if (count == 0) return false
         val chunk = history.take(count)
-        val (file, _) = activeModel()
-        val raw = engine.generate(file, ConversationProtocol.summary(Scenario.of(conversation.scenario), conversation.summary, chunk),
-            Generation(maxTokens = ConversationProtocol.SUMMARY_TOKENS, allowTruncate = true)).last()
+        val raw = groq.complete(ConversationProtocol.summary(Scenario.of(conversation.scenario), conversation.summary, chunk),
+            ConversationProtocol.SUMMARY_TOKENS)
         val summary = ConversationProtocol.cleanSummary(raw)
         // Пустой пересказ потерял бы реплики: тогда остаётся обрезка истории, попробуем на следующем ходу.
         if (summary.isBlank()) return false
@@ -98,10 +86,8 @@ class ConversationRepository(database: AlbionDatabase, private val translator: T
         val message = dao.message(messageId) ?: error("Сообщение удалено.")
         message.correction?.let { return it }
         val previous = dao.messages(message.conversationId).lastOrNull { it.id < messageId && !it.fromUser }?.text
-        val (file, _) = activeModel()
-        val raw = engine.generate(file, ConversationProtocol.correction(previous, message.text, message.voice),
-            Generation(maxTokens = 220, allowTruncate = true)).last()
-        // Неразборчивый ответ маленькой модели не выдаём за ошибку ученика.
+        val raw = groq.complete(ConversationProtocol.correction(previous, message.text, message.voice), ConversationProtocol.CORRECTION_TOKENS)
+        // Неразборчивый ответ модели не выдаём за ошибку ученика.
         val result = ConversationProtocol.parseCorrection(raw, message.text) ?: ""
         dao.setCorrection(messageId, result)
         return result
@@ -111,8 +97,7 @@ class ConversationRepository(database: AlbionDatabase, private val translator: T
         val conversation = dao.get(conversationId) ?: error("Беседа удалена.")
         val prompt = ConversationProtocol.hint(Scenario.of(conversation.scenario), conversation.level,
             dao.messages(conversationId), conversation.summary)
-        val (file, _) = activeModel()
-        engine.generate(file, prompt, Generation(maxTokens = 80, temperature = 0.7f, allowTruncate = true)).collect { raw ->
+        groq.stream(prompt, ConversationProtocol.HINT_TOKENS, temperature = 0.8f).collect { raw ->
             ConversationProtocol.cleanHint(raw).takeIf { it.isNotBlank() }?.let { emit(it) }
         }
     }

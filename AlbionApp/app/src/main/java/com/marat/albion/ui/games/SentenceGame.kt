@@ -79,9 +79,9 @@ fun SentenceRound(vm: GameViewModel, card: CardEntity) {
     val answer = placed.map { puzzle.tokens[it] }
     val wrong = if (verdict == Verdict.Wrong) puzzle.wrongPositions(answer) else emptySet()
     val speakKey = "sentence:${card.id}"
-    // Перевод предложения: без него порядок слов приходится угадывать. Переводит модель на устройстве, если она установлена.
-    val model by c.translator.model.collectAsStateWithLifecycle()
-    val canTranslate = model.phase == com.marat.albion.data.translation.ModelState.Ready
+    // Перевод предложения: без него порядок слов приходится угадывать. Переводит ИИ (Groq), если добавлен ключ.
+    val ai by c.translator.status.collectAsStateWithLifecycle()
+    val canTranslate = ai.ready
     val translation = vm.sentenceTranslations[card.id]
     androidx.compose.runtime.LaunchedEffect(canTranslate) { vm.prefetchTranslations(canTranslate) }
     var editingTranslation by rememberSaveable(card.id) { mutableStateOf(false) }

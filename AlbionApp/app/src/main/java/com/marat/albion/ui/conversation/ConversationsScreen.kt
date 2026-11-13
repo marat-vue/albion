@@ -30,7 +30,7 @@ import kotlinx.coroutines.launch
 
 /**
  * Разговорная практика: новая беседа (уровень + ситуация), история бесед и модели.
- * Всё работает на телефоне: Qwen3.5 отвечает, Whisper распознаёт речь — без платных API и лимитов.
+ * Собеседник — ИИ в облаке Groq (бесплатный ключ, из России через VPN); Whisper распознаёт речь на телефоне.
  */
 @Composable
 fun ConversationsScreen(navigator: Navigator) {
@@ -39,7 +39,7 @@ fun ConversationsScreen(navigator: Navigator) {
     val prefs = remember { context.getSharedPreferences("conversation", Context.MODE_PRIVATE) }
     var level by remember { mutableStateOf(prefs.getString("level", "B1") ?: "B1") }
     val history by remember { c.conversations.summaries() }.collectAsStateWithLifecycle(null)
-    val model by c.conversations.model.collectAsStateWithLifecycle()
+    val model by c.conversations.status.collectAsStateWithLifecycle()
     val speech by c.speech.models.state.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
     var deleting by remember { mutableStateOf<ConversationSummary?>(null) }
@@ -53,7 +53,8 @@ fun ConversationsScreen(navigator: Navigator) {
                     "микрофон записывает, пока вы говорите, а пауза в пару секунд завершает запись.\n\n" +
                     "После каждой вашей реплики модель проверяет её и показывает, как сказать лучше. Под ответами собеседника — " +
                     "озвучка и перевод, лампочка подскажет, что ответить.\n\n" +
-                    "Всё считается на телефоне: бесплатно, без лимитов и интернета. Беседы сохраняются в истории.")
+                    "Собеседник работает через Groq: нужен интернет и включённый VPN. Голос распознаётся на телефоне. " +
+                    "Беседы сохраняются в истории.")
         }
         LazyVerticalGrid(
             columns = GridCells.Adaptive(156.dp),
@@ -64,9 +65,9 @@ fun ConversationsScreen(navigator: Navigator) {
         ) {
             item(span = { GridItemSpan(maxLineSpan) }) {
                 BoundVolume(Modifier.fillMaxWidth().appear(1)) {
-                    Eyebrow("На устройстве · без интернета", color = androidx.compose.material3.LocalContentColor.current)
+                    Eyebrow("ИИ Groq · нужен VPN", color = androidx.compose.material3.LocalContentColor.current)
                     Text("Говорите по-английски\nс собеседником-ИИ", style = MaterialTheme.typography.headlineSmall)
-                    Text("Пишите или говорите — модель ответит, поправит ошибки и подскажет. Бесплатно, без лимитов и интернета.",
+                    Text("Пишите или говорите — модель ответит, поправит ошибки и подскажет. Бесплатно, в пределах лимитов Groq.",
                         style = MaterialTheme.typography.bodyMedium, color = androidx.compose.material3.LocalContentColor.current)
                     SegmentedPicker(CONVERSATION_LEVELS, CONVERSATION_LEVELS.indexOf(level).coerceAtLeast(0), {
                         level = CONVERSATION_LEVELS[it]
@@ -76,10 +77,12 @@ fun ConversationsScreen(navigator: Navigator) {
                         inverse = true, enabled = model.ready)
                 }
             }
-            if (!model.ready || !speech.ready) item(span = { GridItemSpan(maxLineSpan) }) {
+            item(span = { GridItemSpan(maxLineSpan) }) {
                 Column(Modifier.appear(2), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    if (!model.ready) Disclosure("Собеседник · Qwen3.5", model.summary, initiallyExpanded = true, icon = AlbionIcons.CloudOff) {
-                        com.marat.albion.ui.library.TranslationModelControls()
+                    if (model.ready) VpnNotice()
+                    Disclosure("Собеседник · Groq", model.summary, initiallyExpanded = !model.ready,
+                        icon = if (model.ready) AlbionIcons.Check else AlbionIcons.CloudOff) {
+                        AiControls()
                     }
                     if (!speech.ready) Disclosure("Голосовой ввод · Whisper", speech.summary, initiallyExpanded = model.ready, icon = AlbionIcons.Mic) {
                         SpeechModelControls()

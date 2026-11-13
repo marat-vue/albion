@@ -35,7 +35,7 @@ data class BookTranslationStatus(
 }
 
 /**
- * Kept separate from Qwen: reading never loads or depends on the conversation model.
+ * Kept separate from the AI conversation partner: reading works offline and never needs Groq.
  * The ML Kit model (~30 MB) is downloaded only when the user asks; until then the reader uses the dictionary.
  */
 class BookTranslator internal constructor(

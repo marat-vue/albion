@@ -1,5 +1,6 @@
 package com.marat.albion.data.conversation
 
+import com.marat.albion.data.ai.ChatMessage
 import com.marat.albion.data.db.ConversationMessageEntity
 
 /** Ролевая ситуация: кого играет модель и с какой реплики начинается беседа. */
@@ -45,30 +46,30 @@ enum class Scenario(
 val CONVERSATION_LEVELS = listOf("A2", "B1", "B2", "C1")
 
 /**
- * Подсказки Qwen3.5 для разговорной практики. Беседа идёт в слоте модели, который сохраняет состояние:
- * каждая новая подсказка должна дословно продолжать предыдущую, поэтому история рисуется одинаково
- * на каждом ходу. Когда реплик становится много, самые старые пересказываются ([compactionSize]):
- * пересказ стоит в системной подсказке, и начало подсказки меняется только в момент сжатия.
- * Обрезка крупными шагами остаётся страховкой, если сжать не удалось.
+ * Подсказки для разговорной практики через Groq. Когда реплик становится много, самые старые
+ * пересказываются ([compactionSize]): пересказ стоит в системной подсказке. Бюджет держит запрос
+ * в пределах минутного лимита токенов бесплатного тарифа; обрезка — страховка, если сжать не удалось.
  */
 object ConversationProtocol {
-    const val REPLY_TOKENS = 200
-    private const val PROMPT_BUDGET = 3_000
-    /** История обрезается кратно стольким сообщениям — начало подсказки меняется редко. */
+    const val REPLY_TOKENS = 300
+    private const val PROMPT_BUDGET = 5_000
+    /** История обрезается кратно стольким сообщениям. */
     private const val TRIM_STEP = 6
     /** История длиннее — пора сжимать. Запас до [PROMPT_BUDGET] — на пересказ и случай, когда сжатие не удалось. */
-    private const val COMPACT_AT = 2_000
+    private const val COMPACT_AT = 3_500
     /** Свежие реплики, которые остаются дословно: не меньше [MIN_KEEP] сообщений и примерно столько токенов. */
-    private const val KEEP_TOKENS = 900
-    private const val MIN_KEEP = 4
-    /** Сколько истории пересказывается за раз: вместе с инструкцией и ответом это помещается в слот задач. */
-    private const val CHUNK_TOKENS = 1_200
-    const val SUMMARY_TOKENS = 220
-    private fun data(value: String) = com.marat.albion.data.translation.TranslationProtocol.stripControlTokens(value).trim()
-    private const val NO_THINK = "<think>\n\n</think>\n\n"
+    private const val KEEP_TOKENS = 1_800
+    private const val MIN_KEEP = 6
+    /** Сколько истории пересказывается за раз. */
+    private const val CHUNK_TOKENS = 1_500
+    const val SUMMARY_TOKENS = 400
+    const val CORRECTION_TOKENS = 400
+    const val HINT_TOKENS = 100
+    private fun data(value: String) = value.replace("\u0000", "").trim()
 
     /** Грубая оценка токенов для английского текста: ≈ 3,3 символа на токен. */
     fun estimateTokens(text: String) = text.length * 10 / 33 + 4
+    fun estimateTokens(messages: List<ChatMessage>) = messages.sumOf { estimateTokens(it.content) + 4 }
 
     private fun levelRule(level: String) = when (level) {
         "A2" -> "The learner is a beginner (CEFR A2): use only very common words and short simple sentences. Reply in one or two short sentences."
@@ -83,7 +84,8 @@ object ConversationProtocol {
         "You are ${scenario.role}. You are having a spoken conversation with someone who is practising English.\n" +
             "${levelRule(level)}\n" +
             "Rules:\n" +
-            "- Always answer in English, in a warm, natural spoken style, staying in your role.\n" +
+            "- Always answer in British English, in a warm, natural spoken style, staying in your role.\n" +
+            "- Remember what the learner has told you earlier and refer back to it naturally.\n" +
             "- React to what the learner said, then keep the conversation going with one question.\n" +
             "- Do not correct mistakes or explain grammar: a separate teacher does that. Just continue the conversation.\n" +
             "- If the learner writes in Russian or seems stuck, ask a simpler question in English.\n" +
@@ -91,22 +93,20 @@ object ConversationProtocol {
             (if (summary.isBlank()) "" else "\nEarlier in this conversation (you remember it; do not repeat it): ${data(summary)}")
 
     private fun turn(message: ConversationMessageEntity) =
-        if (message.fromUser) "<|im_start|>user\n${data(message.text)}<|im_end|>\n"
-        else "<|im_start|>assistant\n$NO_THINK${data(message.text)}<|im_end|>\n"
+        if (message.fromUser) ChatMessage.user(data(message.text)) else ChatMessage.assistant(data(message.text))
 
     /**
-     * Подсказка для следующей реплики собеседника. [history] — реплики после пересказа [summary],
+     * Запрос для следующей реплики собеседника. [history] — реплики после пересказа [summary],
      * заканчивается сообщением ученика.
      */
-    fun reply(scenario: Scenario, level: String, history: List<ConversationMessageEntity>, summary: String = ""): String {
+    fun reply(scenario: Scenario, level: String, history: List<ConversationMessageEntity>, summary: String = ""): List<ChatMessage> {
         require(history.isNotEmpty()) { "Напишите первую реплику." }
-        val system = "<|im_start|>system\n${system(scenario, level, summary)}<|im_end|>\n"
-        // Предыдущие ответы рисуются точно так же, как модель их начинала, — иначе кеш слота не совпадёт.
-        val budget = PROMPT_BUDGET - estimateTokens(system)
+        val system = ChatMessage.system(system(scenario, level, summary))
+        val budget = PROMPT_BUDGET - estimateTokens(system.content)
         var start = 0
         while (start < history.size - 2 && history.drop(start).sumOf(::cost) > budget) start += TRIM_STEP
         start = start.coerceAtMost(history.size - 1)
-        return system + history.drop(start).joinToString("") { turn(it) } + "<|im_start|>assistant\n$NO_THINK"
+        return listOf(system) + history.drop(start).map(::turn)
     }
 
     /**
@@ -132,30 +132,28 @@ object ConversationProtocol {
         return take
     }
 
-    /** Новый пересказ = прежний пересказ + [chunk]. Задача для слота задач, жадная выборка. */
-    fun summary(scenario: Scenario, previous: String, chunk: List<ConversationMessageEntity>): String {
+    /** Новый пересказ = прежний пересказ + [chunk]. */
+    fun summary(scenario: Scenario, previous: String, chunk: List<ConversationMessageEntity>): List<ChatMessage> {
         require(chunk.isNotEmpty())
         val system = "You keep notes on a role-play conversation between an English learner and ${scenario.role}. " +
-            "Rewrite the notes so they also cover the new messages. Write in English, in third person, at most 6 short sentences; " +
+            "Rewrite the notes so they also cover the new messages. Write in English, in third person, at most 10 short sentences; " +
             "merge repetitive small talk into one sentence. " +
             "Always keep every name exactly as written (people, pets, places, companies) and what it refers to. " +
-            "Also keep facts that matter later: numbers, what the learner said about themselves, decisions, " +
-            "orders or agreements, and open questions. Do not mention grammar mistakes. Answer with the notes only."
+            "Also keep facts that matter later: numbers, what the learner said about themselves (job, family, hobbies, plans), " +
+            "decisions, orders or agreements, topics already discussed, and open questions. " +
+            "Do not mention grammar mistakes. Answer with the notes only."
         val notes = data(previous).ifBlank { "(none yet)" }
         val lines = chunk.joinToString("\n") { (if (it.fromUser) "Learner: " else "Partner: ") + data(it.text).take(800) }
-        return "<|im_start|>system\n$system<|im_end|>\n" +
-            "<|im_start|>user\nNotes so far: $notes\n\nNew messages:\n$lines<|im_end|>\n" +
-            "<|im_start|>assistant\n$NO_THINK"
+        return listOf(ChatMessage.system(system), ChatMessage.user("Notes so far: $notes\n\nNew messages:\n$lines"))
     }
 
-    fun cleanSummary(raw: String) = cleanReply(raw).removePrefix("Notes:").replace(Regex("\\s+"), " ").trim().take(1_000)
+    fun cleanSummary(raw: String) = cleanReply(raw).removePrefix("Notes:").replace(Regex("\\s+"), " ").trim().take(1_500)
 
-    /** Ответ модели: без рассуждений, служебных меток, ролей и разметки. */
+    /** Ответ модели: без рассуждений, ролей и разметки. */
     fun cleanReply(raw: String): String {
         var text = raw.replace(Regex("(?s)<think>.*?</think>"), "")
         if ("<think>" in text) text = text.substringBefore("<think>")
-        text = text.substringBefore("<|im_end|>").substringBefore("<|im_start|>")
-        // Маленькая модель иногда дописывает реплику за ученика.
+        // Модель иногда дописывает реплику за ученика.
         text = text.split(Regex("\\n\\s*(User|Learner|Student|You)\\s*:", RegexOption.IGNORE_CASE)).first()
         return text.replace(Regex("^\\s*(Assistant|AI|Barista|Doctor|Receptionist|Interviewer)\\s*:\\s*", RegexOption.IGNORE_CASE), "")
             .replace(Regex("[*_#`]+"), "")
@@ -163,24 +161,27 @@ object ConversationProtocol {
             .trim()
     }
 
-    /** Разбор фразы ученика с учётом реплики, на которую он отвечал. Отдельная задача, жадная выборка. */
-    fun correction(previous: String?, sentence: String, voice: Boolean): String {
+    /** Разбор фразы ученика с учётом реплики, на которую он отвечал. Отдельная задача, температура 0. */
+    fun correction(previous: String?, sentence: String, voice: Boolean): List<ChatMessage> {
         val text = data(sentence).take(800)
         require(text.isNotBlank())
-        val system = "You are a kind English teacher for Russian speakers. Check the learner's message for grammar, " +
-            "word choice and word order mistakes. Ignore style, punctuation and capital letters" +
-            (if (voice) " (the message was dictated)" else "") + ". " +
+        val system = "You are a kind, precise English teacher for Russian speakers. Check the learner's message for grammar, " +
+            "word choice, word order and unnatural phrasing (what a British native speaker would not say). " +
+            "Ignore style, punctuation and capital letters" +
+            (if (voice) " (the message was dictated, so ignore spelling)" else "") + ". " +
+            "Use the partner's line only to understand the context. " +
             "If the message is correct and natural enough, answer exactly: OK\n" +
             "Otherwise answer in two lines:\nCorrect: <the whole message, corrected with minimal changes>\n" +
-            "Why: <a very short explanation in Russian>"
+            "Why: <an explanation in Russian, one or two sentences: name each mistake and the rule>"
         val context = previous?.let { "Conversation partner said: ${data(it).take(400)}\n" }.orEmpty()
-        return "<|im_start|>system\n$system<|im_end|>\n" +
-            "<|im_start|>user\nLearner wrote: I am agree with you.<|im_end|>\n" +
-            "<|im_start|>assistant\n${NO_THINK}Correct: I agree with you.\nWhy: Agree — глагол, «am» не нужен.<|im_end|>\n" +
-            "<|im_start|>user\nLearner wrote: I went to the park yesterday with my sister.<|im_end|>\n" +
-            "<|im_start|>assistant\n${NO_THINK}OK<|im_end|>\n" +
-            "<|im_start|>user\n${context}Learner wrote: $text<|im_end|>\n" +
-            "<|im_start|>assistant\n$NO_THINK"
+        return listOf(
+            ChatMessage.system(system),
+            ChatMessage.user("Learner wrote: I am agree with you."),
+            ChatMessage.assistant("Correct: I agree with you.\nWhy: Agree — глагол, поэтому «am» не нужен: I agree, а не I am agree."),
+            ChatMessage.user("Learner wrote: I went to the park yesterday with my sister."),
+            ChatMessage.assistant("OK"),
+            ChatMessage.user("${context}Learner wrote: $text"),
+        )
     }
 
     /** "" — ошибок нет, иначе «исправление\nпояснение». null — ответ модели не удалось разобрать. */
@@ -190,7 +191,8 @@ object ConversationProtocol {
         if (Regex("^OK\\b", RegexOption.IGNORE_CASE).containsMatchIn(text) && !text.contains("Correct:", true)) return ""
         val corrected = Regex("Correct\\s*:\\s*(.+)", RegexOption.IGNORE_CASE).find(text)?.groupValues?.get(1)?.trim()
             ?.removeSurrounding("\"")?.takeIf { it.isNotBlank() } ?: return null
-        val why = Regex("Why\\s*:\\s*(.+)", RegexOption.IGNORE_CASE).find(text)?.groupValues?.get(1)?.trim().orEmpty()
+        val why = Regex("(?s)Why\\s*:\\s*(.+)", RegexOption.IGNORE_CASE).find(text)?.groupValues?.get(1)
+            ?.replace(Regex("\\s+"), " ")?.trim().orEmpty()
         return if (normalize(corrected) == normalize(original)) "" else "$corrected\n$why".trim()
     }
 
@@ -198,23 +200,21 @@ object ConversationProtocol {
     fun normalize(text: String) = text.lowercase().replace(Regex("[^\\p{L}\\p{N}']+"), " ").trim()
 
     /** Вариант ответа, если ученик не знает, что сказать. */
-    fun hint(scenario: Scenario, level: String, history: List<ConversationMessageEntity>, summary: String = ""): String {
+    fun hint(scenario: Scenario, level: String, history: List<ConversationMessageEntity>, summary: String = ""): List<ChatMessage> {
         val recent = history.takeLast(4).joinToString("\n") {
             (if (it.fromUser) "Learner: " else "Partner: ") + data(it.text).take(400)
         }
         val system = "You help an English learner (CEFR $level) in a role-play where the partner is ${scenario.role}. " +
-            "Suggest one short, natural thing the learner could say next. Answer with that reply only, in English, " +
+            "Suggest one short, natural thing the learner could say next, in British English. Answer with that reply only, " +
             "no quotes, no explanations." + (if (summary.isBlank()) "" else " Earlier in the conversation: ${data(summary)}")
-        return "<|im_start|>system\n$system<|im_end|>\n<|im_start|>user\n$recent\n\nWhat could the learner say next?<|im_end|>\n" +
-            "<|im_start|>assistant\n$NO_THINK"
+        return listOf(ChatMessage.system(system), ChatMessage.user("$recent\n\nWhat could the learner say next?"))
     }
 
     fun cleanHint(raw: String) = cleanReply(raw).removePrefix("Learner:").trim().removeSurrounding("\"").lines().first().trim()
 
     fun errorMessage(error: Throwable): String = when {
-        error.message?.contains("too long", true) == true -> "Сообщение слишком длинное. Разбейте его на несколько реплик."
         error is IllegalArgumentException -> error.message ?: "Не удалось подготовить сообщение."
         else -> error.message?.takeIf { it.any { c -> c in 'А'..'я' } }
-            ?: "Модель не ответила. Попробуйте ещё раз или выберите модель полегче."
+            ?: "Модель не ответила. Проверьте VPN и попробуйте ещё раз."
     }
 }

@@ -6,12 +6,8 @@
 }
 -keep,includedescriptorclasses class com.marat.albion.**$$serializer { *; }
 
-# JNI looks up the bridge and streaming callback by their exact names.
--keep class com.marat.albion.data.translation.LlamaBridge { *; }
--keep interface com.marat.albion.data.translation.LlamaBridge$TokenCallback { *; }
--keepclassmembers class * implements com.marat.albion.data.translation.LlamaBridge$TokenCallback {
-    public boolean onTokens(byte[]);
-}
+# JNI looks up the bridge by its exact name.
+-keep class com.marat.albion.data.speech.WhisperBridge { *; }
 
 # PdfBox-Android: необязательный декодер JPEG 2000 не подключён, ресурсы шрифтов грузятся по имени.
 -dontwarn com.gemalto.jp2.**

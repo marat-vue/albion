@@ -6,7 +6,7 @@
     <!-- Ежедневное напоминание. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
-    <!-- Установка офлайн-модели Qwen3.5 через системный DownloadManager. -->
+    <!-- Запросы к Groq и загрузка моделей Whisper через системный DownloadManager. -->
     <uses-permission android:name="android.permission.INTERNET" />
 
     <application

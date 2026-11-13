@@ -11,7 +11,7 @@ import androidx.room.PrimaryKey
 import androidx.room.Query
 import kotlinx.coroutines.flow.Flow
 
-/** Разговор с Qwen3.5: сценарий и уровень задают системную подсказку на всё время беседы. */
+/** Разговор с ИИ: сценарий и уровень задают системную подсказку на всё время беседы. */
 @Entity(tableName = "conversations", indices = [Index("updated_at")])
 data class ConversationEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,

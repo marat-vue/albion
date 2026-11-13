@@ -11,7 +11,7 @@ model: sonnet
 
 - Проект: `AlbionApp/`, один модуль `app`. Windows: `./gradlew` из Git Bash или `.\gradlew.bat` из PowerShell (аргументы с `=` — в кавычках).
 - Версии — только через `gradle/libs.versions.toml`.
-- Нужны SDK 37, NDK 30.0.16248370, CMake 3.31.6, JDK 17+. Нативный код: `app/src/main/cpp`, исходники llama.cpp/whisper.cpp закреплены в `third_party/` — их не обновлять и не править без явной просьбы.
+- Нужны SDK 37, NDK 30.0.16248370, CMake 3.31.6, JDK 17+. Нативный код: `app/src/main/cpp`, исходники ggml/whisper.cpp закреплены в `third_party/` — их не обновлять и не править без явной просьбы.
 
 ## Диагностика
 

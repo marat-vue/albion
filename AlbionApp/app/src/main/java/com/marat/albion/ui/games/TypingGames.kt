@@ -593,7 +593,7 @@ private fun FormInput(
                             color = if (same) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
                             modifier = Modifier.weight(1f, fill = false),
                         )
-                        Spacer(Modifier.width(4.dp))
+                        Spacer(Modifier.width(14.dp))
                         PracticeAudioButton(playing = playingKey == "$keyPrefix:$i", onClick = { onPlay(i) }, size = 32.dp, primary = false)
                     }
                 }

@@ -13,14 +13,13 @@ import org.junit.Assume.assumeTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 
-/** Настоящий прогон Qwen3.5: длинная беседа сжимается в пересказ, и собеседник помнит факт из её начала. */
+/** Настоящий прогон через Groq (нужны ключ и VPN): длинная беседа сжимается в пересказ, и собеседник помнит факт из её начала. */
 @RunWith(AndroidJUnit4::class)
 class ConversationCompactionTest {
     private val c get() = (InstrumentationRegistry.getInstrumentation().targetContext.applicationContext as AlbionApp).container
 
     @Test fun longConversationIsSummarizedAndEarlyFactsSurvive(): Unit = runBlocking {
-        c.translator.models.refresh()
-        assumeTrue("Qwen3.5 не установлена", c.translator.models.activeModel() != null)
+        assumeTrue("Ключ Groq не добавлен", c.ai.state.value.ready)
         val repo = c.conversations
         val id = repo.create(Scenario.DAY, "B1")
         val dao = c.database.conversations()

@@ -1,6 +1,7 @@
 import org.gradle.api.file.ConfigurableFileCollection
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.file.FileSystemOperations
+import java.util.Properties
 import javax.inject.Inject
 
 plugins {
@@ -23,6 +24,12 @@ android {
         versionName = "1.0"
         testInstrumentationRunner = providers.gradleProperty("albion.testRunner")
             .getOrElse("androidx.test.runner.AndroidJUnitRunner")
+        // Ключ Groq по умолчанию: groq.apiKey в local.properties (файл не попадает в git) или -Pgroq.apiKey=…
+        val groqKey = providers.gradleProperty("groq.apiKey").orNull
+            ?: rootProject.file("local.properties").takeIf { it.isFile }?.let { file ->
+                Properties().apply { file.inputStream().use(::load) }.getProperty("groq.apiKey")
+            }
+        buildConfigField("String", "GROQ_API_KEY", "\"${groqKey.orEmpty().trim().replace("\"", "")}\"")
         ndk {
             abiFilters += providers.gradleProperty("albion.abis").getOrElse("arm64-v8a,x86_64")
                 .split(",").map(String::trim)
@@ -56,6 +63,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     sourceSets.getByName("androidTest").assets.srcDir("schemas")

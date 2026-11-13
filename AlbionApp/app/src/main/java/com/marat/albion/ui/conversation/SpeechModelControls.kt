@@ -11,7 +11,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.marat.albion.LocalAppContainer
 import com.marat.albion.data.speech.WHISPER_MODELS
-import com.marat.albion.data.translation.ModelState
+import com.marat.albion.data.speech.ModelState
 import com.marat.albion.ui.components.*
 import com.marat.albion.ui.settings.SwitchSetting
 import kotlinx.coroutines.launch

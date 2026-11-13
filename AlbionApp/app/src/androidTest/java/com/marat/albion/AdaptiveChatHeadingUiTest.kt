@@ -206,7 +206,7 @@ class AdaptiveChatHeadingUiTest {
                 val level = text("A2")
                 assertWholeText(level)
                 assertEquals(1, level.layout.lineCount)
-                // Without Qwen the editor is disabled, so it is found by its label rather than as editable.
+                // Without a Groq key the editor is disabled, so it is found by its label rather than as editable.
                 val field = await { it.contentDescription?.toString() == "Ваш ответ" }
                 assertTrue(bounds(field).height() <= 80 * density)
                 capture("actual-chat")

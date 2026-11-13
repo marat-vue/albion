@@ -213,11 +213,10 @@ fun ClozeRound(vm: GameViewModel, card: CardEntity) {
                     color = MaterialTheme.colorScheme.onSurface, textAlign = TextAlign.Center,
                 )
                 Spacer(Modifier.height(12.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    if (card.pos.isNotBlank() && !imeOpen()) { Chip(card.pos); Spacer(Modifier.width(8.dp)) }
-                    Text(card.meaningRu, style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center, modifier = Modifier.weight(1f, fill = false))
-                }
+                // Часть речи над пояснением: в строку длинное толкование сжимается в узкую колонку.
+                if (card.pos.isNotBlank() && !imeOpen()) { Chip(card.pos); Spacer(Modifier.height(8.dp)) }
+                Text(card.meaningRu, style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
             }
             AnimatedVisibility(verdict != null, enter = fadeIn(tween(300)) + slideInVertically(tween(420)) { it / 3 }) {
                 val v = verdict ?: Verdict.Wrong

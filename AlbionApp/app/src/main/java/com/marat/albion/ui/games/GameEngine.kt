@@ -225,12 +225,12 @@ class GameViewModel(private val c: AppContainer, val game: Game,
 
     /**
      * Перевод заранее, пока открыт экран настройки: оба примера начатых карточек выбранной колоды —
-     * их тренировка берёт первыми. Модель грузится только здесь, не при запуске приложения.
+     * их тренировка берёт первыми. Запросы к ИИ идут только отсюда, не при запуске приложения.
      */
     fun prefetchUpcoming(limit: Int = 20) {
         if (game != Game.SENTENCE) return
         if (upcoming?.isActive == true) { if (upcomingDeck == deck) return else upcoming?.cancel() }
-        if (c.translator.model.value.phase != com.marat.albion.data.translation.ModelState.Ready) return
+        if (!c.translator.status.value.ready) return
         val dao = c.database.sentenceTranslations()
         val forDeck = deck
         upcomingDeck = forDeck
@@ -249,7 +249,7 @@ class GameViewModel(private val c: AppContainer, val game: Game,
         }
     }
 
-    val translatorModel = c.translator.model
+    val translatorStatus = c.translator.status
 
     /** Переводы предложений «Соберите предложение» — готовятся для всей тренировки заранее, по порядку заданий. */
     val sentenceTranslations = androidx.compose.runtime.mutableStateMapOf<String, String>()
@@ -257,7 +257,7 @@ class GameViewModel(private val c: AppContainer, val game: Game,
 
     /**
      * Переводы оставшихся предложений: сначала из базы (переведённые раньше и поправленные вручную),
-     * недостающие — моделью на устройстве, с сохранением. Повторный вызов ничего не делает.
+     * недостающие — ИИ через Groq, с сохранением. Повторный вызов ничего не делает.
      */
     fun prefetchTranslations(canTranslate: Boolean) {
         if (game != Game.SENTENCE || translating?.isActive == true) return
@@ -277,6 +277,8 @@ class GameViewModel(private val c: AppContainer, val game: Game,
                     c.translator.translations(text).collect { done = it; sentenceTranslations[id] = it }
                     if (done.isNotBlank()) dao.insertIfAbsent(text, done)
                 } catch (e: kotlinx.coroutines.CancellationException) { throw e }
+                // Нет сети, VPN, ключа или лимита — остальные запросы упрутся в то же самое.
+                catch (_: com.marat.albion.data.ai.AiException) { return@launch }
                 catch (_: Exception) { }
             }
         }
@@ -365,8 +367,8 @@ private fun GameFrame(
     // Ошибок не осталось — режим «только ошибки» выключаем сам.
     LaunchedEffect(mistakeCount) { if (mistakeCount == 0) vm.onlyMistakes = false }
     // Пока выбирают колоду и длину, переводим вероятные предложения заранее.
-    val translatorModel by vm.translatorModel.collectAsStateWithLifecycle()
-    LaunchedEffect(vm.phase, vm.deck, translatorModel.phase) { if (vm.phase == Phase.Setup) vm.prefetchUpcoming() }
+    val translatorStatus by vm.translatorStatus.collectAsStateWithLifecycle()
+    LaunchedEffect(vm.phase, vm.deck, translatorStatus.ready) { if (vm.phase == Phase.Setup) vm.prefetchUpcoming() }
 
     AnimatedContent(
         targetState = vm.phase,

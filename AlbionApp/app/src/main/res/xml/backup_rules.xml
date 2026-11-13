@@ -2,8 +2,7 @@
 <!-- Android 11 и ниже. Прогресс (база и настройки) сохраняется; книги не влезают в квоту облака (25 МБ). -->
 <full-backup-content>
     <exclude domain="file" path="books/" />
-    <exclude domain="external" path="translation-models/" />
     <exclude domain="external" path="speech-models/" />
-    <exclude domain="sharedpref" path="qwen_translation.xml" />
+    <exclude domain="sharedpref" path="groq.xml" />
     <exclude domain="sharedpref" path="whisper_speech.xml" />
 </full-backup-content>

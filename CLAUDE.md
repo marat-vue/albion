@@ -1,13 +1,13 @@
 # Albion
 
-Android-приложение для изучения британского английского: карточки FSRS-6, учебник грамматики, читалка книг, упражнения, разговор с ИИ на устройстве, статистика. Общаемся по-русски.
+Android-приложение для изучения британского английского: карточки FSRS-6, учебник грамматики, читалка книг, упражнения, разговор с ИИ (Groq), статистика. Общаемся по-русски.
 
 ## Структура
 
-- `AlbionApp/` — приложение (Kotlin, Jetpack Compose, Material 3, Navigation 3, Room, DataStore, Media3, llama.cpp + whisper.cpp через NDK/CMake). Один модуль `app`, пакет `com.marat.albion`.
-  - `data/` — логика и хранение: `db` (Room), `fsrs`, `repo` (StudyRepository, StudyPlanner, CollectionRepository), `grammar`, `library`, `conversation`, `speech`, `translation`, `content`, `settings`.
+- `AlbionApp/` — приложение (Kotlin, Jetpack Compose, Material 3, Navigation 3, Room, DataStore, Media3, whisper.cpp через NDK/CMake, Groq API). Один модуль `app`, пакет `com.marat.albion`.
+  - `data/` — логика и хранение: `ai` (Groq), `db` (Room), `fsrs`, `repo` (StudyRepository, StudyPlanner, CollectionRepository), `grammar`, `library`, `conversation`, `speech`, `translation`, `content`, `settings`.
   - `ui/` — экраны Compose по разделам (`home`, `study`, `grammar`, `library`, `games`, `conversation`, `collections`, `stats`, `settings`…), навигация в `ui/nav/AlbionNavigation.kt`, тема в `ui/theme`, общие компоненты в `ui/components`.
-  - `app/src/main/cpp` — JNI-обёртки над llama.cpp/whisper.cpp; исходники закреплены в `third_party/` (см. `third_party/LLAMA.md`, `WHISPER.md`).
+  - `app/src/main/cpp` — JNI-обёртка над whisper.cpp; исходники ggml и whisper.cpp закреплены в `third_party/` (см. `third_party/GGML.md`, `WHISPER.md`).
 - `collections/*.xlsx`, `audio/<колода>/*.mp3`, `grammar/*.md` — материалы; вшиваются в APK при сборке (`albion.bundleContent`, `albion.contentDir` в `gradle.properties`).
 - `AlbionApp/README.md` — подробности о функциях и форматах материалов; `AlbionApp/DESIGN.md` — дизайн-система.
 
@@ -30,7 +30,7 @@ Android-приложение для изучения британского ан
 - **Текст интерфейса** — по-русски, на «вы»; строки пишутся прямо в Compose (так принято в проекте, `strings.xml` не используется).
 - **Room**: схема версионируется через `AutoMigration` и `app/schemas/`. Любое изменение сущностей — новая версия БД + миграция; никакого `fallbackToDestructiveMigration`. Прогресс пользователя терять нельзя: id карточки = колода + термин + номер значения.
 - **Обучение**: встроенные колоды — это «Словари» (справочники), слово «колода» в интерфейсе не возвращать. Новые слова в «Сегодня» берутся только из пользовательских коллекций; память FSRS одна на слово для всех источников (`StudySource`). Вкладки: Сегодня / Учебник / Чтение / Практика / Прогресс.
-- **ИИ на устройстве**, бесплатно и офлайн, без платных API. Слот `Generation.CHAT` — беседа (рендер истории должен быть побайтно стабильным ради кэша), побочные задачи — только `Generation.TASK`.
+- **ИИ — Groq** (`data/ai/GroqClient`), бесплатный тариф, OpenAI-совместимый API; из России нужен VPN, в разделе бесед об этом предупреждение. Ключ по умолчанию — `groq.apiKey` в `AlbionApp/local.properties` (в `.gitignore`) → `BuildConfig.GROQ_API_KEY`; в коде и коммитах ключа быть не должно (репозиторий на GitHub). Введённый в приложении ключ — в `groq.xml`, исключён из бэкапов. Платные API не подключать. Ошибки сети/лимитов — понятным русским текстом. Встроенной LLM (Qwen/llama.cpp) больше нет; на устройстве остаются Whisper, словарь и ML Kit.
 - **Корутины**: не глотать `CancellationException`; IO — вне главного потока.
 
 ## Порядок работы

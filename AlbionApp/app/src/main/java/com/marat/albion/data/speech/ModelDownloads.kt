@@ -1,4 +1,4 @@
-package com.marat.albion.data.translation
+package com.marat.albion.data.speech
 
 import android.app.ActivityManager
 import android.app.DownloadManager
@@ -16,25 +16,15 @@ import java.nio.file.StandardCopyOption
 import java.security.MessageDigest
 
 enum class ModelState { Unknown, Missing, Downloading, Verifying, Importing, Ready, Failed, Unavailable }
-data class TranslationModel(val id: String, val title: String, val fileName: String, val bytes: Long,
+data class ModelFile(val id: String, val title: String, val fileName: String, val bytes: Long,
                             val url: String, val sha256: String)
-
-private fun qwen(id: String, title: String, fileName: String, bytes: Long, revision: String, sha256: String) =
-    TranslationModel(id, title, fileName, bytes, "https://huggingface.co/unsloth/Qwen3.5-$id-GGUF/resolve/$revision/$fileName", sha256)
-
-val QWEN_MODELS = listOf(
-    qwen("0.8B", "Qwen3.5 0.8B · 533 МБ", "Qwen3.5-0.8B-Q4_K_M.gguf", 532_517_120,
-        "6ab461498e2023f6e3c1baea90a8f0fe38ab64d0", "bd258782e35f7f458f8aced1adc053e6e92e89bc735ba3be89d38a06121dc517"),
-    qwen("2B", "Qwen3.5 2B · 1,28 ГБ", "Qwen3.5-2B-Q4_K_M.gguf", 1_280_835_840,
-        "f6d5376be1edb4d416d56da11e5397a961aca8ae", "aaf42c8b7c3cab2bf3d69c355048d4a0ee9973d48f16c731c0520ee914699223"),
-)
 
 /** Everything that differs between model families; the download, verification and storage logic is shared. */
 class ModelCatalog(
     /** SharedPreferences name; also keeps the state of earlier installs. */
     val key: String,
     val directory: String,
-    val options: List<TranslationModel>,
+    val options: List<ModelFile>,
     /** Option for devices with at least 5.5 GB RAM, and for the rest. */
     val roomy: String,
     val compact: String,
@@ -51,24 +41,15 @@ class ModelCatalog(
     val partPrefix: String = key,
 )
 
-val QWEN_CATALOG = ModelCatalog(
-    key = "qwen_translation", directory = "translation-models", options = QWEN_MODELS, roomy = "2B", compact = "0.8B",
-    customTitle = "Свой файл Qwen3.5", purpose = "Офлайн-перевод и разговорная практика",
-    readySummary = "готова к работе", missingSummary = "Словарь готов · модель можно установить",
-    unavailableSummary = "На этом устройстве доступен словарь",
-    validate = GgufFile::requireQwen35, requireRuntime = LlamaBridge::requireAvailable,
-    customFile = "imported-qwen35.gguf", partPrefix = "qwen",
-)
-
 data class ModelStatus(
     val phase: ModelState = ModelState.Unknown,
-    val selected: String = "0.8B",
+    val selected: String = "",
     val installed: Set<String> = emptySet(),
     val downloaded: Long = 0,
     val total: Long = 0,
     val message: String? = null,
     val allowMobile: Boolean = false,
-    val catalog: ModelCatalog = QWEN_CATALOG,
+    val catalog: ModelCatalog,
 ) {
     val busy get() = phase in setOf(ModelState.Downloading, ModelState.Verifying, ModelState.Importing)
     val title get() = catalog.options.firstOrNull { it.id == selected }?.title ?: catalog.customTitle.orEmpty()
@@ -85,8 +66,7 @@ data class ModelStatus(
 }
 
 /** Persistent system download, verified staging files and a single active model. No model in the APK. */
-class TranslationModels(private val context: Context, private val scope: CoroutineScope,
-                        private val catalog: ModelCatalog = QWEN_CATALOG) {
+class ModelDownloads(private val context: Context, private val scope: CoroutineScope, private val catalog: ModelCatalog) {
     private companion object { const val MAX_CUSTOM_BYTES = 8L * 1024 * 1024 * 1024 }
     private val prefs = context.getSharedPreferences(catalog.key, Context.MODE_PRIVATE)
     private val dm = context.getSystemService(DownloadManager::class.java)
@@ -268,7 +248,6 @@ class TranslationModels(private val context: Context, private val scope: Corouti
                     context.contentResolver.openInputStream(uri)?.use { input ->
                         copyStream(input, staging, MAX_CUSTOM_BYTES)
                     } ?: error("Не удалось открыть выбранный файл.")
-                    require(staging.length() >= 50_000_000) { "GGUF не содержит полную модель Qwen3.5." }
                     catalog.validate(staging)
                     val hash = digest(staging)
                     atomicReplace(staging, file("custom"))

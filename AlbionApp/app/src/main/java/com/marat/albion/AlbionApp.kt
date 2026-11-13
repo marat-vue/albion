@@ -38,11 +38,13 @@ class AppContainer(context: Context) {
     val dictionary = com.marat.albion.data.library.Dictionary(context.assets, database, settings, json)
     val library = com.marat.albion.data.library.LibraryRepository(context, database, json, dictionary)
     val bookWords = com.marat.albion.data.library.BookWordsRepository(database, json)
-    val translator = com.marat.albion.data.library.Translator(context, appScope)
+    val ai = com.marat.albion.data.ai.AiSettings(context, appScope)
+    val groq = com.marat.albion.data.ai.GroqClient(ai)
+    val translator = com.marat.albion.data.library.Translator(groq)
     val bookTranslator = com.marat.albion.data.library.BookTranslator(appScope)
     val speech = com.marat.albion.data.speech.SpeechToText(context, appScope)
-    val conversations = com.marat.albion.data.conversation.ConversationRepository(database, translator)
-    val leechHints = com.marat.albion.data.repo.LeechHints.onDevice(database.leechHints(), translator)
+    val conversations = com.marat.albion.data.conversation.ConversationRepository(database, groq, translator)
+    val leechHints = com.marat.albion.data.repo.LeechHints.groq(database.leechHints(), groq)
 }
 
 class AlbionApp : Application() {
@@ -59,9 +61,10 @@ class AlbionApp : Application() {
             catch (e: CancellationException) { throw e }
             catch (e: Exception) { android.util.Log.e("Albion", "Словарь не загружен", e) }
         }
-        // Восстановить состояние модели/загрузки, не загружая веса в память на старте.
+        // Встроенной Qwen3.5 больше нет: освобождаем место, которое занимали её файлы.
+        container.appScope.launch(Dispatchers.IO) { com.marat.albion.data.ai.removeLegacyOnDeviceModel(this@AlbionApp) }
+        // Восстановить состояние загрузки Whisper, не загружая веса в память на старте.
         // Языковая модель ML Kit для книг загружается только по кнопке в «Чтении».
-        container.translator.preload()
         container.speech.preload()
         Reminders.createChannel(this)
         // Будильник напоминания всегда соответствует настройкам.
@@ -88,7 +91,6 @@ class AlbionApp : Application() {
     override fun onTrimMemory(level: Int) {
         super.onTrimMemory(level)
         if (level >= TRIM_MEMORY_RUNNING_LOW) {
-            container.translator.releaseMemory()
             container.speech.releaseMemory()
         }
     }

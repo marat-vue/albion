@@ -168,7 +168,7 @@ fun TenseRound(vm: GameViewModel, card: CardEntity) {
                         Text(task.rule, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
                         Spacer(Modifier.height(14.dp))
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(forms(task, data), style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
+                            FormsColumn(task, data, Modifier.weight(1f))
                             Spacer(Modifier.width(10.dp))
                             PracticeAudioButton(playing = audio.playingKey == "tense:${card.id}", onClick = ::playAnswer, size = 40.dp, primary = false)
                         }
@@ -214,12 +214,27 @@ private fun sentence(task: TenseTask, filled: String?): AnnotatedString = buildA
     append(task.after)
 }
 
-/** «arise · arose · arisen» — нужная форма выделена. */
-private fun forms(task: TenseTask, data: com.marat.albion.data.content.IrregularData?): AnnotatedString = buildAnnotatedString {
-    val list = data?.forms.orEmpty()
-    list.forEachIndexed { i, f ->
-        if (i > 0) append("  ·  ")
-        val text = f.variants.joinToString(" / ") { it.text }
-        if (i == task.formIndex) withStyle(SpanStyle(fontWeight = FontWeight.SemiBold)) { append(text) } else append(text)
+/** Формы столбиком «V1 arise / V2 arose / V3 arisen» — нужная выделена; длинные варианты не рвут строку. */
+@Composable
+private fun FormsColumn(task: TenseTask, data: com.marat.albion.data.content.IrregularData?, modifier: Modifier = Modifier) {
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        data?.forms.orEmpty().forEachIndexed { i, f ->
+            val current = i == task.formIndex
+            Row {
+                Text(
+                    "V${i + 1}",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.width(32.dp).alignByBaseline(),
+                )
+                Text(
+                    f.variants.joinToString(" / ") { it.text },
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = if (current) FontWeight.SemiBold else null,
+                    color = if (current) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.alignByBaseline(),
+                )
+            }
+        }
     }
 }

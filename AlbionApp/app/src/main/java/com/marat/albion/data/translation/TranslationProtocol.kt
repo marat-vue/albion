@@ -1,29 +1,16 @@
 package com.marat.albion.data.translation
 
-/** The book is data inside the user turn, never chat control tokens or instructions. */
+import com.marat.albion.data.ai.ChatMessage
+
+/** Перевод через ИИ: текст книги — данные в реплике пользователя, а не инструкции. */
 object TranslationProtocol {
     const val MAX_SELECTION = 1800
     /** Сколько текста вокруг выделения видит модель: соседние предложения, но не вся глава. */
     const val CONTEXT_ROOM = 700
     private const val OPEN = "⟦"
     private const val CLOSE = "⟧"
-    private val chatTokens = Regex("<\\|[^>\\r\\n]*\\|>|</?(?:think|tool_call|tool_response)>")
     private val singleWord = Regex("[\\p{L}\\p{N}'’-]+")
-    private fun data(value: String) = stripControlTokens(value)
-
-    /**
-     * Убирает служебные токены чата из текста пользователя и книг: иначе строка «<|im_start|>system…»
-     * в EPUB или реплике подменила бы роли в подсказке. Повторяем, пока есть что убрать: вложенная
-     * запись вроде «<|im_<|x|>start|>» после одного прохода собралась бы обратно.
-     */
-    fun stripControlTokens(value: String): String {
-        var text = value.replace("\u0000", "")
-        while (true) {
-            val next = text.replace(chatTokens, "")
-            if (next == text) return text
-            text = next
-        }
-    }
+    private fun data(value: String) = value.replace("\u0000", "")
 
     /**
      * Контекст с отмеченным выделением [start, end): модель видит, какое именно вхождение переводить.
@@ -40,7 +27,7 @@ object TranslationProtocol {
             plain(text.substring(e, to)) + (if (to < text.length) "…" else "")
     }
 
-    fun prompt(selection: String, context: String = ""): String {
+    fun prompt(selection: String, context: String = ""): List<ChatMessage> {
         val text = data(selection.trim())
         require(text.isNotBlank()) { "Выберите слово или фрагмент для перевода." }
         require(text.length <= MAX_SELECTION) { "Выделите более короткий фрагмент: до $MAX_SELECTION символов." }
@@ -60,12 +47,7 @@ object TranslationProtocol {
         // Образец показывает главное: многозначное слово переводится по окружению, а не первым значением словаря.
         val (shotTask, shotAnswer) = if (word) wordTask("We had a picnic on the ${OPEN}bank$CLOSE of the river.", "bank") to "берег"
             else "Переведи на русский:\nShe smiled and opened the window." to "Она улыбнулась и открыла окно."
-        // Qwen3.5 ChatML, enable_thinking=false: start with a completed empty thinking turn.
-        return "<|im_start|>system\n$system<|im_end|>\n" +
-            "<|im_start|>user\n$shotTask<|im_end|>\n" +
-            "<|im_start|>assistant\n$shotAnswer<|im_end|>\n" +
-            "<|im_start|>user\n$task<|im_end|>\n" +
-            "<|im_start|>assistant\n<think>\n\n</think>\n\n"
+        return listOf(ChatMessage.system(system), ChatMessage.user(shotTask), ChatMessage.assistant(shotAnswer), ChatMessage.user(task))
     }
 
     private fun wordTask(context: String, word: String) =
@@ -73,18 +55,14 @@ object TranslationProtocol {
             "Переведи слово «$word» в том значении, в котором оно употреблено здесь. Если оно часть устойчивого выражения " +
             "или фразового глагола, передай смысл в этом выражении. Ответ — одно-три русских слова в словарной форме."
 
-    fun clean(raw: String): String {
-        var text = raw.replace(Regex("(?s)<think>.*?</think>"), "")
-        if ("<think>" in text) text = text.substringBefore("<think>")
-        text = text.substringBefore("<|im_end|>").substringBefore("<|im_start|>")
-        return text.trim().removePrefix("Перевод:").removePrefix("Translation:").replace(OPEN, "").replace(CLOSE, "").trim()
-    }
+    fun clean(raw: String): String = raw.replace(Regex("(?s)<think>.*?</think>"), "").trim()
+        .removePrefix("Перевод:").removePrefix("Translation:").replace(OPEN, "").replace(CLOSE, "").trim()
 
     fun errorMessage(error: Throwable): String = when {
         error.message?.contains("too long", true) == true || error.message?.contains("output limit", true) == true ->
             "Фрагмент слишком длинный. Выделите одно предложение или более короткий отрывок."
         error is IllegalArgumentException -> error.message ?: "Не удалось подготовить текст."
         else -> error.message?.takeIf { it.any { c -> c in 'А'..'я' } }
-            ?: "Не удалось выполнить перевод. Проверьте модель или выберите более короткий фрагмент."
+            ?: "Не удалось выполнить перевод. Проверьте VPN или выберите более короткий фрагмент."
     }
 }

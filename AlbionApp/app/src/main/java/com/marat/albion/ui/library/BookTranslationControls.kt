@@ -27,8 +27,8 @@ fun BookTranslationControls() {
     val c = LocalAppContainer.current
     val translator = c.bookTranslator
     val status by translator.state.collectAsStateWithLifecycle()
-    // Общая с моделью Qwen3.5 настройка загрузки по мобильной сети.
-    val models = c.translator.models
+    // Общая с моделью распознавания речи настройка загрузки по мобильной сети.
+    val models = c.speech.models
     val network by models.state.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
     LaunchedEffect(Unit) { translator.refresh() }

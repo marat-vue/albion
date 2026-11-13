@@ -2,11 +2,9 @@ package com.marat.albion.data.repo
 
 import com.marat.albion.data.db.CardEntity
 import com.marat.albion.data.db.LeechHintEntity
-import com.marat.albion.data.library.Translator
-import com.marat.albion.data.translation.Generation
-import com.marat.albion.data.translation.TranslationProtocol
+import com.marat.albion.data.ai.ChatMessage
+import com.marat.albion.data.ai.GroqClient
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.last
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -28,8 +26,8 @@ interface LeechHintStore {
  */
 class LeechHints(
     private val store: LeechHintStore,
-    /** Подсказка → сырой ответ модели. В приложении — Qwen3.5 в слоте [Generation.TASK]. */
-    private val generate: suspend (prompt: String) -> String,
+    /** Запрос → сырой ответ модели. В приложении — Groq. */
+    private val generate: suspend (prompt: List<ChatMessage>) -> String,
     private val clock: () -> Long = System::currentTimeMillis,
 ) {
     private val mutex = Mutex()
@@ -63,27 +61,22 @@ class LeechHints(
     }
 
     companion object {
-        /** Qwen3.5 на устройстве; беседа в слоте [Generation.CHAT] не сбрасывается. */
-        fun onDevice(store: LeechHintStore, translator: Translator) = LeechHints(store, generate = { prompt ->
-            val (file, _) = translator.models.activeModel()
-                ?: error("Установите модель Qwen3.5 в настройках — она придумает подсказку прямо на телефоне.")
-            translator.engine.generate(file, prompt, Generation(Generation.TASK, maxTokens = LeechHintProtocol.MAX_TOKENS,
-                temperature = 0.7f, allowTruncate = true)).last()
+        fun groq(store: LeechHintStore, groq: GroqClient) = LeechHints(store, generate = { prompt ->
+            groq.complete(prompt, LeechHintProtocol.MAX_TOKENS, temperature = 0.7f)
         })
     }
 }
 
 private fun LeechHintEntity.toHint() = LeechHint(mnemonic, LeechHintProtocol.lines(examples), edited)
 
-/** Подсказка для маленькой модели и разбор её ответа по меткам. */
+/** Подсказка для модели и разбор её ответа по меткам. */
 object LeechHintProtocol {
-    const val MAX_TOKENS = 200
-    private const val NO_THINK = "<think>\n\n</think>\n\n"
+    const val MAX_TOKENS = 300
     private val LABEL = Regex("^\\s*[-*]?\\s*(KEY|КЛЮЧ|IMAGE|ОБРАЗ|EN\\s*\\d)\\s*[:：]\\s*(.*)$", RegexOption.IGNORE_CASE)
 
-    private fun data(value: String, limit: Int) = TranslationProtocol.stripControlTokens(value).replace(Regex("\\s+"), " ").trim().take(limit)
+    private fun data(value: String, limit: Int) = value.replace(Regex("\\s+"), " ").trim().take(limit)
 
-    fun prompt(card: CardEntity): String {
+    fun prompt(card: CardEntity): List<ChatMessage> {
         val system = "You help Russian speakers remember English words they keep forgetting. " +
             "Use the given meaning as is, do not change it. Answer with exactly these lines:\n" +
             "KEY: a Russian word or short phrase that sounds like the English word\n" +
@@ -94,19 +87,20 @@ object LeechHintProtocol {
             "No transcription in Cyrillic, no invented etymology, no other text."
         fun task(term: String, ipa: String, pos: String, meaning: String) =
             "Word: $term\nIPA: $ipa\nPart of speech: $pos\nMeaning: $meaning"
-        return "<|im_start|>system\n$system<|im_end|>\n" +
-            "<|im_start|>user\n${task("ship", "/ʃɪp/", "noun", "корабль, судно")}<|im_end|>\n" +
-            "<|im_start|>assistant\n${NO_THINK}KEY: шип\nIMAGE: Огромный корабль напоролся на шип скалы и дал течь.\n" +
-            "EN1: The ship left the harbour at dawn.\nEN2: A ship carries cargo, but sheep eat grass.\nEN3: We travelled to France by ship.<|im_end|>\n" +
-            "<|im_start|>user\n${task(data(card.term, 80), data(card.ipa, 60), data(card.pos, 30), data(card.meaningRu, 200))}<|im_end|>\n" +
-            "<|im_start|>assistant\n$NO_THINK"
+        return listOf(
+            ChatMessage.system(system),
+            ChatMessage.user(task("ship", "/ʃɪp/", "noun", "корабль, судно")),
+            ChatMessage.assistant("KEY: шип\nIMAGE: Огромный корабль напоролся на шип скалы и дал течь.\n" +
+                "EN1: The ship left the harbour at dawn.\nEN2: A ship carries cargo, but sheep eat grass.\nEN3: We travelled to France by ship."),
+            ChatMessage.user(task(data(card.term, 80), data(card.ipa, 60), data(card.pos, 30), data(card.meaningRu, 200))),
+        )
     }
 
     /** Ответ модели → подсказка; null, если меток нет или ни один пример не содержит слово. */
     fun parse(raw: String, term: String): LeechHint? {
         var text = raw.replace(Regex("(?s)<think>.*?</think>"), "")
         if ("<think>" in text) text = text.substringBefore("<think>")
-        text = text.substringBefore("<|im_end|>").substringBefore("<|im_start|>").replace(Regex("[*_#`]+"), "")
+        text = text.replace(Regex("[*_#`]+"), "")
         var key = ""
         var image = ""
         val examples = mutableListOf<String>()

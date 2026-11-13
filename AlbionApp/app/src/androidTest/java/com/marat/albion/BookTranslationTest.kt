@@ -81,7 +81,7 @@ class BookTranslationTest {
                     } }
                     await { it.text?.toString() == automatic }
                     await { it.contentDescription?.toString() == "Powered by Google Translate" }
-                    assertFalse(nodes(instrumentation.uiAutomation.rootInActiveWindow).any { it.text?.contains("Qwen") == true })
+                    assertFalse(nodes(instrumentation.uiAutomation.rootInActiveWindow).any { it.text?.contains("Groq") == true })
                     if (dictionary != null) {
                         click(await { it.contentDescription?.toString()?.startsWith("Значение ·") == true })
                         click(await { it.text?.toString() == dictionary })

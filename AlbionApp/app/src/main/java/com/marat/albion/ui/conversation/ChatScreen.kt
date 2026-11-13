@@ -63,9 +63,8 @@ fun ChatScreen(id: Long, navigator: Navigator) {
     val vm = viewModel(key = "chat-$id") { ChatViewModel(c, context, id) }
     val conversation by vm.conversation.collectAsStateWithLifecycle()
     val messages by vm.messages.collectAsStateWithLifecycle()
-    val model by c.conversations.model.collectAsStateWithLifecycle()
+    val model by c.conversations.status.collectAsStateWithLifecycle()
     val speechModel by c.speech.models.state.collectAsStateWithLifecycle()
-    val loading by c.conversations.loading.collectAsStateWithLifecycle()
     val recording by vm.recorder.recording.collectAsStateWithLifecycle()
     val level by vm.recorder.level.collectAsStateWithLifecycle()
     var menu by remember { mutableStateOf(false) }
@@ -102,7 +101,7 @@ fun ChatScreen(id: Long, navigator: Navigator) {
             }
             if (!WindowInsets.isImeVisible) conversation?.let {
                 ChatContext(Scenario.of(it.scenario).title, it.level,
-                    if (loading) "Загружаю модель…" else if (vm.compacting) "Сжимаю начало беседы…" else null)
+                    if (vm.compacting) "Сжимаю начало беседы…" else null)
             }
             Hairline()
             LazyColumn(Modifier.weight(1f).fillMaxWidth(), state = list, reverseLayout = true,
@@ -157,7 +156,7 @@ fun ChatScreen(id: Long, navigator: Navigator) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                 AppSettingsButton()
             }
-            if (!model.ready) ModelMissingBar("Для ответов нужна модель Qwen3.5") { setup = SetupSheet.Qwen }
+            if (!model.ready) ModelMissingBar("Для ответов нужен ключ Groq", "Добавить") { setup = SetupSheet.Ai }
             ChatComposer(
                 draft = vm.draft, onDraft = vm::edit, busy = vm.busy, recording = recording, level = level,
                 transcribing = vm.transcribing, hintLoading = vm.hintLoading, enabled = model.ready,
@@ -174,8 +173,8 @@ fun ChatScreen(id: Long, navigator: Navigator) {
     }
 
     setup?.let { sheet ->
-        ScrollableSheet(if (sheet == SetupSheet.Qwen) "Модель собеседника" else "Голосовой ввод", { setup = null }) {
-            if (sheet == SetupSheet.Qwen) com.marat.albion.ui.library.TranslationModelControls() else SpeechModelControls()
+        ScrollableSheet(if (sheet == SetupSheet.Ai) "Собеседник · Groq" else "Голосовой ввод", { setup = null }) {
+            if (sheet == SetupSheet.Ai) AiControls() else SpeechModelControls()
         }
     }
     if (renaming) {
@@ -193,7 +192,7 @@ fun ChatScreen(id: Long, navigator: Navigator) {
     )
 }
 
-private enum class SetupSheet { Qwen, Whisper }
+private enum class SetupSheet { Ai, Whisper }
 
 @Composable
 internal fun ChatContext(scenario: String, level: String, status: String? = null) {
@@ -319,12 +318,12 @@ private fun HintCard(hint: String?, onUse: () -> Unit, onDismiss: () -> Unit) {
 }
 
 @Composable
-internal fun ModelMissingBar(text: String, onSetup: () -> Unit) {
+internal fun ModelMissingBar(text: String, action: String = "Установить", onSetup: () -> Unit) {
     Row(Modifier.fillMaxWidth().padding(horizontal = gutter, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
         Icon(AlbionIcons.CloudOff, null, Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.width(10.dp))
         Text(text, Modifier.weight(1f), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        TextButton(onSetup) { Text("Установить") }
+        TextButton(onSetup) { Text(action) }
     }
 }
 

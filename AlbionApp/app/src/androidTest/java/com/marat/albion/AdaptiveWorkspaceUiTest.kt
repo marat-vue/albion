@@ -29,7 +29,7 @@ import com.marat.albion.data.content.Deck
 import com.marat.albion.ui.browse.BrowseScreen
 import com.marat.albion.ui.components.ScrollableSheet
 import com.marat.albion.ui.conversation.SpeechModelControls
-import com.marat.albion.ui.library.TranslationModelControls
+import com.marat.albion.ui.conversation.AiControls
 import com.marat.albion.ui.nav.Navigator
 import com.marat.albion.ui.nav.primaryRoutes
 import com.marat.albion.ui.study.StudyScreen
@@ -82,16 +82,17 @@ class AdaptiveWorkspaceUiTest {
             for (speech in listOf(true, false)) {
                 val dismissed = mutableStateOf(false)
                 show(scenario, "model-$speech") {
-                    ScrollableSheet(if (speech) "Голосовой ввод" else "Модель собеседника", { dismissed.value = true }) {
-                        if (speech) SpeechModelControls() else TranslationModelControls()
+                    ScrollableSheet(if (speech) "Голосовой ввод" else "Собеседник · Groq", { dismissed.value = true }) {
+                        if (speech) SpeechModelControls() else AiControls()
                     }
                 }
-                val label = if (speech) "Голосовой ввод" else "Модель собеседника"
+                val label = if (speech) "Голосовой ввод" else "Собеседник · Groq"
                 await { it.contentDescription?.toString() == "Закрыть: $label" }
-                capture(if (speech) "whisper-panel-top" else "qwen-panel-top")
-                val action = scrollTo { it.text?.toString() in setOf("Загрузить модель", "Повторить загрузку", "Повторить загрузку модели", "Удалить выбранную модель") && usable(it) }
+                capture(if (speech) "whisper-panel-top" else "groq-panel-top")
+                val action = scrollTo { it.text?.toString() in setOf("Загрузить модель", "Повторить загрузку", "Удалить выбранную модель",
+                    "Получить ключ на console.groq.com", "Проверить связь") && usable(it) }
                 assertTrue(bounds(target(action)).height() >= 48 * density)
-                capture(if (speech) "whisper-panel" else "qwen-panel")
+                capture(if (speech) "whisper-panel" else "groq-panel")
                 val close = await { it.contentDescription?.toString() == "Закрыть: $label" }
                 tap(close)
                 instrumentation.waitForIdleSync()

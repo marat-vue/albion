@@ -1,11 +1,8 @@
 package com.marat.albion.data.speech
 
 import android.content.Context
+import android.os.Build
 import androidx.annotation.Keep
-import com.marat.albion.data.translation.LlamaBridge
-import com.marat.albion.data.translation.ModelCatalog
-import com.marat.albion.data.translation.TranslationModel
-import com.marat.albion.data.translation.TranslationModels
 import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -16,9 +13,16 @@ import java.util.concurrent.atomic.AtomicLong
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
-/** whisper.cpp lives in the same native library as llama.cpp. */
+/** whisper.cpp и ggml собраны в одну нативную библиотеку `albion_stt`. */
 @Keep
 object WhisperBridge {
+    private val loadResult by lazy { runCatching { System.loadLibrary("albion_stt") } }
+    fun requireAvailable() {
+        check(Build.SUPPORTED_ABIS.any { it == "arm64-v8a" || it == "x86_64" }) {
+            "Для распознавания речи нужен 64-битный Android (arm64 или x86_64)."
+        }
+        check(loadResult.isSuccess) { "Не удалось загрузить распознавание речи. Установите APK для своего устройства." }
+    }
     external fun nativeLoad(path: String): Long
     /** [words] — one token per line with timing and confidence (see albion_stt.cpp) instead of plain text. */
     external fun nativeTranscribe(handle: Long, request: Long, pcm: FloatArray, threads: Int, prompt: String?, words: Boolean): ByteArray
@@ -27,7 +31,7 @@ object WhisperBridge {
 }
 
 private const val WHISPER_REVISION = "5359861c739e955e79d9a303bcbc70fb988958b1"
-private fun whisper(id: String, title: String, fileName: String, bytes: Long, sha256: String) = TranslationModel(
+private fun whisper(id: String, title: String, fileName: String, bytes: Long, sha256: String) = ModelFile(
     id, title, fileName, bytes, "https://huggingface.co/ggerganov/whisper.cpp/resolve/$WHISPER_REVISION/$fileName", sha256)
 
 /** English-only checkpoints: for an English learner they are more accurate than multilingual ones of the same size. */
@@ -52,7 +56,7 @@ val WHISPER_CATALOG = ModelCatalog(
     customTitle = null, purpose = "Офлайн-распознавание речи для разговорной практики",
     readySummary = "распознаёт речь офлайн", missingSummary = "Модель не установлена · от 60 МБ",
     unavailableSummary = "Голосовой ввод недоступен на этом устройстве",
-    validate = ::requireWhisperModel, requireRuntime = LlamaBridge::requireAvailable,
+    validate = ::requireWhisperModel, requireRuntime = WhisperBridge::requireAvailable,
 )
 
 /**
@@ -60,7 +64,7 @@ val WHISPER_CATALOG = ModelCatalog(
  * The model stays loaded for a few minutes so consecutive voice messages start instantly.
  */
 class SpeechToText(context: Context, private val scope: CoroutineScope) {
-    val models = TranslationModels(context.applicationContext, scope, WHISPER_CATALOG)
+    val models = ModelDownloads(context.applicationContext, scope, WHISPER_CATALOG)
     private val dispatcher = Executors.newSingleThreadExecutor { task -> Thread(task, "albion-whisper").apply { isDaemon = true } }
         .asCoroutineDispatcher()
     private val mutex = Mutex()
@@ -84,7 +88,7 @@ class SpeechToText(context: Context, private val scope: CoroutineScope) {
     private suspend fun recognize(pcm: FloatArray, hint: String, words: Boolean): String = mutex.withLock {
         idle?.cancel()
         try {
-            LlamaBridge.requireAvailable()
+            WhisperBridge.requireAvailable()
             val (file, identity) = models.activeModel() ?: error("Установите модель распознавания речи.")
             require(pcm.size >= 16_000 / 2) { "Запись слишком короткая. Скажите фразу целиком." }
             if (loaded != identity) withContext(dispatcher) {

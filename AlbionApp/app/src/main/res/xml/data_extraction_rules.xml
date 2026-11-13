@@ -2,20 +2,18 @@
 <!--
   Android 12+. Облако: только прогресс и настройки — книги переполнили бы квоту в 25 МБ, и копия перестала бы
   сохраняться целиком. Перенос на новый телефон: книги тоже. Модели в любом случае скачиваются заново:
-  их состояние (qwen_translation, whisper_speech) без самих файлов было бы ложным.
+  их состояние (whisper_speech) без самих файлов было бы ложным. Ключ Groq (groq.xml) не копируется никуда.
 -->
 <data-extraction-rules>
     <cloud-backup>
         <exclude domain="file" path="books/" />
-        <exclude domain="external" path="translation-models/" />
         <exclude domain="external" path="speech-models/" />
-        <exclude domain="sharedpref" path="qwen_translation.xml" />
+        <exclude domain="sharedpref" path="groq.xml" />
         <exclude domain="sharedpref" path="whisper_speech.xml" />
     </cloud-backup>
     <device-transfer>
-        <exclude domain="external" path="translation-models/" />
         <exclude domain="external" path="speech-models/" />
-        <exclude domain="sharedpref" path="qwen_translation.xml" />
+        <exclude domain="sharedpref" path="groq.xml" />
         <exclude domain="sharedpref" path="whisper_speech.xml" />
     </device-transfer>
 </data-extraction-rules>
