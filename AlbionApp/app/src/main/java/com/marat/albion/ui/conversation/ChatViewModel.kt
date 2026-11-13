@@ -39,9 +39,6 @@ class ChatViewModel(private val c: AppContainer, context: Context, val id: Long)
     /** Модель пересказывает раннюю часть беседы. */
     var compacting by mutableStateOf(false); private set
     val checking = mutableStateMapOf<Long, Boolean>()
-    val translating = mutableStateMapOf<Long, Boolean>()
-    /** Открытые переводы реплик собеседника. */
-    val shownTranslations = mutableStateMapOf<Long, Boolean>()
     private var replyJob: Job? = null
     private var hintJob: Job? = null
 
@@ -127,19 +124,6 @@ class ChatViewModel(private val c: AppContainer, context: Context, val id: Long)
             try { repo.check(messageId) } catch (e: CancellationException) { throw e } catch (_: Exception) {
                 // Разбор — дополнение к беседе: при сбое реплика просто останется непроверенной.
             } finally { checking.remove(messageId) }
-        }
-    }
-
-    fun toggleTranslation(message: ConversationMessageEntity) {
-        if (shownTranslations[message.id] == true) { shownTranslations.remove(message.id); return }
-        shownTranslations[message.id] = true
-        if (message.translation != null || translating[message.id] == true) return
-        translating[message.id] = true
-        viewModelScope.launch {
-            try { repo.translate(message.id) } catch (e: CancellationException) { throw e } catch (e: Exception) {
-                shownTranslations.remove(message.id)
-                error = ConversationProtocol.errorMessage(e)
-            } finally { translating.remove(message.id) }
         }
     }
 

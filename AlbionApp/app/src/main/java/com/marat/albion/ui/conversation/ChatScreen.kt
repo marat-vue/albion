@@ -35,7 +35,6 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -72,6 +71,8 @@ fun ChatScreen(id: Long, navigator: Navigator) {
     var deleting by remember { mutableStateOf(false) }
     var setup by remember { mutableStateOf<SetupSheet?>(null) }
     var micDenied by remember { mutableStateOf(false) }
+    /** Выделенное слово или фрагмент реплики: для него открыт перевод ML Kit. */
+    var selection by remember { mutableStateOf<MessageSelection?>(null) }
     val micAccess = rememberMicAccess(onDenied = { micDenied = true })
     val list = rememberLazyListState()
 
@@ -118,23 +119,10 @@ fun ChatScreen(id: Long, navigator: Navigator) {
                 }
                 items(items.asReversed(), key = { it.id }) { message ->
                     Column(quietItem(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        if (message.fromUser) UserBubble(message, vm.checking[message.id] == true) { vm.check(message.id) }
-                        else PartnerBubble(message.text) {
-                            val translating = vm.translating[message.id] == true
-                            if (vm.shownTranslations[message.id] == true) {
-                                if (translating) Text("Перевожу…", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                message.translation?.let {
-                                    Text(it, style = MaterialTheme.typography.bodyMedium.copy(fontStyle = FontStyle.Italic),
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                }
-                            }
-                            Row(Modifier.offset(x = (-10).dp), verticalAlignment = Alignment.CenterVertically) {
-                                TextButton({ vm.toggleTranslation(message) }, contentPadding = PaddingValues(horizontal = 10.dp)) {
-                                    Text(if (vm.shownTranslations[message.id] == true) "Скрыть перевод" else "Перевод",
-                                        style = MaterialTheme.typography.labelMedium)
-                                }
-                            }
-                        }
+                        val selected = selection?.takeIf { it.messageId == message.id }?.range
+                        val onSelect = { range: IntRange, isWord: Boolean -> selection = MessageSelection(message.id, range, isWord) }
+                        if (message.fromUser) UserBubble(message, vm.checking[message.id] == true, selected = selected, onSelect = onSelect) { vm.check(message.id) }
+                        else PartnerBubble(message.text, selected = selected, onSelect = onSelect)
                         // Граница пересказа: реплики выше модель помнит только в кратком изложении.
                         conversation?.takeIf { it.summaryUpTo == message.id && it.summary.isNotBlank() }?.let { SummaryMarker(it.summary) }
                     }
@@ -172,6 +160,12 @@ fun ChatScreen(id: Long, navigator: Navigator) {
         }
     }
 
+    selection?.let { sel ->
+        val message = items.firstOrNull { it.id == sel.messageId }
+        val text = message?.let { sel.text(it.text) }.orEmpty()
+        if (text.isEmpty()) selection = null
+        else com.marat.albion.ui.library.TranslationSheet(text = text, isWord = sel.isWord, onDismiss = { selection = null })
+    }
     setup?.let { sheet ->
         ScrollableSheet(if (sheet == SetupSheet.Ai) "Собеседник · Groq" else "Голосовой ввод", { setup = null }) {
             if (sheet == SetupSheet.Ai) AiControls() else SpeechModelControls()
@@ -209,13 +203,24 @@ internal fun ChatContext(scenario: String, level: String, status: String? = null
 
 /** Реплика собеседника: слева, на поверхности с тонкой рамкой. */
 @Composable
-internal fun PartnerBubble(text: String, modifier: Modifier = Modifier, footer: @Composable ColumnScope.() -> Unit = {}) {
+internal fun PartnerBubble(
+    text: String,
+    modifier: Modifier = Modifier,
+    /** Выделенный фрагмент; [onSelect] null — текст ещё печатается и не выделяется. */
+    selected: IntRange? = null,
+    onSelect: ((IntRange, Boolean) -> Unit)? = null,
+    footer: @Composable ColumnScope.() -> Unit = {},
+) {
     Column(modifier.fillMaxWidth(0.88f).quietContentSize()) {
         Column(Modifier.clip(MaterialTheme.shapes.large)
             .background(MaterialTheme.colorScheme.surfaceContainerLow)
             .border(.75.dp, MaterialTheme.colorScheme.outlineVariant, MaterialTheme.shapes.large)
             .padding(horizontal = 16.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            if (text.isNotEmpty()) Text(text, style = MaterialTheme.typography.bodyLarge)
+            if (text.isNotEmpty()) {
+                if (onSelect == null) Text(text, style = MaterialTheme.typography.bodyLarge)
+                else SelectableMessage(text, MaterialTheme.typography.bodyLarge, MaterialTheme.colorScheme.onSurface,
+                    MaterialTheme.colorScheme.surfaceContainerHighest, selected, onSelect)
+            }
             footer()
         }
     }
@@ -224,7 +229,14 @@ internal fun PartnerBubble(text: String, modifier: Modifier = Modifier, footer: 
 
 /** Реплика ученика: справа, инверсная; под ней — разбор ошибок. */
 @Composable
-private fun UserBubble(message: ConversationMessageEntity, checking: Boolean, modifier: Modifier = Modifier, onCheck: () -> Unit) {
+private fun UserBubble(
+    message: ConversationMessageEntity,
+    checking: Boolean,
+    modifier: Modifier = Modifier,
+    selected: IntRange? = null,
+    onSelect: (IntRange, Boolean) -> Unit = { _, _ -> },
+    onCheck: () -> Unit,
+) {
     Column(modifier.fillMaxWidth(), horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Row(Modifier.fillMaxWidth(0.88f), horizontalArrangement = Arrangement.End) {
             Row(Modifier.clip(MaterialTheme.shapes.large).background(MaterialTheme.colorScheme.primary)
@@ -234,7 +246,8 @@ private fun UserBubble(message: ConversationMessageEntity, checking: Boolean, mo
                     Icon(AlbionIcons.Mic, "Голосом", Modifier.padding(top = 3.dp, end = 8.dp).size(14.dp),
                         tint = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f))
                 }
-                Text(message.text, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onPrimary)
+                SelectableMessage(message.text, MaterialTheme.typography.bodyLarge, MaterialTheme.colorScheme.onPrimary,
+                    MaterialTheme.colorScheme.onPrimary.copy(alpha = .22f), selected, onSelect)
             }
         }
         val correction = message.correction

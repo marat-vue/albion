@@ -109,9 +109,6 @@ interface ConversationDao {
     @Query("UPDATE conversation_messages SET correction = :correction WHERE id = :id")
     suspend fun setCorrection(id: Long, correction: String)
 
-    @Query("UPDATE conversation_messages SET translation = :translation WHERE id = :id")
-    suspend fun setTranslation(id: Long, translation: String)
-
     @Query("DELETE FROM conversation_messages WHERE id >= :fromId AND conversation_id = :conversationId")
     suspend fun deleteFrom(conversationId: Long, fromId: Long)
 

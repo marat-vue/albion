@@ -43,7 +43,7 @@ class AppContainer(context: Context) {
     val translator = com.marat.albion.data.library.Translator(groq)
     val bookTranslator = com.marat.albion.data.library.BookTranslator(appScope)
     val speech = com.marat.albion.data.speech.SpeechToText(context, appScope)
-    val conversations = com.marat.albion.data.conversation.ConversationRepository(database, groq, translator)
+    val conversations = com.marat.albion.data.conversation.ConversationRepository(database, groq)
     val leechHints = com.marat.albion.data.repo.LeechHints.groq(database.leechHints(), groq)
 }
 

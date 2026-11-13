@@ -1,15 +1,15 @@
 package com.marat.albion.data.conversation
 
 import com.marat.albion.data.ai.GroqClient
+import com.marat.albion.data.ai.StrongModelsBusyException
 import com.marat.albion.data.db.AlbionDatabase
 import com.marat.albion.data.db.ConversationEntity
 import com.marat.albion.data.db.ConversationMessageEntity
-import com.marat.albion.data.library.Translator
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 
 /** Разговорная практика: история бесед в Room, ответы, разбор ошибок и подсказки — через Groq. */
-class ConversationRepository(database: AlbionDatabase, private val groq: GroqClient, private val translator: Translator) {
+class ConversationRepository(database: AlbionDatabase, private val groq: GroqClient) {
     private val dao = database.conversations()
     val status get() = groq.status
 
@@ -65,6 +65,8 @@ class ConversationRepository(database: AlbionDatabase, private val groq: GroqCli
     /**
      * Пересказывает самые старые реплики, если история перестала помещаться в бюджет подсказки.
      * Вызывается после ответа и разбора, поэтому не задерживает собеседника. true — беседа сжата.
+     * Пересказ остаётся в беседе навсегда, поэтому его пишут только сильные модели: пока они на паузе,
+     * сжатие откладывается (история временно обрезается), а потом пересказ нагоняется порциями.
      */
     suspend fun compactIfNeeded(conversationId: Long): Boolean {
         val conversation = dao.get(conversationId) ?: return false
@@ -72,8 +74,10 @@ class ConversationRepository(database: AlbionDatabase, private val groq: GroqCli
         val count = ConversationProtocol.compactionSize(history)
         if (count == 0) return false
         val chunk = history.take(count)
-        val raw = groq.complete(ConversationProtocol.summary(Scenario.of(conversation.scenario), conversation.summary, chunk),
-            ConversationProtocol.SUMMARY_TOKENS)
+        val raw = try {
+            groq.complete(ConversationProtocol.summary(Scenario.of(conversation.scenario), conversation.summary, chunk),
+                ConversationProtocol.SUMMARY_TOKENS, strongOnly = true)
+        } catch (_: StrongModelsBusyException) { return false }
         val summary = ConversationProtocol.cleanSummary(raw)
         // Пустой пересказ потерял бы реплики: тогда остаётся обрезка истории, попробуем на следующем ходу.
         if (summary.isBlank()) return false
@@ -100,12 +104,6 @@ class ConversationRepository(database: AlbionDatabase, private val groq: GroqCli
         groq.stream(prompt, ConversationProtocol.HINT_TOKENS, temperature = 0.8f).collect { raw ->
             ConversationProtocol.cleanHint(raw).takeIf { it.isNotBlank() }?.let { emit(it) }
         }
-    }
-
-    suspend fun translate(messageId: Long): String {
-        val message = dao.message(messageId) ?: error("Сообщение удалено.")
-        message.translation?.let { return it }
-        return translator.translate(message.text).also { dao.setTranslation(messageId, it) }
     }
 
     /** Убирает последний ответ собеседника, чтобы получить другой. */

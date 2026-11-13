@@ -78,6 +78,15 @@ class GroqProtocolTest {
         assertEquals(GroqModel.GPT_OSS_120B, ModelLadder.pick(rest, now + 3_600_000))
     }
 
+    @Test fun `summaries skip the weak model and wait for a strong one`() {
+        val now = 1_000_000L
+        val strongResting = GroqModel.entries.filter { it.strong }.associate { it.id to now + 60_000 }
+        assertEquals(GroqModel.ALLAM_7B, ModelLadder.pick(strongResting, now))
+        assertNull(ModelLadder.pick(strongResting, now, strongOnly = true))
+        assertEquals(GroqModel.GPT_OSS_120B, ModelLadder.pick(strongResting, now + 60_000, strongOnly = true))
+        assertEquals(GroqModel.QWEN_27B, ModelLadder.pick(mapOf(GroqModel.GPT_OSS_120B.id to now + 1), now, strongOnly = true))
+    }
+
     @Test fun `rate limit wait comes from the header or the error text`() {
         assertEquals(7_000L, GroqProtocol.waitMs("7", ""))
         assertEquals(432_500L, GroqProtocol.waitMs(null, "Rate limit reached on tokens per day (TPD). Please try again in 7m12.5s. Visit"))

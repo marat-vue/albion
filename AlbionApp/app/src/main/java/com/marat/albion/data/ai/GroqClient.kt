@@ -116,9 +116,13 @@ class GroqClient(private val settings: AiSettings, private val clock: () -> Long
         }
     }.flowOn(Dispatchers.IO)
 
-    /** Ответ целиком. temperature 0 — для разбора ошибок и перевода. */
-    suspend fun complete(messages: List<ChatMessage>, maxTokens: Int, temperature: Float = 0f): String = withContext(Dispatchers.IO) {
-        val connection = connect(messages, maxTokens, temperature, stream = false)
+    /**
+     * Ответ целиком. temperature 0 — для разбора ошибок и перевода. [strongOnly] — только сильные модели:
+     * если они все на паузе, бросает [StrongModelsBusyException], а слабую модель не зовёт.
+     */
+    suspend fun complete(messages: List<ChatMessage>, maxTokens: Int, temperature: Float = 0f,
+                         strongOnly: Boolean = false): String = withContext(Dispatchers.IO) {
+        val connection = connect(messages, maxTokens, temperature, stream = false, strongOnly)
         val stop = disconnectOnCancel(connection)
         try {
             GroqProtocol.content(connection.inputStream.bufferedReader().use { it.readText() })
@@ -135,11 +139,14 @@ class GroqClient(private val settings: AiSettings, private val clock: () -> Long
      * Открывает ответ модели, спускаясь по лестнице при исчерпанных лимитах. Возвращает соединение
      * с кодом 200; ошибки, не связанные с лимитом, сразу уходят наверх.
      */
-    private suspend fun connect(messages: List<ChatMessage>, maxTokens: Int, temperature: Float, stream: Boolean): HttpURLConnection {
+    private suspend fun connect(messages: List<ChatMessage>, maxTokens: Int, temperature: Float, stream: Boolean,
+                                strongOnly: Boolean = false): HttpURLConnection {
         val key = savedKey()
         while (true) {
             val now = clock()
-            val model = settings.state.value.model(now) ?: throw exhausted(now)
+            val rest = settings.state.value.restUntil
+            val model = ModelLadder.pick(rest, now, strongOnly)
+                ?: throw if (strongOnly && ModelLadder.pick(rest, now) != null) StrongModelsBusyException() else exhausted(now)
             val connection = open("chat/completions", key)
             val stop = disconnectOnCancel(connection)
             try {

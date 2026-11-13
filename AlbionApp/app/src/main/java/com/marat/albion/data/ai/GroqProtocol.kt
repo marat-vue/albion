@@ -23,13 +23,15 @@ enum class Reasoning {
 /**
  * Модели бесплатного тарифа Groq, от самой сильной к самой слабой: [ModelLadder] берёт первую,
  * у которой не исчерпан лимит. У каждой модели свой лимит. [context] — окно модели в токенах.
+ * [strong] — модели, которым доверяем долговременное: пересказ беседы остаётся в ней навсегда.
  */
-enum class GroqModel(val id: String, val title: String, val reasoning: Reasoning, val context: Int = 131_072) {
+enum class GroqModel(val id: String, val title: String, val reasoning: Reasoning, val context: Int = 131_072,
+                     val strong: Boolean = true) {
     GPT_OSS_120B("openai/gpt-oss-120b", "GPT-OSS 120B", Reasoning.HIDDEN),
     QWEN_27B("qwen/qwen3.8-27b", "Qwen3.8 27B", Reasoning.SWITCHABLE),
     GPT_OSS_20B("openai/gpt-oss-20b", "GPT-OSS 20B", Reasoning.HIDDEN),
     /** Арабско-английская 7B с окном 4K: последний запас, объяснения по-русски у неё слабые. */
-    ALLAM_7B("allam-2-7b", "ALLaM 2 7B", Reasoning.NONE, context = 4_096),
+    ALLAM_7B("allam-2-7b", "ALLaM 2 7B", Reasoning.NONE, context = 4_096, strong = false),
     ;
 
     companion object {
@@ -43,14 +45,17 @@ open class AiException(message: String) : Exception(message)
 /** Лимит модели исчерпан; снова пробовать через [waitMs]. */
 class RateLimitException(message: String, val waitMs: Long) : AiException(message)
 
+/** Сильные модели на паузе, а задача не доверяется слабой. */
+class StrongModelsBusyException : AiException("Сильные модели Groq отдыхают после лимита. Попробуйте позже.")
+
 /** Модель недоступна этому аккаунту или снята с Groq. */
 class ModelUnavailableException(message: String) : AiException(message)
 
 /** Лестница моделей: самая сильная из тех, что сейчас не отдыхают после исчерпанного лимита. */
 object ModelLadder {
     /** null — лимиты всех моделей исчерпаны. [restUntil] — id модели → до какого момента (мс) её не трогать. */
-    fun pick(restUntil: Map<String, Long>, now: Long): GroqModel? =
-        GroqModel.entries.firstOrNull { (restUntil[it.id] ?: 0L) <= now }
+    fun pick(restUntil: Map<String, Long>, now: Long, strongOnly: Boolean = false): GroqModel? =
+        GroqModel.entries.firstOrNull { (!strongOnly || it.strong) && (restUntil[it.id] ?: 0L) <= now }
 
     /** Когда освободится хоть какая-то модель. */
     fun nextFree(restUntil: Map<String, Long>, now: Long): Long =
